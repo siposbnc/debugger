@@ -1,0 +1,130 @@
+import { UPGRADE_CARDS, CARD_BY_ID } from '../data/upgrades';
+import { WEAPONS, MAX_WEAPON_LEVEL } from '../data/weapons';
+import { RARITY_COLOR, type Rarity, type UpgradeCard } from '../data/types';
+import { weightedIndex } from '../core/util';
+import type { Run } from './run';
+
+// Level-up offers: 3 picks drawn from weapon cards (new / level-up) and stat
+// cards, rarity-weighted with luck shifting weight toward higher tiers.
+
+export interface OfferItem {
+  kind: 'newWeapon' | 'weaponUp' | 'card';
+  id: string;             // weapon id or card id
+  name: string;
+  icon: string;
+  color: string;          // rarity color (cards) or weapon color
+  rarityLabel: string;
+  tagline: string;        // "NEW WEAPON" / "Level 3 → 4" / category
+  desc: string;
+  flavor: string;
+  banishable: boolean;
+}
+
+const RARITY_BASE: Record<Rarity, number> = {
+  common: 50, uncommon: 28, rare: 13, epic: 5, legendary: 1.4,
+};
+
+function rarityWeight(rarity: Rarity, luck: number): number {
+  const base = RARITY_BASE[rarity];
+  switch (rarity) {
+    case 'common': return base / (1 + 0.18 * luck);
+    case 'uncommon': return base;
+    case 'rare': return base * (1 + 0.2 * luck);
+    case 'epic': return base * (1 + 0.32 * luck);
+    case 'legendary': return base * (1 + 0.5 * luck);
+  }
+}
+
+interface Candidate {
+  item: OfferItem;
+  weight: number;
+}
+
+function candidates(run: Run, minRarity?: Rarity): Candidate[] {
+  const out: Candidate[] = [];
+  const rarityFloor: Record<Rarity, number> = { common: 0, uncommon: 1, rare: 2, epic: 3, legendary: 4 };
+  const floor = minRarity ? rarityFloor[minRarity] : 0;
+
+  // Weapon level-ups — weighted heavily so builds actually scale
+  for (const w of run.weapons) {
+    if (w.def.isEvolution || w.level >= MAX_WEAPON_LEVEL) continue;
+    if (floor > 1) continue; // chest bonuses give stat cards, not weapon levels
+    out.push({
+      weight: 70,
+      item: {
+        kind: 'weaponUp', id: w.def.id, name: w.def.name, icon: w.def.icon,
+        color: w.def.color, rarityLabel: 'WEAPON',
+        tagline: `Level ${w.level} → ${w.level + 1}`,
+        desc: w.def.desc, flavor: w.def.flavor, banishable: false,
+      },
+    });
+  }
+
+  // New weapons (if a slot is free)
+  if (run.weapons.length < run.stats.weaponSlots && floor === 0) {
+    const owned = new Set(run.weapons.map((w) => w.def.id));
+    for (const id of run.weaponPool) {
+      if (owned.has(id)) continue;
+      const def = WEAPONS[id];
+      out.push({
+        weight: 30,
+        item: {
+          kind: 'newWeapon', id, name: def.name, icon: def.icon,
+          color: def.color, rarityLabel: 'NEW WEAPON',
+          tagline: 'Adds a weapon slot attack',
+          desc: def.desc, flavor: def.flavor, banishable: false,
+        },
+      });
+    }
+  }
+
+  // Stat cards
+  for (const card of UPGRADE_CARDS) {
+    if (run.banished.has(card.id)) continue;
+    if (rarityFloor[card.rarity] < floor) continue;
+    const taken = run.takenCards.get(card.id) ?? 0;
+    if (taken >= (card.maxStacks ?? 5)) continue;
+    out.push({
+      weight: rarityWeight(card.rarity, run.stats.luck) / 2,
+      item: {
+        kind: 'card', id: card.id, name: card.name, icon: card.icon,
+        color: RARITY_COLOR[card.rarity], rarityLabel: card.rarity.toUpperCase(),
+        tagline: card.category,
+        desc: card.desc, flavor: card.flavor, banishable: true,
+      },
+    });
+  }
+  return out;
+}
+
+export function makeOffer(run: Run, count = 3, minRarity?: Rarity): OfferItem[] {
+  const pool = candidates(run, minRarity);
+  const offer: OfferItem[] = [];
+  while (offer.length < count && pool.length > 0) {
+    const idx = weightedIndex(pool.map((c) => c.weight));
+    offer.push(pool[idx].item);
+    pool.splice(idx, 1);
+  }
+  return offer;
+}
+
+export function applyOffer(run: Run, item: OfferItem): void {
+  if (item.kind === 'newWeapon') {
+    run.addWeapon(item.id);
+  } else if (item.kind === 'weaponUp') {
+    const w = run.weapons.find((x) => x.def.id === item.id);
+    if (w) w.level = Math.min(MAX_WEAPON_LEVEL, w.level + 1);
+  } else {
+    const card = CARD_BY_ID[item.id];
+    if (card) run.applyCard(card);
+  }
+}
+
+/** Boss chest with no evolution available: auto-grant a random rare+ card. */
+export function grantChestCard(run: Run): UpgradeCard | null {
+  const offer = makeOffer(run, 1, 'rare');
+  if (offer.length === 0 || offer[0].kind !== 'card') return null;
+  const card = CARD_BY_ID[offer[0].id];
+  run.applyCard(card);
+  return card;
+}

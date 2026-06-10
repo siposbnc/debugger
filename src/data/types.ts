@@ -1,0 +1,189 @@
+// Shared content types. All game content (weapons, enemies, bosses, cards,
+// characters, maps, meta upgrades, objectives) is plain data conforming to these.
+
+export type Rarity = 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary';
+
+export const RARITY_ORDER: Rarity[] = ['common', 'uncommon', 'rare', 'epic', 'legendary'];
+
+export const RARITY_COLOR: Record<Rarity, string> = {
+  common: '#9fb4c7',
+  uncommon: '#41d97f',
+  rare: '#3fa9ff',
+  epic: '#c45bff',
+  legendary: '#ffc12e',
+};
+
+/** Additive stat modifiers. Percent-like fields are fractions (0.1 = +10%). */
+export interface StatMods {
+  maxHp?: number;          // flat HP
+  regen?: number;          // HP per second
+  armor?: number;          // flat damage reduction per hit/tick
+  speed?: number;          // +% move speed
+  damage?: number;         // +% weapon damage
+  cooldown?: number;       // +% cooldown reduction (capped)
+  area?: number;           // +% effect area/size
+  projectiles?: number;    // +flat extra projectiles
+  critChance?: number;     // +flat crit chance (0.05 = 5%)
+  critMult?: number;       // +flat crit damage multiplier
+  pickupRadius?: number;   // flat world units
+  xpGain?: number;         // +% XP
+  luck?: number;           // shifts rarity weights upward
+  rerolls?: number;        // +flat per-run
+  banishes?: number;
+  skips?: number;
+}
+
+export interface UpgradeCard {
+  id: string;
+  name: string;
+  rarity: Rarity;
+  category: string;
+  icon: string;     // single glyph/emoji rendered on the card
+  desc: string;     // mechanical effect, plain language
+  flavor: string;   // the joke
+  mods: StatMods;
+  /** Max times this card may be offered/taken in one run (default 5). */
+  maxStacks?: number;
+}
+
+export type WeaponKind =
+  | 'bolt'       // projectile at nearest enemy
+  | 'shockwave'  // expanding ring around player
+  | 'orbit'      // persistent orbiting blades
+  | 'sweep'      // melee arc in facing direction
+  | 'chain'      // instant beam chaining between enemies
+  | 'column'     // eruptions at random nearby enemies
+  | 'pet'        // familiar that shoots
+  | 'snipe';     // piercing slowing shot
+
+export interface WeaponLevelStats {
+  damage: number;
+  cooldown: number;   // seconds
+  count: number;      // projectiles / blades / columns / pets / chain hits
+  area: number;       // radius or size multiplier basis (world units)
+  speed: number;      // projectile speed (where relevant)
+  duration: number;   // lingering effect time (where relevant)
+  pierce: number;
+  slow: number;       // slow fraction applied to victims (0.4 = 40% slower)
+}
+
+export interface WeaponDef {
+  id: string;
+  name: string;
+  kind: WeaponKind;
+  icon: string;
+  color: string;
+  desc: string;
+  flavor: string;
+  evolveTo?: string;      // weapon id this evolves into at max level via boss chest
+  isEvolution?: boolean;
+  levels: WeaponLevelStats[];   // index 0 = level 1
+}
+
+export type EnemyBehavior = 'chase' | 'charge' | 'jitter';
+
+export interface EnemyDef {
+  id: string;
+  name: string;
+  codexDesc: string;
+  hp: number;
+  speed: number;
+  damage: number;      // contact damage per second
+  radius: number;      // world units
+  xp: number;
+  bits: number;
+  color: string;
+  shape: 'mite' | 'tick' | 'wasp' | 'leech' | 'spider' | 'beetle' | 'scarab' | 'centipede';
+  behavior: EnemyBehavior;
+  /** spawn in clusters of N (Cache Tick) */
+  cluster?: number;
+  explodeOnDeath?: boolean;
+  slowAura?: boolean;     // slows the player when near (Deadlock Scarab)
+  drain?: boolean;        // extra close-range damage + heals itself (Memory Leech)
+  duplicates?: boolean;   // occasionally spawns a short-lived copy (Race Condition Spider)
+}
+
+export type BossMechanic = 'split' | 'pools' | 'burst' | 'summon' | 'phase';
+
+export interface BossDef {
+  id: string;
+  name: string;
+  codexDesc: string;
+  hp: number;          // base, scaled by tier
+  speed: number;
+  damage: number;      // contact dps
+  radius: number;
+  color: string;
+  mechanic: BossMechanic;
+  mechanicDesc: string;
+}
+
+export interface CharacterDef {
+  id: string;
+  name: string;
+  archetype: string;
+  desc: string;
+  weapon: string;          // starting weapon id
+  passiveDesc: string;
+  mods: StatMods;
+  special?: 'turrets' | 'helpers' | 'eliteCrit';
+  cost: number;            // Bits to unlock (0 = starter)
+  color: string;
+  icon: string;
+}
+
+export interface SpawnPhase {
+  fromMin: number;                       // active from this minute
+  interval: number;                      // base seconds between spawns
+  weights: Record<string, number>;       // enemyId -> weight
+}
+
+export interface MapDef {
+  id: string;
+  name: string;
+  desc: string;
+  bitsMult: number;
+  cost: number;                          // Bits to unlock (0 = starter)
+  palette: {
+    ground1: string;
+    ground2: string;
+    grid: string;
+    accent: string;
+    fog: string;
+  };
+  hazardPools?: boolean;                 // toxic slow pools scattered on the field
+  spawnPlan: SpawnPhase[];
+  bossOrder: string[];                   // boss ids, cycled with scaling after the list ends
+}
+
+export interface MetaUpgradeDef {
+  id: string;
+  name: string;
+  desc: string;       // per-level effect
+  icon: string;
+  maxLevel: number;
+  baseCost: number;
+  costGrowth: number; // cost = baseCost * costGrowth^level
+  modsPerLevel?: StatMods;
+  special?: 'weaponSlot' | 'bossReward' | 'startBits';
+}
+
+/** Snapshot of a finished (or ongoing) run for objectives + Bits scoring. */
+export interface RunStatsView {
+  timeSec: number;
+  kills: number;
+  level: number;
+  bossKills: number;
+  xpCollected: number;
+  evolvedWeapons: number;
+  victory: boolean;
+  characterId: string;
+  mapId: string;
+}
+
+export interface ObjectiveDef {
+  id: string;
+  name: string;
+  desc: string;
+  check: (s: RunStatsView) => boolean;
+}
