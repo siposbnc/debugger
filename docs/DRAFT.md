@@ -17,16 +17,21 @@ into [ROADMAP.md](../ROADMAP.md), and moves them to **Processed** below.
 
 ---
 
-## Processed → resolved, no roadmap item needed (2026-06-11, batch 8)
+## Processed → ROADMAP.md (2026-06-12, batch 9)
 
-- build-verifier / sim-verifier agents not found → **investigated, nothing to restore**: both files are intact, valid (correct frontmatter) and committed in `.claude/agents/` (a918598, 20:34). Claude Code loads subagent definitions **only at session start** — `/clear` does not re-scan them, and there is no runtime reload command (confirmed against the official subagents docs). The session that reported them missing was started before the registry picked them up. **Fix: restart the Claude Code session** — the agents will appear automatically. Until then, sessions fall back to running build/sim verification inline.
+- Later balance patch (per-weapon) → **new v0.3 section "Weapon balance patch"** (P2, after the +4 weapons land so the pass covers the full arsenal once): (1) **single-weapon scenarios** — a checked-in solo-weapon preset per weapon + a comparison sweep (kill rate / boss TTK / mortal win rate under identical conditions); the `--scenario` + `replaceWeapons` tooling shipped 2026-06-12, this is authoring + a report harness, and new weapons get a preset as their acceptance test; (2) **risk-adjusted equalization** — risk tiers defined in BALANCE.md first (`garbageCollector` self-endangering vs `syntaxWand` safe poke), higher risk earns a higher ceiling, verified at *both* low- and high-scaling checkpoints so risk premiums don't compound with scaling upgrades into late-game dominance (exactly the draft's worry). Per user instruction, the existing **Assertion Blades + CDR outlier item moved from v0.2 into this patch** — the risk-tier framing decides how much of its edge is legitimate
 
 <details>
-<summary>Batch 8 — original notes (kept for reference)</summary>
+<summary>Batch 9 — original notes (kept for reference)</summary>
 
-### Dev env ideas
+### Draft ideas
 
-- build-verifier and sim-verifier agents are not found. investigate what happened and restore them
+- later balance patch
+    - simulation scenario for each weapon (player uses only 1 weapon)
+    - all weapons should be near equally balanced (can never reach true balance due to the uniqueness of weapons)
+    - take into account how the weapon should be used
+        - `garbageCollector` is a much more risky weapon than a  `syntaxWand` for example
+        - higher risk should yield higher reward but shouldn't be overpowered on later levels and with other scaling upgrades
 
 </details>
 
