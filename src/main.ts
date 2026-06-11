@@ -210,6 +210,14 @@ function frame(now: number): void {
   renderer.render(state === 'summary' ? null : run, map, state === 'menu');
 }
 
+// A visible-but-unfocused window keeps ticking rAF while core/input clears all
+// held keys on blur — the player stands still and dies. Auto-pause instead.
+// (A hidden tab is already safe: rAF stops, the simulation freezes.) The
+// visibilitychange pause makes the freeze explicit: returning players see the
+// pause menu, not a snapshot. Turbo runs are unattended by design — never pause.
+window.addEventListener('blur', () => { if (!TURBO) pause(); });
+document.addEventListener('visibilitychange', () => { if (document.hidden && !TURBO) pause(); });
+
 initInput();
 // dev: ?autostart skips the menu straight into a run (combine with ?turbo)
 if (new URLSearchParams(location.search).has('autostart')) {
