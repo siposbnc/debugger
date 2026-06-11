@@ -32,8 +32,8 @@ No new content — only feel, clarity and robustness.
 - [x] [P1] (S) Damage-number cap / merge when >40 on screen (legibility past minute 10) — *done: above 40 numbers, new damage merges into the nearest live number (value accumulates, crit upgrades, life refreshed); falls back to recycling the oldest slot*
 - [x] [P1] (S) Off-screen boss indicator arrow (boss alive but out of view) — *done: pulsing edge marker in boss color (⚠ disc + rim arrowhead), clamped below the XP bar; handles multiple bosses incl. split halves*
 - [x] [P1] (S) Show version number on the main menu — *done: `__APP_VERSION__` injected from package.json via Vite `define`, rendered bottom-right (`.version-tag`); single source of truth, follows the release version bump automatically*
-- [ ] [P1] (S) Run summary split: objectives/achievements block visually separated (divider) from the itemized Bits-by-stat breakdown
-- [ ] [P1] (S) Health bar above the player character (toggleable in settings, default on)
+- [x] [P1] (S) Run summary split: objectives/achievements block visually separated (divider) from the itemized Bits-by-stat breakdown — *done: `.summary-divider` ("BITS BREAKDOWN" label + rule) between run stats/objectives and the per-stat rows*
+- [x] [P1] (S) Health bar above the player character (toggleable in settings, default on) — *done: 34px bar above the sprite, green → red below 35% HP (matches HUD threshold); `settings.playerHpBar` toggle in ~/.debuggerrc, pure field addition so old saves need no migration*
 - [ ] [P2] (S) Heal feedback: green floating number + brief glow on the player whenever HP is restored (coffee, Heap Purifier, regen ticks ≥1)
 - [ ] [P2] (S) Bug database: render entity sprite thumbnails next to entries (sprites are procedural — draw to offscreen canvas once, cache)
 - [ ] [P2] (S) Bug database: lifetime player stats page — accumulated uptime, total kills, total Bits earned, runs played, victories, bosses slain, favorite weapon
@@ -223,3 +223,4 @@ Parking lot — promote into a milestone before working on these.
 - 2026-06-11 — Save-data versioning + migration shim: SAVE_VERSION + per-step MIGRATIONS table ahead of the defaults merge; downgrades preserve newer saves untouched
 - 2026-06-11 — Branch policy correction: work pushed to `dev` from now on (main left as-is per user). Draft batch 2 processed: shield system + boss-timer meta + hardcore objectives into v0.3; evolved-weapon re-offer bug triaged and fixed same session. Sim variance note: ada samples 524–2154 Bits across 5 runs (incl. a 524 floor below the previously observed band) — strengthens the case for the P1 simulator-matrix item
 - 2026-06-11 — Draft batch 3: held-key spam through level-up (kbnav regression) fixed same day via per-key auto-repeat gating; "simulation scenarios" preconfig idea added to Dev tooling (P2)
+- 2026-06-11 — Draft batch 4 processed (terrain/obstacles → v0.3 P2 vertical slice; FPS counter → v0.2 P2). Two P1 UX items shipped: run-summary divider before the Bits breakdown, player health bar with settings toggle. Verified via build + sim (ada 1279 Bits, within known variance) + Playwright screenshots (bar renders, toggle flips, divider shows)
