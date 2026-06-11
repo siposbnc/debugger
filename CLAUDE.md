@@ -10,7 +10,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 - **[ROADMAP.md](ROADMAP.md) is the source of truth** for what to work on. At session start, read it; pick the top `[P1]` item in the current milestone unless told otherwise. P1 bugs in "Known issues" come before feature work. Check items off and append to its Progress log when done.
 - **`docs/DRAFT.md`** is the user's raw-idea scratch pad. If it has unprocessed entries: refine them, integrate into ROADMAP.md with priorities/proposals, then move them (verbatim) under the draft's "Processed" section.
-- **On milestone release**: bump `package.json` version, tag, remove the milestone section from ROADMAP.md and rewrite it as a past-tense entry in [CHANGELOG.md](CHANGELOG.md).
+- **Branches**: `main` is for releases only — all work happens on `dev`. While on `dev`, `package.json` version carries a `-dev` suffix (e.g. `0.2.0-dev`); drop the suffix when `dev` is merged into `main` for a release.
+- **On milestone release**: merge `dev` into `main`, strip the `-dev` suffix from `package.json` version, tag, remove the milestone section from ROADMAP.md and rewrite it as a past-tense entry in [CHANGELOG.md](CHANGELOG.md). Then bump `dev` to the next version with `-dev` suffix.
 - **Git**: commit often — one commit per logical fix/feature as you go, not one batch commit per session. Push to `origin` when the session's work is done and verified (build + sim pass).
 - Design rationale lives in `docs/DESIGN.md` (incl. balance targets in §27); the original brief is `Debugger_Game_Design_Brief.md`.
 
