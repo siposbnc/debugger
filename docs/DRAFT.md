@@ -9,7 +9,7 @@ into [ROADMAP.md](../ROADMAP.md), and moves them to **Processed** below.
 
 ## Dev env ideas
 
-*(empty)*
+- add docker support, so the game can be run in an isolated environment without interrupting Claude's work and to avoid vite's hot reload
 
 ## Bugs
 

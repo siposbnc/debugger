@@ -106,6 +106,7 @@ export type RunEvent =
   | { type: 'explosion'; x: number; y: number; radius: number; color: string }
   | { type: 'shoot' }
   | { type: 'hurt' }
+  | { type: 'heal'; x: number; y: number; amount: number }
   | { type: 'pickupXp' }
   | { type: 'pickupHp' }
   | { type: 'levelup' }
@@ -143,6 +144,7 @@ export class Run {
   hp: number;
   faceX = 1; faceY = 0;
   hurtFlash = 0;
+  healAccum = 0; // sub-1HP heals (regen ticks) pool here until a whole point is shown
   playerSlow = 1;     // recomputed each frame (scarab aura, marsh pools)
   invincible = false; // turbo/debug
   // State-injection hook (dev console, future sim scenarios): weapon/card ids
@@ -296,7 +298,15 @@ export class Run {
   }
 
   healPlayer(amount: number): void {
-    this.hp = clamp(this.hp + amount, 0, this.stats.maxHp);
+    const healed = Math.min(amount, this.stats.maxHp - this.hp);
+    if (healed <= 0 || this.over) return; // full HP / dead: no heal, no feedback
+    this.hp += healed;
+    this.healAccum += healed;
+    if (this.healAccum >= 1) {
+      const shown = Math.floor(this.healAccum);
+      this.healAccum -= shown;
+      this.emit({ type: 'heal', x: this.px, y: this.py, amount: shown });
+    }
   }
 
   statsView(): RunStatsView {

@@ -13,7 +13,7 @@ import {
 const TILE = 56;
 
 interface Particle { x: number; y: number; z: number; vx: number; vy: number; vz: number; life: number; maxLife: number; color: string; size: number; }
-interface DamageNum { x: number; y: number; value: number; life: number; crit: boolean; }
+interface DamageNum { x: number; y: number; value: number; life: number; crit: boolean; heal?: boolean; }
 interface Ring { x: number; y: number; radius: number; t: number; dur: number; color: string; }
 interface Arc { x: number; y: number; angle: number; radius: number; full: boolean; t: number; dur: number; color: string; }
 interface Beam { points: { x: number; y: number }[]; t: number; dur: number; color: string; }
@@ -28,6 +28,7 @@ export class Renderer {
   shakeEnabled = true;
   playerHpBarEnabled = true;
   flash = 0; // screen flash on level up
+  healGlow = 0; // green player glow while HP restores
 
   particles: Particle[] = [];
   damageNums: DamageNum[] = [];
@@ -90,6 +91,7 @@ export class Renderer {
           let best: DamageNum | null = null;
           let bestD = 120;
           for (const d of this.damageNums) {
+            if (d.heal) continue; // never fold enemy damage into a heal number
             const dd = Math.abs(d.x - ev.x) + Math.abs(d.y - ev.y);
             if (dd < bestD) { best = d; bestD = dd; }
           }
@@ -130,6 +132,11 @@ export class Renderer {
         this.shake(3);
         break;
       case 'hurt': this.shake(2.5); break;
+      case 'heal':
+        // Rare (≤ ~1/s) so it bypasses the 40-number merge cap.
+        this.damageNums.push({ x: ev.x, y: ev.y, value: ev.amount, life: 0.8, crit: false, heal: true });
+        this.healGlow = 0.35;
+        break;
       case 'levelup': this.flash = 0.35; break;
       case 'bossWarning':
         this.banner('⚠ BOSS INCOMING ⚠', ev.name, '#ff5e5e', 4);
@@ -173,6 +180,7 @@ export class Renderer {
     this.t += dt;
     this.shakeMag *= Math.pow(0.0001, dt);
     this.flash = Math.max(0, this.flash - dt * 1.6);
+    this.healGlow = Math.max(0, this.healGlow - dt);
     for (const list of [this.rings, this.arcs, this.beams, this.columns] as { t: number; dur: number }[][]) {
       for (let i = list.length - 1; i >= 0; i--) {
         list[i].t += dt;
@@ -444,7 +452,14 @@ export class Renderer {
           ctx.beginPath(); ctx.ellipse(s.x, s.y, 14, 7, 0, 0, 7); ctx.fill();
           const sprite = playerSprite(run.character.color);
           ctx.save();
-          if (run.hurtFlash > 0.1) ctx.filter = 'brightness(1.8) sepia(0.5) hue-rotate(-50deg)';
+          if (run.hurtFlash > 0.1) {
+            ctx.filter = 'brightness(1.8) sepia(0.5) hue-rotate(-50deg)';
+          } else if (this.healGlow > 0.05) {
+            // sepia pushes hue to ~40°, +80° lands on green — mirror of the hurt tint
+            ctx.filter = 'brightness(1.4) sepia(0.4) hue-rotate(80deg)';
+            ctx.shadowColor = '#41d97f';
+            ctx.shadowBlur = 18 * (this.healGlow / 0.35);
+          }
           const flip = run.faceX - run.faceY < 0; // facing screen-left
           if (flip) { ctx.translate(s.x, 0); ctx.scale(-1, 1); ctx.translate(-s.x, 0); }
           ctx.drawImage(sprite, s.x - sprite.width / 4, s.y - sprite.height / 2 - 6, sprite.width / 2, sprite.height / 2);
@@ -605,11 +620,11 @@ export class Renderer {
     for (const d of this.damageNums) {
       const s = this.proj(d.x, d.y);
       ctx.globalAlpha = clamp(d.life / 0.4, 0, 1);
-      ctx.font = d.crit ? 'bold 22px VT323, monospace' : '17px VT323, monospace';
-      ctx.fillStyle = d.crit ? '#ffc12e' : '#e8f4ff';
+      ctx.font = d.crit ? 'bold 22px VT323, monospace' : d.heal ? 'bold 18px VT323, monospace' : '17px VT323, monospace';
+      ctx.fillStyle = d.crit ? '#ffc12e' : d.heal ? '#41d97f' : '#e8f4ff';
       ctx.strokeStyle = 'rgba(0,0,0,0.8)';
       ctx.lineWidth = 3;
-      const txt = d.crit ? `${d.value}!` : `${d.value}`;
+      const txt = d.crit ? `${d.value}!` : d.heal ? `+${d.value}` : `${d.value}`;
       ctx.strokeText(txt, s.x, s.y - 30);
       ctx.fillText(txt, s.x, s.y - 30);
     }
