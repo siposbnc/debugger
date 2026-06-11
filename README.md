@@ -56,4 +56,5 @@ src/save/    localStorage persistence
 docs/        full game design document
 ```
 
-See [docs/DESIGN.md](docs/DESIGN.md) for the complete design package.
+See [docs/DESIGN.md](docs/DESIGN.md) for the complete design package,
+[ROADMAP.md](ROADMAP.md) for what's next, and [CHANGELOG.md](CHANGELOG.md) for what shipped.
