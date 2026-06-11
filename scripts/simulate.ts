@@ -4,15 +4,16 @@
 //
 //   npx esbuild scripts/simulate.ts --bundle --platform=node --outfile=scripts/simulate.cjs
 //   node scripts/simulate.cjs
+//
+// Bot behavior (auto-pick, chests, movement) lives in simBot.ts, shared with matrix.ts.
 
 import { Run } from '../src/game/run';
-import { makeOffer, applyOffer, grantChestCard } from '../src/game/levelup';
 import { CHARACTERS } from '../src/data/characters';
 import { MAPS } from '../src/data/maps';
 import { DEFAULT_WEAPON_POOL } from '../src/data/weapons';
 import { formatTime } from '../src/core/util';
+import { STEP, botStep } from './simBot';
 
-const STEP = 1 / 60;
 // usage: node simulate.cjs [characterId] [mapId] [maxMinutes]
 const charId = process.argv[2] ?? 'ada';
 const mapId = process.argv[3] ?? 'greenfield';
@@ -30,40 +31,8 @@ run.hurtPlayer = (amount: number) => { damageTaken += amount; originalHurt(amoun
 while (!run.over && run.time < maxMinutes * 60) {
   run.update(STEP);
 
-  // auto-pick first card on level up
-  while (run.pendingLevelUps > 0) {
-    const offer = makeOffer(run);
-    if (offer.length === 0) { run.pendingLevelUps = 0; break; }
-    applyOffer(run, offer[0]);
-    run.pendingLevelUps--;
-  }
-  if (run.chestBonus) {
-    run.chestBonus = false;
-    const card = grantChestCard(run);
-    if (card) console.log(`  [${formatTime(run.time)}] chest bonus card: ${card.name}`);
-  }
-
-  // bot movement: head for chests, otherwise kite in a wide circle like a player
-  const chest = run.pickups.find((p) => p.kind === 'chest');
-  const speed = run.stats.moveSpeed * run.playerSlow;
-  if (chest) {
-    const dx = chest.x - run.px, dy = chest.y - run.py;
-    const d = Math.hypot(dx, dy) || 1;
-    run.px += (dx / d) * speed * STEP;
-    run.py += (dy / d) * speed * STEP;
-  } else {
-    // orbit the boss if one is alive (players focus bosses), else kite a circle
-    const boss = run.enemies.find((e) => e.isBoss);
-    const ang = (run.time / 14) * Math.PI * 2; // one lap every 14s
-    const cx = boss ? boss.x : 0, cy = boss ? boss.y : 0;
-    const r = boss ? 190 : 280;
-    const tx = cx + Math.cos(ang) * r, ty = cy + Math.sin(ang) * r;
-    const dx = tx - run.px, dy = ty - run.py;
-    const d = Math.hypot(dx, dy) || 1;
-    const step = Math.min(d, speed * STEP);
-    run.px += (dx / d) * step;
-    run.py += (dy / d) * step;
-  }
+  const chestCard = botStep(run);
+  if (chestCard) console.log(`  [${formatTime(run.time)}] chest bonus card: ${chestCard}`);
 
   for (const ev of run.events) {
     if (ev.type === 'bossSpawn') console.log(`  [${formatTime(run.time)}] BOSS SPAWN: ${ev.name}`);
