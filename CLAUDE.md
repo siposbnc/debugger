@@ -21,7 +21,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ```bash
 npm run dev        # Vite dev server → http://localhost:5173
-npm run build      # tsc (type check) && vite build → dist/
+npm run build      # tsc (type check) && vite build → dist/ (prod: dev console excluded)
+npm run build:dev  # dev-configured build (--mode dev): window.dbg dev console compiled in
 ```
 
 There are no unit tests or linter; `tsc` via `npm run build` is the static check. Verification is simulation-based:
@@ -35,7 +36,7 @@ npx esbuild scripts/simulate.ts --bundle --platform=node --outfile=scripts/simul
 npx esbuild scripts/offerTest.ts --bundle --platform=node --outfile=scripts/offerTest.cjs && node scripts/offerTest.cjs
 ```
 
-In-browser dev flags: `?autostart` skips the menu into a run; `?autostart&turbo` = 6× speed, invincible, auto-picked cards (for watching balance live).
+In-browser dev flags: `?autostart` skips the menu into a run; `?autostart&turbo` = 6× speed, invincible, auto-picked cards (for watching balance live). On dev builds, `window.dbg` (browser console) manipulates the live run — `dbg.help()` lists the API (`bits`, `offer`, `give`, `level`, `xp`, `god`, `time`, `list`); verified by `scripts/devtoolsTest.mjs` (Playwright, needs a served `build:dev` output).
 
 After any gameplay/content/balance change, run the simulator and check against the "Balance watchlist" in ROADMAP.md (kill rate ≥ spawn rate before min 6, first-boss TTK 60–100s, Bits/run bands).
 

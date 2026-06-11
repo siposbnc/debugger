@@ -145,6 +145,9 @@ export class Run {
   hurtFlash = 0;
   playerSlow = 1;     // recomputed each frame (scarab aura, marsh pools)
   invincible = false; // turbo/debug
+  // State-injection hook (dev console, future sim scenarios): weapon/card ids
+  // that makeOffer() returns verbatim — instead of drawing — then clears.
+  forcedOffer: string[] | null = null;
 
   stats: ComputedStats;
   cardMods: StatMods[] = [];

@@ -53,6 +53,46 @@ interface Candidate {
   weight: number;
 }
 
+function weaponUpItem(w: Run['weapons'][number]): OfferItem {
+  return {
+    kind: 'weaponUp', id: w.def.id, name: w.def.name, icon: w.def.icon,
+    color: w.def.color, rarityLabel: 'WEAPON',
+    tagline: `Level ${w.level} → ${w.level + 1}`,
+    desc: w.def.desc, flavor: w.def.flavor, banishable: false,
+  };
+}
+
+function newWeaponItem(id: string): OfferItem {
+  const def = WEAPONS[id];
+  return {
+    kind: 'newWeapon', id, name: def.name, icon: def.icon,
+    color: def.color, rarityLabel: 'NEW WEAPON',
+    tagline: 'Adds a weapon slot attack',
+    desc: def.desc, flavor: def.flavor, banishable: false,
+  };
+}
+
+function cardItem(card: UpgradeCard): OfferItem {
+  return {
+    kind: 'card', id: card.id, name: card.name, icon: card.icon,
+    color: RARITY_COLOR[card.rarity], rarityLabel: card.rarity.toUpperCase(),
+    tagline: card.category,
+    desc: card.desc, flavor: card.flavor, banishable: true,
+  };
+}
+
+/** Offer item for a raw weapon/card id (forced offers): owned weapon → level-up,
+ *  unowned weapon → new weapon, card id → card. Null if unknown or weapon maxed. */
+function offerItemFor(run: Run, id: string): OfferItem | null {
+  if (WEAPONS[id]) {
+    const owned = run.weapons.find((w) => w.def.id === id);
+    if (owned) return owned.level >= MAX_WEAPON_LEVEL ? null : weaponUpItem(owned);
+    return newWeaponItem(id);
+  }
+  const card = CARD_BY_ID[id];
+  return card ? cardItem(card) : null;
+}
+
 function candidates(run: Run, minRarity?: Rarity): Candidate[] {
   const out: Candidate[] = [];
   const rarityFloor: Record<Rarity, number> = { common: 0, uncommon: 1, rare: 2, epic: 3, legendary: 4 };
@@ -62,15 +102,7 @@ function candidates(run: Run, minRarity?: Rarity): Candidate[] {
   for (const w of run.weapons) {
     if (w.def.isEvolution || w.level >= MAX_WEAPON_LEVEL) continue;
     if (floor > 1) continue; // chest bonuses give stat cards, not weapon levels
-    out.push({
-      weight: 70 * Math.pow(WEAPON_LEVEL_DECAY, w.level),
-      item: {
-        kind: 'weaponUp', id: w.def.id, name: w.def.name, icon: w.def.icon,
-        color: w.def.color, rarityLabel: 'WEAPON',
-        tagline: `Level ${w.level} → ${w.level + 1}`,
-        desc: w.def.desc, flavor: w.def.flavor, banishable: false,
-      },
-    });
+    out.push({ weight: 70 * Math.pow(WEAPON_LEVEL_DECAY, w.level), item: weaponUpItem(w) });
   }
 
   // New weapons (if a slot is free)
@@ -82,15 +114,7 @@ function candidates(run: Run, minRarity?: Rarity): Candidate[] {
       // An evolved instance carries the evolution's id, not the base weapon's —
       // don't re-offer the base while its evolution is owned.
       if (def.evolveTo && owned.has(def.evolveTo)) continue;
-      out.push({
-        weight: 30,
-        item: {
-          kind: 'newWeapon', id, name: def.name, icon: def.icon,
-          color: def.color, rarityLabel: 'NEW WEAPON',
-          tagline: 'Adds a weapon slot attack',
-          desc: def.desc, flavor: def.flavor, banishable: false,
-        },
-      });
+      out.push({ weight: 30, item: newWeaponItem(id) });
     }
   }
 
@@ -107,12 +131,7 @@ function candidates(run: Run, minRarity?: Rarity): Candidate[] {
     const picks = run.takenCards.get(card.id) ?? 0;
     out.push({
       weight: base * Math.max(Math.pow(REPEAT_DECAY, picks), REPEAT_FLOOR),
-      item: {
-        kind: 'card', id: card.id, name: card.name, icon: card.icon,
-        color: RARITY_COLOR[card.rarity], rarityLabel: card.rarity.toUpperCase(),
-        tagline: card.category,
-        desc: card.desc, flavor: card.flavor, banishable: true,
-      },
+      item: cardItem(card),
     });
   }
   return out;
@@ -140,6 +159,14 @@ export function offerOdds(run: Run): OfferOdds {
 }
 
 export function makeOffer(run: Run, count = 3, minRarity?: Rarity): OfferItem[] {
+  // Forced offer (dev console / sim scenarios): consumed by the first draw,
+  // so a reroll falls back to a normal weighted offer.
+  if (run.forcedOffer) {
+    const ids = run.forcedOffer;
+    run.forcedOffer = null;
+    const forced = ids.map((id) => offerItemFor(run, id)).filter((x): x is OfferItem => x !== null);
+    if (forced.length > 0) return forced;
+  }
   const pool = candidates(run, minRarity);
   const offer: OfferItem[] = [];
   while (offer.length < count && pool.length > 0) {

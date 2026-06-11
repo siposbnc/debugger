@@ -19,6 +19,13 @@ jobs:
       - run: npm ci
       - name: Type check + build
         run: npm run build
+      - name: Prod build must not ship the dev console
+        run: |
+          ! grep -rq "Debugger dev console" dist/
+      - name: Dev-mode build must include the dev console
+        run: |
+          npx vite build --mode dev --outDir dist-dev
+          grep -rq "Debugger dev console" dist-dev/
       - name: Card-offer distribution assertions
         run: |
           npx esbuild scripts/offerTest.ts --bundle --platform=node --outfile=scripts/offerTest.cjs

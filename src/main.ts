@@ -25,6 +25,13 @@ let run: Run | null = null;
 // dev/balance verification mode: ?turbo → 6x speed, invincible, auto-pick cards
 const TURBO = new URLSearchParams(location.search).has('turbo');
 
+// Dev console (window.dbg): dev server + `npm run build:dev` only. __DEV_TOOLS__
+// is a compile-time define — prod builds turn this into `if (false)` and the
+// dynamic import (with the whole src/dev/ chunk) is eliminated from dist/.
+if (__DEV_TOOLS__) {
+  import('./dev/devtools').then((m) => m.installDevTools({ getRun: () => run, save }));
+}
+
 function applySettings(): void {
   sound.sfxVolume = save.settings.sfx;
   sound.musicVolume = save.settings.music;
