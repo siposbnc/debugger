@@ -42,6 +42,7 @@ No new content — only feel, clarity and robustness.
 - [ ] [P2] (S) Card tooltips in level-up modal: show resulting stat ("dmg 34 → 38"), not just "+8%"
 - [ ] [P2] (S) "NEW" badge in codex/shop for unseen entries
 - [ ] [P2] (S) In-game FPS counter overlay (toggle in settings, default off) — also gives the FPS-safeguard item (Robustness) something visible to verify against
+- [ ] [P2] (S) Confirm before **KILL PROCESS** (abandon run) — two-step: first activate arms the button (`SIGKILL — ARE YOU SURE?`), second confirms; disarms on focus move or ~2s timeout. Must work identically for mouse, keyboard and gamepad (it's one kbnav activate away from a dead run)
 - [ ] [P3] (S) Run-end screen: show per-weapon damage breakdown
 
 ### Controls & accessibility
@@ -95,6 +96,12 @@ records in `src/data/` plus a behavior key in `src/game/` and a sprite in `src/r
 - [ ] [P1] (M) **The Race Condition** — teleports unpredictably, leaves a damaging afterimage copy
 - [ ] [P2] (M) **The Critical Exception** — huge telegraphed AoE slams (dodge-window boss)
 - [ ] [P2] (M) **The Production Incident** — 12:00+ finale boss combining two prior mechanics, only on ×1.5 maps
+- [ ] [P2] (M) **Boss mechanics pass** — *user: existing bosses feel like different attack patterns, not unique fights — and they should be a challenge without a proper build, not just dodge/kite checks.* Design first, then implement: give each of the 5 a second, rule-bending layer that tests the **build** (DPS checks, soft enrages, interrupt thresholds), not only movement. Starter proposals to riff on:
+  - Merge Conflict: halves linked by a damaging "diff" tether — positioning puzzle (or: HP gap between halves triggers a force-push enrage)
+  - Memory Leak: pools never expire and slowly flood the arena — soft enrage via shrinking safe space; death "frees" all memory at once
+  - Infinite Loop: snapshots the player's position, rewinds them to it 3s later (time-loop dodge planning)
+  - Stack Overflow: unkilled mites stack frames that buff it; clearing the stack "pops" it into a long stun
+  - Legacy Monolith: spawns "deprecated dependency" pillars that block shots; destroying one mid-armor exposes the core early
 
 ### Weapons (target: +4 with evolutions, total 12)
 - [ ] [P1] (M) **Fork Bomb** — thrown bomb that splits into smaller bombs → evolves **Zip Bomb** (recursive splits)
@@ -236,3 +243,4 @@ Parking lot — promote into a milestone before working on these.
 - 2026-06-11 — Draft batch 5 processed: in-run currency "API Tokens" added to v0.4 (P2, tied to events); events item linked to it; "up/down feels slower" triaged as code-verified illusion (2:1 iso projection, world speed uniform — no change); build-version idea already shipped earlier today
 - 2026-06-11 — Incremental build version per user request: on `-dev` builds the patch number is the git commit count (`v0.2.33-dev`) — deterministic, stateless, distinguishes test-server deployments; releases untouched. CI checkout switched to full history so its commit count is correct. (Replaced the timestamp variant shipped an hour earlier)
 - 2026-06-11 — Release-branch policy adopted (user ruling: main = mirror of newest release): releases live on `release/X.Y`, hotfixes commit there and merge back to dev, version substitution now applies on release builds too (`vX.Y.<count>`) so hotfixes bump production versions visibly; CLAUDE.md + roadmap release bullet rewritten, CI covers `release/**`
+- 2026-06-11 — Draft batch 6: KILL PROCESS two-step confirm → v0.2 UX (P2); "Boss mechanics pass" → v0.3 Bosses (P2, design-first) — each boss gets a rule-bending layer that tests the build, not just dodging, with 5 starter proposals to riff on

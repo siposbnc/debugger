@@ -17,6 +17,24 @@ into [ROADMAP.md](../ROADMAP.md), and moves them to **Processed** below.
 
 ---
 
+## Processed → ROADMAP.md (2026-06-11, batch 6)
+
+- Kill-process confirmation → **v0.2 UX, P2 (S)** — two-step arm/confirm on the button itself (`SIGKILL — ARE YOU SURE?`), disarms on focus move or timeout; same flow for mouse/keyboard/gamepad
+- Bosses need more unique mechanics + must challenge the build, not just dodging → **v0.3 Bosses, P2 (M) "Boss mechanics pass"** — design-first item; each boss gets a second rule-bending layer that tests the build (DPS checks, soft enrages, interrupt thresholds); seeded with 5 proposals (diff tether, arena-flooding pools, position rewind, stack-frame buffs, dependency pillars) — the ??? is the point, treat them as creative prompts not specs
+
+<details>
+<summary>Batch 6 — original notes (kept for reference)</summary>
+
+### Draft ideas
+
+- confirmation for kill process (end run) to avoid accidental click
+- bosses need more unique mechanics, not just different attack patterns
+    - needs creativity
+    - they need to be a challange to defeat without proper build (don't just require dodging bullets or kiting them)
+    - ???
+
+</details>
+
 ## Processed → ROADMAP.md (2026-06-11, batch 5)
 
 - In-run events ?? → **already tracked: v0.4 P1 "In-run events"** (bug nests / broken terminals for bonus chests, radar-marked, ~1 per 90s) — now also linked to the token economy below
