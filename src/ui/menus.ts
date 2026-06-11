@@ -427,7 +427,7 @@ export class UI {
       <div class="screen-heading">execution paused</div>
       <div class="hint">breakpoint hit at line ${Math.floor(Math.random() * 9000) + 100}</div>
       <div class="menu-col">
-        <button class="btn primary" data-act="resume">CONTINUE (F5)</button>
+        <button class="btn primary" data-act="resume">CONTINUE (ESC)</button>
         <button class="btn danger" data-act="abandon">KILL PROCESS</button>
       </div>
     `);

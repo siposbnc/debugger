@@ -89,9 +89,15 @@ function pause(): void {
   if (state !== 'run') return;
   state = 'paused';
   ui.showPause(
-    () => { ui.hide(); state = 'run'; },
+    resume,
     () => { if (run) { run.over = true; run.victory = false; } endRun(); },
   );
+}
+
+function resume(): void {
+  if (state !== 'paused') return;
+  ui.hide();
+  state = 'run';
 }
 
 function drainEvents(): void {
@@ -169,8 +175,11 @@ function frame(now: number): void {
     acc = 0;
   }
 
-  if (wasPressed('Escape')) {
+  if (wasPressed('Escape') || wasPressed('KeyP')) {
     if (state === 'run') pause();
+    else if (state === 'paused') resume();
+  } else if (state === 'paused' && wasPressed('Space')) {
+    resume();
   }
   consumePressed();
 
