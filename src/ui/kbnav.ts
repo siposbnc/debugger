@@ -28,6 +28,7 @@ export class KbNav {
   private idx = -1;
   private onBack: (() => void) | null = null;
   private lastKey = ''; // survives re-renders so focus stays put after a purchase/reroll
+  private liveKeys = new Set<string>(); // codes pressed fresh since attach — only these may auto-repeat
 
   private keyHandler = (e: KeyboardEvent): void => this.onKey(e);
   private overHandler = (e: Event): void => this.onOver(e);
@@ -37,6 +38,7 @@ export class KbNav {
     this.container = container;
     this.onBack = onBack;
     this.items = [...container.querySelectorAll<HTMLElement>(ITEM_SELECTOR)];
+    this.liveKeys.clear();
     window.addEventListener('keydown', this.keyHandler);
     container.addEventListener('mouseover', this.overHandler);
     const prev = this.lastKey ? this.items.findIndex((el) => itemKey(el) === this.lastKey) : -1;
@@ -99,6 +101,13 @@ export class KbNav {
   }
 
   private onKey(e: KeyboardEvent): void {
+    // A key held from before this screen appeared only emits auto-repeats —
+    // ignore those so movement keys can't spam through the level-up cards.
+    if (e.repeat) {
+      if (!this.liveKeys.has(e.code)) return;
+    } else {
+      this.liveKeys.add(e.code);
+    }
     if (e.code === 'Escape') {
       if (this.onBack) {
         e.preventDefault();
