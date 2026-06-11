@@ -17,6 +17,25 @@ into [ROADMAP.md](../ROADMAP.md), and moves them to **Processed** below.
 
 ---
 
+## Processed → ROADMAP.md (2026-06-11, batch 3)
+
+- Simulation scenarios (run starts from a preconfig) → **🛠️ Dev tooling, P2 (M)** — scenario file/preset defines starting state + pick strategy + time window; watchlist combos become checked-in scenarios
+- Bug: held movement key spams through the level-up screen → **triaged into Known issues and fixed immediately** (kbnav regression from today's keyboard-nav feature; auto-repeats now require a fresh keypress after each screen opens)
+
+<details>
+<summary>Batch 3 — original notes (kept for reference)</summary>
+
+### Dev env ideas
+
+- more dev tooling for simulations. option to create and test specific scenarios
+    - for example, run starts from a preconfig
+
+### Bugs
+
+- levelup screen is instant. when the player holds an arrow key to continously move and the levelup screen appears, they start to "spam" through the cards insantly. this feels unfriendly and is not an intended behavior
+
+</details>
+
 ## Processed → ROADMAP.md (2026-06-11, batch 2)
 
 - Shield system (HP overlay, shield cards, doesn't count as real damage) → **v0.3 Cards & enemies, P2 (M)** — includes the "Starting Shield" meta upgrade; regen-vs-pickup refill left as a design-time question
