@@ -21,7 +21,7 @@ into [ROADMAP.md](../ROADMAP.md), and moves them to **Processed** below.
 
 - In-run events ?? → **already tracked: v0.4 P1 "In-run events"** (bug nests / broken terminals for bonus chests, radar-marked, ~1 per 90s) — now also linked to the token economy below
 - In-run currency (tokens) → **v0.4 P2 "In-run currency: API Tokens"** — events drop tokens, spent during the run at a Package Registry terminal on one-run consumables (heal, magnet sweep, +1 reroll/banish, short buffs); separate economy from Bits/XP, dies with the run. Depends on events shipping first
-- Build version in the main menu → semver was already shipped (v0.2 version tag); user clarified the intent: a **build timestamp** to distinguish test-server deployments between releases → **shipped same day**: `__BUILD_TIME__` (UTC) injected at build time, menu shows `v0.2.0-dev · 2026-06-11 19:20 UTC`
+- Build version in the main menu → semver was already shipped (v0.2 version tag); user clarified twice: wants an **incremental build version** to distinguish test-server deployments → **shipped same day**: on `-dev` builds the patch number becomes the git commit count (`v0.2.33-dev`), deterministic per commit, no counter file; release versions pass through untouched (a timestamp variant was briefly shipped in between, replaced)
 - Up/down slower than left/right → **triaged in Known issues: illusion, code-verified** — world speed is direction-independent; the 2:1 iso projection halves vertical *screen* velocity for everything equally (enemies too), so balance is unaffected. No change; reopen as feel-tuning if it still bothers in play
 
 <details>
