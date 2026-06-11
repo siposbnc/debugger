@@ -51,7 +51,7 @@ No new content — only feel, clarity and robustness.
 - [ ] [P3] (M) Touch controls (virtual stick) — unlocks mobile browser play
 
 ### Robustness & tech debt
-- [ ] [P1] (S) Save-data versioning + migration shim (before any content patch changes shapes)
+- [x] [P1] (S) Save-data versioning + migration shim (before any content patch changes shapes) — *done: `SAVE_VERSION` + stepwise `MIGRATIONS[n]` (n → n+1) run before the defaults merge; pure field additions still need no migration. Newer-than-current saves pass through untouched and unknown fields survive a persist round-trip (safe downgrade). Verified with a Node localStorage-stub test (legacy, future-version, corrupt saves)*
 - [ ] [P1] (S) `npm run build` + `tsc --noEmit` clean check wired into a pre-commit or CI script
 - [ ] [P2] (S) Pause game on tab blur (currently can die in background?)— verify & fix
 - [ ] [P2] (M) FPS safeguard: auto-lower enemy cap / particle density when frame time >20ms
@@ -214,3 +214,4 @@ Parking lot — promote into a milestone before working on these.
 - 2026-06-11 — Render QoL: damage numbers merge instead of stacking past 40 on screen; off-screen bosses get a pulsing edge indicator arrow
 - 2026-06-11 — Main menu shows the version number (injected from package.json at build time, so release bumps propagate automatically)
 - 2026-06-11 — Keyboard navigation in all menus + card selection (kbnav.ts): spatial nav with same-row/column preference, Enter/Space activate, Esc = back, sliders adjustable. Space-resume now comes from the pause screen's default CONTINUE highlight instead of a main-loop special case. Verified via headless Playwright drive-through
+- 2026-06-11 — Save-data versioning + migration shim: SAVE_VERSION + per-step MIGRATIONS table ahead of the defaults merge; downgrades preserve newer saves untouched

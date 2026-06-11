@@ -11,7 +11,7 @@ export interface LifetimeStats {
 }
 
 export interface SaveData {
-  version: 1;
+  version: number;
   bits: number;
   metaLevels: Record<string, number>;
   unlockedCharacters: string[];
@@ -26,9 +26,32 @@ export interface SaveData {
 
 const KEY = 'debugger-save-v1';
 
+export const SAVE_VERSION = 1;
+
+// Stepwise migrations for shape CHANGES (renames, moved fields, semantic
+// changes). Purely ADDED fields need no entry — the defaults merge in
+// loadSave covers those. MIGRATIONS[n] upgrades a version-n save to n+1,
+// mutating the raw parsed object in place. When a content patch changes the
+// save shape: bump SAVE_VERSION and add the matching step here.
+const MIGRATIONS: Record<number, (raw: Record<string, unknown>) => void> = {
+  // 1: (raw) => { raw.renamedField = raw.oldField; }   // example: 1 → 2
+};
+
+function migrate(raw: Record<string, unknown>): Record<string, unknown> {
+  let v = typeof raw.version === 'number' ? raw.version : 1;
+  // A save from a NEWER build (downgrade) passes through untouched — the
+  // spread merge keeps fields this build doesn't know about.
+  while (v < SAVE_VERSION) {
+    MIGRATIONS[v]?.(raw);
+    v++;
+  }
+  raw.version = Math.max(v, SAVE_VERSION);
+  return raw;
+}
+
 function defaults(): SaveData {
   return {
-    version: 1,
+    version: SAVE_VERSION,
     bits: 0,
     metaLevels: {},
     unlockedCharacters: ['ada'],
@@ -46,7 +69,7 @@ export function loadSave(): SaveData {
   try {
     const raw = localStorage.getItem(KEY);
     if (!raw) return defaults();
-    const data = JSON.parse(raw) as Partial<SaveData>;
+    const data = migrate(JSON.parse(raw) as Record<string, unknown>) as Partial<SaveData>;
     // Merge over defaults so new fields survive version drift.
     const d = defaults();
     return {
