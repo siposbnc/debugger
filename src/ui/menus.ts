@@ -60,6 +60,7 @@ export class UI {
         <button class="btn" data-act="settings">SETTINGS</button>
       </div>
       <div class="controls-hint"><kbd>WASD</kbd> move &nbsp; <kbd>ESC</kbd> pause &nbsp; auto-attack: just survive</div>
+      <div class="version-tag">v${__APP_VERSION__}</div>
     `);
     s.addEventListener('click', (e) => {
       const act = (e.target as HTMLElement).closest('button')?.dataset.act;
