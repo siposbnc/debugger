@@ -5,7 +5,15 @@ into [ROADMAP.md](../ROADMAP.md), and moves them to **Processed** below.
 
 ## Draft ideas
 
-*(empty — add new ideas here)*
+- Shield (on top of health, 0 by default)
+    - Increased with cards (new Shield cards)
+    - Taking shield damage doesn't count as real damage (doesn't fail the "Don't get hit" objective)
+- Meta upgrades:
+    - decrease boss timer
+    - Starting shield
+- New objectives:
+    - Don't get hit for 15 minutes (whole run)
+    - Don't move for 15 minutes (whole run)
 
 ## Dev env ideas
 
@@ -13,7 +21,7 @@ into [ROADMAP.md](../ROADMAP.md), and moves them to **Processed** below.
 
 ## Bugs
 
-*(empty)*
+- When owning an evolved weapon, the base version can be offered again
 
 ---
 
