@@ -5,6 +5,7 @@ import { CHARACTERS } from './data/characters';
 import { MAPS } from './data/maps';
 import { DEFAULT_WEAPON_POOL } from './data/weapons';
 import { Run } from './game/run';
+import { snapshotRun, restoreRun } from './game/runSave';
 import { grantChestCard, makeOffer, applyOffer } from './game/levelup';
 import { Renderer } from './render/draw';
 import { UI } from './ui/menus';
@@ -55,6 +56,38 @@ function startRun(charId: string, mapId: string): void {
 }
 ui.onStartRun = startRun;
 
+// Resume a suspended run. The snapshot is consumed up front — a death after
+// resuming is final (no reload-scumming), and a snapshot that fails to restore
+// (content drift) is discarded rather than retried forever.
+ui.onResumeRun = () => {
+  const snap = save.suspendedRun;
+  if (!snap) return;
+  save.suspendedRun = null;
+  persistSave(save);
+  try {
+    run = restoreRun(snap, new Set(save.completedObjectives));
+  } catch (err) {
+    console.warn('suspended run could not be restored — discarded', err);
+    ui.showMainMenu();
+    return;
+  }
+  if (TURBO) run.invincible = true;
+  renderer.snapCamera(run.px, run.py);
+  ui.hide();
+  state = 'run';
+  sound.startMusic();
+};
+
+function suspendRun(): void {
+  if (!run) return;
+  save.suspendedRun = snapshotRun(run);
+  persistSave(save);
+  run = null;
+  sound.stopMusic();
+  state = 'menu';
+  ui.showMainMenu();
+}
+
 function openLevelUp(): void {
   if (!run) return;
   state = 'levelup';
@@ -100,6 +133,7 @@ function pause(): void {
     run,
     resume,
     () => { if (run) { run.over = true; run.victory = false; } endRun(); },
+    suspendRun,
   );
 }
 

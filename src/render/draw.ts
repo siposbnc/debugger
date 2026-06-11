@@ -66,6 +66,13 @@ export class Renderer {
     if (this.shakeEnabled) this.shakeMag = Math.min(18, this.shakeMag + mag);
   }
 
+  /** Jump the camera straight to a world position (resuming a suspended run). */
+  snapCamera(wx: number, wy: number): void {
+    const t = this.proj(wx, wy);
+    this.camX = t.x;
+    this.camY = t.y;
+  }
+
   // ---------- event → visuals ----------
 
   handleEvent(ev: RunEvent): void {

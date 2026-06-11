@@ -73,6 +73,7 @@ export class UI {
   private nav = new KbNav();
   save: SaveData;
   onStartRun: (charId: string, mapId: string) => void = () => {};
+  onResumeRun: () => void = () => {};
   onSettingsChanged: () => void = () => {};
 
   constructor(root: HTMLElement, save: SaveData) {
@@ -106,12 +107,18 @@ export class UI {
   // ---------- main menu ----------
 
   showMainMenu(): void {
+    const susp = this.save.suspendedRun;
+    const suspChar = susp ? CHARACTERS[susp.charId]?.name ?? susp.charId : '';
+    const resumeBtn = susp
+      ? `<button class="btn primary" data-act="resumeRun">RESUME RUN — ${suspChar} @ ${formatTime(susp.time)}</button>`
+      : '';
     const s = this.screen(`
       <div class="title" data-text="DEBUGGER">DEBUGGER<span class="cursor">_</span></div>
       <div class="subtitle">// the bugs are real. squash them all.</div>
       <div class="bits-display">⌬ ${this.save.bits} bits</div>
       <div class="menu-col">
-        <button class="btn primary" data-act="start">START RUN</button>
+        ${resumeBtn}
+        <button class="btn ${susp ? '' : 'primary'}" data-act="start">START RUN</button>
         <button class="btn" data-act="chars">CHARACTERS</button>
         <button class="btn" data-act="maps">MAPS</button>
         <button class="btn" data-act="shop">UPGRADES</button>
@@ -126,6 +133,7 @@ export class UI {
       if (!act) return;
       sound.unlock();
       if (act === 'start') this.onStartRun(this.save.lastCharacter, this.save.lastMap);
+      else if (act === 'resumeRun') this.onResumeRun();
       else if (act === 'chars') this.showCharSelect();
       else if (act === 'maps') this.showMapSelect();
       else if (act === 'shop') this.showShop();
@@ -508,7 +516,7 @@ export class UI {
 
   // ---------- pause (current-run overview) ----------
 
-  showPause(run: Run, onResume: () => void, onAbandon: () => void): void {
+  showPause(run: Run, onResume: () => void, onAbandon: () => void, onSuspend: () => void): void {
     const st = run.stats;
     const row = (label: string, value: string) =>
       `<div class="prow"><span>${label}</span><span class="v">${value}</span></div>`;
@@ -572,6 +580,7 @@ export class UI {
       <div class="hint">breakpoint hit at ${formatTime(run.time)} — level ${run.level}, ${run.kills} bugs squashed</div>
       <div class="pause-actions">
         <button class="btn primary" data-act="resume">CONTINUE (ESC)</button>
+        <button class="btn" data-act="suspend" title="save the run and exit — resume from the main menu">SUSPEND PROCESS</button>
         <button class="btn danger" data-act="abandon">KILL PROCESS</button>
       </div>
       <div class="pause-cols">
@@ -605,6 +614,7 @@ export class UI {
     s.addEventListener('click', (e) => {
       const act = (e.target as HTMLElement).closest('button')?.dataset.act;
       if (act === 'resume') onResume();
+      else if (act === 'suspend') onSuspend();
       else if (act === 'abandon') {
         if (!armed) {
           armed = true;

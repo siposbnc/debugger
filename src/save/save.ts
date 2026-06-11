@@ -1,5 +1,7 @@
 // localStorage persistence: Bits, meta upgrades, unlocks, lifetime stats, settings.
 
+import type { SuspendedRun } from '../game/runSave';
+
 export interface LifetimeStats {
   runs: number;
   kills: number;
@@ -22,6 +24,8 @@ export interface SaveData {
   lastMap: string;
   lifetime: LifetimeStats;
   settings: { sfx: number; music: number; shake: boolean; playerHpBar: boolean };
+  /** Mid-run snapshot from "suspend & exit" — consumed on resume. */
+  suspendedRun: SuspendedRun | null;
 }
 
 const KEY = 'debugger-save-v1';
@@ -62,6 +66,7 @@ function defaults(): SaveData {
     lastMap: 'greenfield',
     lifetime: { runs: 0, kills: 0, bossKills: 0, bitsEarned: 0, bestTimeSec: 0, bestLevel: 0, victories: 0 },
     settings: { sfx: 0.7, music: 0.5, shake: true, playerHpBar: true },
+    suspendedRun: null,
   };
 }
 
