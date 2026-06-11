@@ -69,7 +69,7 @@ export class UI {
         <button class="btn" data-act="settings">SETTINGS</button>
       </div>
       <div class="controls-hint"><kbd>WASD</kbd> move/navigate &nbsp; <kbd>ENTER</kbd> select &nbsp; <kbd>ESC</kbd> back/pause &nbsp; <kbd>🎮</kbd> gamepad works too &nbsp; auto-attack: just survive</div>
-      <div class="version-tag">v${__APP_VERSION__}</div>
+      <div class="version-tag">v${__APP_VERSION__} · ${__BUILD_TIME__}</div>
     `);
     s.addEventListener('click', (e) => {
       const act = (e.target as HTMLElement).closest('button')?.dataset.act;
