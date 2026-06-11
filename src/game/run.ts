@@ -532,13 +532,18 @@ export class Run {
           const target = this.grid.nearest(a.x, a.y, 380);
           if (target) {
             a.shootT = 0.55;
-            const d = dist(a.x, a.y, target.x, target.y) || 1;
-            this.projectiles.push({
-              x: a.x, y: a.y,
-              vx: ((target.x - a.x) / d) * 430, vy: ((target.y - a.y) / d) * 430,
-              damage: 9 * this.stats.damageMult, radius: 7, pierce: 0, life: 1.4,
-              slow: 0, slowDur: 0, freeze: 0, color: '#ffb347', kind: 'petbolt', hit: new Set(),
-            });
+            const base = Math.atan2(target.y - a.y, target.x - a.x);
+            const n = 1 + this.stats.projectiles;
+            for (let j = 0; j < n; j++) {
+              // Slight spread when several bolts share one target (as fireBolt).
+              const ang = base + (j === 0 ? 0 : (Math.random() - 0.5) * 0.25);
+              this.projectiles.push({
+                x: a.x, y: a.y,
+                vx: Math.cos(ang) * 430, vy: Math.sin(ang) * 430,
+                damage: 9 * this.stats.damageMult, radius: 7, pierce: 0, life: 1.4,
+                slow: 0, slowDur: 0, freeze: 0, color: '#ffb347', kind: 'petbolt', hit: new Set(),
+              });
+            }
             this.emit({ type: 'shoot' });
           }
         }
