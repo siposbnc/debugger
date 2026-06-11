@@ -1,0 +1,8 @@
+#!/bin/sh
+# Block commits that don't type-check. Fast path only (no bundling) —
+# the full build + sim checks run in CI (.github/workflows/ci.yml).
+echo "pre-commit: tsc --noEmit"
+npx tsc --noEmit || {
+  echo "pre-commit: type errors — commit blocked (git commit --no-verify to bypass in an emergency)"
+  exit 1
+}

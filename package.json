@@ -6,7 +6,9 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "check": "tsc --noEmit",
+    "prepare": "git config core.hooksPath .githooks"
   },
   "devDependencies": {
     "typescript": "^5.6.0",

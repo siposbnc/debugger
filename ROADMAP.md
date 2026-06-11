@@ -54,7 +54,7 @@ No new content — only feel, clarity and robustness.
 
 ### Robustness & tech debt
 - [x] [P1] (S) Save-data versioning + migration shim (before any content patch changes shapes) — *done: `SAVE_VERSION` + stepwise `MIGRATIONS[n]` (n → n+1) run before the defaults merge; pure field additions still need no migration. Newer-than-current saves pass through untouched and unknown fields survive a persist round-trip (safe downgrade). Verified with a Node localStorage-stub test (legacy, future-version, corrupt saves)*
-- [ ] [P1] (S) `npm run build` + `tsc --noEmit` clean check wired into a pre-commit or CI script
+- [x] [P1] (S) `npm run build` + `tsc --noEmit` clean check wired into a pre-commit or CI script — *done: both. `.githooks/pre-commit` runs `tsc --noEmit` (fast, no bundling), activated dependency-free via npm `prepare` → `git config core.hooksPath .githooks` (runs on every `npm install`); verified it blocks a type error. `.github/workflows/ci.yml` runs the full build + offerTest assertions + a 5-min sim smoke on push/PR to dev/main. New `npm run check` = bare type check*
 - [ ] [P2] (S) Pause game on tab blur (currently can die in background?)— verify & fix
 - [ ] [P2] (M) FPS safeguard: auto-lower enemy cap / particle density when frame time >20ms
 - [ ] [P3] (S) Export/import save as JSON string (manual backup)
@@ -226,3 +226,4 @@ Parking lot — promote into a milestone before working on these.
 - 2026-06-11 — Draft batch 3: held-key spam through level-up (kbnav regression) fixed same day via per-key auto-repeat gating; "simulation scenarios" preconfig idea added to Dev tooling (P2)
 - 2026-06-11 — Draft batch 4 processed (terrain/obstacles → v0.3 P2 vertical slice; FPS counter → v0.2 P2). Two P1 UX items shipped: run-summary divider before the Bits breakdown, player health bar with settings toggle. Verified via build + sim (ada 1279 Bits, within known variance) + Playwright screenshots (bar renders, toggle flips, divider shows)
 - 2026-06-11 — Session-start sync rule added to CLAUDE.md (`git pull --ff-only` before reading the roadmap) after a stale checkout nearly redid finished work; local-only subagents commit rebased onto origin/dev, user's "stop & resume a run" roadmap item restored. Gamepad support shipped: standard mapping, analog move merged into moveVector(), kbnav driven by stick/d-pad + A/B/Start, sliders pad-adjustable; verified via scripts/padTest.mjs (Playwright, stubbed Gamepad API, 10/10 checks) + build + sim (ada 885 Bits, weak-variance run, logic untouched in Node)
+- 2026-06-11 — Type-check gate shipped: pre-commit hook (`tsc --noEmit`, hooksPath set by npm `prepare`) + GitHub Actions CI (build, offerTest assertions, 5-min sim smoke); hook verified to block a type error
