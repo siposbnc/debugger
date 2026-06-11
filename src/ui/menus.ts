@@ -8,7 +8,8 @@ import { ENEMIES } from '../data/enemies';
 import { BOSSES } from '../data/bosses';
 import { OBJECTIVES } from '../data/objectives';
 import { CARD_BY_ID } from '../data/upgrades';
-import { RARITY_COLOR, RARITY_ORDER } from '../data/types';
+import { RARITY_COLOR, RARITY_ORDER, type StatMods } from '../data/types';
+import { computeStats, type ComputedStats } from '../game/stats';
 import { formatTime } from '../core/util';
 import { sound } from '../audio/sound';
 import { makeOffer, applyOffer, offerOdds, type OfferItem } from '../game/levelup';
@@ -17,6 +18,55 @@ import { KbNav } from './kbnav';
 
 // All DOM UI: menus, shop, codex, settings, level-up modal, pause, summary.
 // Mutates the shared SaveData for purchases and persists immediately.
+
+// Card stat preview: each StatMods key → the resolved stat it lands on and how
+// to print it. Resulting values come from computeStats() with the card
+// hypothetically applied, so every cap/floor (60% CDR, 100% crit, …) is
+// inherited — never duplicate clamp constants here.
+const STAT_VIEW: Partial<Record<keyof StatMods, {
+  label: string; get: (s: ComputedStats) => number; fmt: (v: number) => string;
+}>> = {
+  maxHp: { label: 'Max HP', get: (s) => s.maxHp, fmt: (v) => `${Math.round(v)}` },
+  regen: { label: 'Regen', get: (s) => s.regen, fmt: (v) => `${+v.toFixed(1)}/s` },
+  armor: { label: 'Armor', get: (s) => s.armor, fmt: (v) => `${v}` },
+  speed: { label: 'Speed', get: (s) => s.moveSpeed, fmt: (v) => `${Math.round(v)}` },
+  damage: { label: 'Damage', get: (s) => s.damageMult, fmt: (v) => `×${v.toFixed(2)}` },
+  cooldown: { label: 'Cooldown', get: (s) => 1 - s.cooldownFactor, fmt: (v) => `−${Math.round(v * 100)}%` },
+  area: { label: 'Area', get: (s) => s.areaMult, fmt: (v) => `×${v.toFixed(2)}` },
+  projectiles: { label: 'Projectiles', get: (s) => s.projectiles, fmt: (v) => `+${v}` },
+  critChance: { label: 'Crit chance', get: (s) => s.critChance, fmt: (v) => `${Math.round(v * 100)}%` },
+  critMult: { label: 'Crit dmg', get: (s) => s.critMult, fmt: (v) => `×${v.toFixed(2)}` },
+  pickupRadius: { label: 'Pickup', get: (s) => s.pickupRadius, fmt: (v) => `${Math.round(v)}` },
+  xpGain: { label: 'XP gain', get: (s) => s.xpMult, fmt: (v) => `×${v.toFixed(2)}` },
+  luck: { label: 'Luck', get: (s) => s.luck, fmt: (v) => `${v}` },
+};
+
+/** "dmg ×1.00 → ×1.08" rows for a stat card, with CAPPED marks on mods the
+ *  stat clamps would fully waste. fullyCapped = every mod on the card is dead. */
+function cardStatPreview(run: Run, cardId: string): { html: string; fullyCapped: boolean } {
+  const card = CARD_BY_ID[cardId];
+  if (!card) return { html: '', fullyCapped: false };
+  const next = computeStats(run.character, run.metaLevels, [...run.cardMods, card.mods]);
+  const rows: string[] = [];
+  let live = 0;
+  for (const k of Object.keys(card.mods) as (keyof StatMods)[]) {
+    const view = STAT_VIEW[k];
+    if (!view) continue;
+    const a = view.get(run.stats), b = view.get(next);
+    if (Math.abs(b - a) > 1e-9) {
+      live++;
+      rows.push(`<div class="stat-line"><span>${view.label}</span>` +
+        `<span class="v"><span class="from">${view.fmt(a)} →</span> ${view.fmt(b)}</span></div>`);
+    } else {
+      rows.push(`<div class="stat-line wasted"><span>${view.label}</span>` +
+        `<span class="v">${view.fmt(a)} <span class="cap-badge">CAPPED</span></span></div>`);
+    }
+  }
+  return {
+    html: rows.length > 0 ? `<div class="stat-preview">${rows.join('')}</div>` : '',
+    fullyCapped: rows.length > 0 && live === 0,
+  };
+}
 
 export class UI {
   private root: HTMLElement;
@@ -373,16 +423,23 @@ export class UI {
     if (offer.length === 0) { onDone(); return; }
 
     const render = () => {
-      const cards = offer.map((item, i) => `
-        <div class="upgrade-card ${banishMode && item.banishable ? 'banish-mode' : ''}"
+      const cards = offer.map((item, i) => {
+        const preview = item.kind === 'card'
+          ? cardStatPreview(run, item.id)
+          : { html: '', fullyCapped: false };
+        return `
+        <div class="upgrade-card ${banishMode && item.banishable ? 'banish-mode' : ''} ${preview.fullyCapped ? 'capped-card' : ''}"
              data-i="${i}" style="--rarity:${item.color}">
           <div class="rarity">${item.rarityLabel}</div>
           <div class="icon">${item.icon}</div>
           <h3>${item.name}</h3>
           <div class="tagline">${item.tagline}</div>
           <div class="desc">${item.desc}</div>
+          ${preview.fullyCapped ? '<div class="cap-warning">⚠ ALREADY AT CAP — NO EFFECT</div>' : ''}
+          ${preview.html}
           <div class="flavor">${item.flavor}</div>
-        </div>`).join('');
+        </div>`;
+      }).join('');
 
       this.root.innerHTML = `
         <div class="levelup-wrap">

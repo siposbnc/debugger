@@ -269,6 +269,20 @@ html, body {
 .upgrade-card .flavor { font-size: 11.5px; font-style: italic; color: var(--dim); border-top: 1px dashed var(--line); padding-top: 8px; }
 .upgrade-card.banish-mode:hover { border-color: var(--red); box-shadow: 0 0 28px rgba(255, 94, 94, 0.4); }
 
+/* level-up stat preview ("dmg ×1.00 → ×1.08") + cap warnings */
+.upgrade-card .stat-preview {
+  font-size: 12px; border-top: 1px dashed var(--line); padding-top: 8px;
+  display: flex; flex-direction: column; gap: 3px;
+}
+.stat-preview .stat-line { display: flex; justify-content: space-between; gap: 10px; color: var(--dim); }
+.stat-preview .stat-line .v { color: var(--green); }
+.stat-preview .from { color: var(--dim); font-size: 11px; }
+.stat-preview .wasted .v { color: var(--dim); }
+.cap-badge { color: var(--red); font-size: 9px; letter-spacing: 0.18em; vertical-align: middle; }
+.upgrade-card .cap-warning { color: var(--red); font-size: 11px; letter-spacing: 0.1em; }
+.upgrade-card.capped-card { opacity: 0.55; }
+.upgrade-card.capped-card:hover { opacity: 0.8; }
+
 .levelup-actions { display: flex; gap: 12px; }
 .banish-hint { color: var(--red); font-size: 13px; letter-spacing: 0.1em; animation: blink 1s steps(1) infinite; }
 
