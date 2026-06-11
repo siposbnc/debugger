@@ -17,6 +17,29 @@ into [ROADMAP.md](../ROADMAP.md), and moves them to **Processed** below.
 
 ---
 
+## Processed → ROADMAP.md (2026-06-11, batch 5)
+
+- In-run events ?? → **already tracked: v0.4 P1 "In-run events"** (bug nests / broken terminals for bonus chests, radar-marked, ~1 per 90s) — now also linked to the token economy below
+- In-run currency (tokens) → **v0.4 P2 "In-run currency: API Tokens"** — events drop tokens, spent during the run at a Package Registry terminal on one-run consumables (heal, magnet sweep, +1 reroll/banish, short buffs); separate economy from Bits/XP, dies with the run. Depends on events shipping first
+- Build version in the main menu → **already shipped**: v0.2 UX "Show version number on the main menu" (bottom-right `.version-tag`, injected from package.json at build time)
+- Up/down slower than left/right → **triaged in Known issues: illusion, code-verified** — world speed is direction-independent; the 2:1 iso projection halves vertical *screen* velocity for everything equally (enemies too), so balance is unaffected. No change; reopen as feel-tuning if it still bothers in play
+
+<details>
+<summary>Batch 5 — original notes (kept for reference)</summary>
+
+### Draft ideas
+
+- in run events ??
+- in run currency (tokens?)
+    - can be spent for upgrades/items after as a reward for events
+- include build version in the main menu
+
+### Bugs
+
+- feels a lot slower to move up/down than left/right - bug or illusion?
+
+</details>
+
 ## Processed → ROADMAP.md (2026-06-11, batch 4)
 
 - Better map design (terrain, obstacles) → **v0.3 Maps, P2 (L) "Terrain & obstacles"** — scoped as a vertical slice (1 obstacle type, 1 map first); flagged the real costs: static-geometry collision, enemy steering, iso draw order, spawn validation; layout stays data-driven/seeded so the headless sim survives
