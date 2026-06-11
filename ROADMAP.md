@@ -105,9 +105,11 @@ records in `src/data/` plus a behavior key in `src/game/` and a sprite in `src/r
 - [ ] [P3] (S) **Greybeard Cobol** — Legacy Maintainer; starts Stack Staff; passive: immune to slows, −15% move speed (tank archetype)
 
 ### Cards & enemies
-- [ ] [P2] (M) +8 stat cards (fill thin categories: status effects, chain, summons — see brief)
+- [ ] [P2] (M) **Shield system** — new defensive layer on top of HP (0 by default): absorbs damage first, and shield hits don't count as "real" damage (won't fail no-hit objectives). Includes new Shield stat cards + **"Starting Shield"** meta upgrade. Decide at design time: does shield regenerate (out-of-combat delay?) or only refill via pickups/cards?
+- [ ] [P2] (M) +8 stat cards (fill thin categories: status effects, chain, summons — see brief; Shield cards counted under the shield-system item)
 - [ ] [P2] (M) +2 enemy types: ranged spitter (forces movement), shielded enemy (directional block)
-- [ ] [P3] (S) +6 objectives covering the new content (one per new map/boss/weapon class)
+- [ ] [P3] (S) Meta upgrade: **decrease boss spawn timer** (bosses arrive sooner → faster, riskier runs). Open question: is "harder sooner" something players will pay Bits for? Decide when implementing — maybe frame as a curse-style toggle (v0.4) instead of a meta buy
+- [ ] [P3] (S) +6 objectives covering the new content (one per new map/boss/weapon class) + hardcore full-run challenges from draft: **"Don't get hit"** (whole 15:00 run; shield absorbs don't count once the shield system lands) and **"Don't move"** (whole run — ultimate turret-build check)
 
 ---
 
@@ -162,6 +164,7 @@ Theme proposal: prestige = **"The Great Rewrite"** — you ship v(N+1).0 of your
 - [x] [P1] (S) **Menus clipped at the top** (Upgrades, Bug database not fully visible) — likely missing scroll container / `overflow-y: auto` + `align-items` issue on tall content; audit all menu panels at common window sizes — *fixed: `justify-content: center` on an overflowing flex column clips the top unreachably; replaced with flex spacers on `.screen` and `.levelup-wrap` (center when fits, scroll when tall)*
 - [x] [P1] (S) **Legendary cards too common** — measure actual rate via `scripts/offerTest.ts`, expected ≈1.4% per card at luck 0; suspect luck multiplier or per-card halving applied wrong (ties into v0.2 card-system verification item) — *fixed: tier weights were applied per-card so tier rates scaled with card count (and drifted with banishes/max stacks); now split per tier. Measured 1.40% legendary at luck 0*
 - [x] [P1] (S) **Merge Conflict double chest** — each split half drops a chest, so the *first* boss pays double. Verdict: bug — only the last-killed half should drop the chest (keep double XP burst as a fun consolation if balance allows) — *fixed: chest gated on twin half being dead; both halves keep the XP shower.* Boss-kill credit ruled a bug too: *fixed — first-killed half now emits a big regular kill effect; bossKills + bossDie banner + chest all come only from the last-killed half (1 boss = 1 boss kill in run + meta stats)*
+- [x] [P1] (S) **Evolved weapon's base version re-offered** — after evolving, the base weapon could appear again as a "new weapon" card (the evolved instance carries the evolution's id, so the base looked unowned) — *fixed: the new-weapon pool skips any weapon whose evolution is currently owned. Verified: 0 re-offers in 15k draws post-evolution, other weapons still offerable, offerTest rarity rates unchanged (legendary 1.43%)*
 - [x] [P2] (S) Projectile-count modifier doesn't apply to Max Pipeline's turret — decide: design (turrets are fixed) or bug. Lean **bug**: passives feeling upgrade-dead is worse; apply at reduced rate (e.g. +1 projectile per +2 player projectiles) if full scaling is too strong. - Decision: it's a bug. Go with full scaling. — *fixed: turret fires 1 + player projectile bonus bolts with the same shared-target spread as weapon bolts; Max sim run within normal bands*
 
 ---
@@ -215,3 +218,4 @@ Parking lot — promote into a milestone before working on these.
 - 2026-06-11 — Main menu shows the version number (injected from package.json at build time, so release bumps propagate automatically)
 - 2026-06-11 — Keyboard navigation in all menus + card selection (kbnav.ts): spatial nav with same-row/column preference, Enter/Space activate, Esc = back, sliders adjustable. Space-resume now comes from the pause screen's default CONTINUE highlight instead of a main-loop special case. Verified via headless Playwright drive-through
 - 2026-06-11 — Save-data versioning + migration shim: SAVE_VERSION + per-step MIGRATIONS table ahead of the defaults merge; downgrades preserve newer saves untouched
+- 2026-06-11 — Branch policy correction: work pushed to `dev` from now on (main left as-is per user). Draft batch 2 processed: shield system + boss-timer meta + hardcore objectives into v0.3; evolved-weapon re-offer bug triaged and fixed same session. Sim variance note: ada samples 524–2154 Bits across 5 runs (incl. a 524 floor below the previously observed band) — strengthens the case for the P1 simulator-matrix item

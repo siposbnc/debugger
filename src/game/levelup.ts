@@ -71,6 +71,9 @@ function candidates(run: Run, minRarity?: Rarity): Candidate[] {
     for (const id of run.weaponPool) {
       if (owned.has(id)) continue;
       const def = WEAPONS[id];
+      // An evolved instance carries the evolution's id, not the base weapon's —
+      // don't re-offer the base while its evolution is owned.
+      if (def.evolveTo && owned.has(def.evolveTo)) continue;
       out.push({
         weight: 30,
         item: {
