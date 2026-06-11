@@ -2,17 +2,17 @@ import { defineConfig } from 'vite';
 import { execSync } from 'node:child_process';
 import pkg from './package.json';
 
-// Test builds (-dev suffix) replace the patch number with the git commit
-// count — an incremental build version (v0.2.113-dev) that distinguishes
-// test-server deployments while the semver sits still between releases.
-// Deterministic: rebuilding the same commit yields the same number.
-// Release versions (no -dev) pass through untouched.
+// The patch number is the git commit count: dev builds show vX.Y.<count>-dev,
+// release-branch builds vX.Y.<count> — so hotfix commits on a release/X.Y
+// branch bump the production version automatically. Deterministic: rebuilding
+// the same commit yields the same number. package.json keeps X.Y.0[-dev];
+// only major.minor are hand-maintained (see CLAUDE.md release policy).
 function buildVersion(): string {
-  if (!pkg.version.endsWith('-dev')) return pkg.version;
   try {
     const count = execSync('git rev-list --count HEAD', { stdio: ['ignore', 'pipe', 'ignore'] }).toString().trim();
     const [major, minor] = pkg.version.split('.');
-    return `${major}.${minor}.${count}-dev`;
+    const suffix = pkg.version.endsWith('-dev') ? '-dev' : '';
+    return `${major}.${minor}.${count}${suffix}`;
   } catch {
     return pkg.version; // no git available (e.g. tarball build)
   }
