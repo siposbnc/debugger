@@ -34,6 +34,7 @@ No new content — only feel, clarity and robustness.
 - [x] [P1] (S) Show version number on the main menu — *done: `__APP_VERSION__` injected from package.json via Vite `define`, rendered bottom-right (`.version-tag`); single source of truth, follows the release version bump automatically*
 - [x] [P1] (S) Run summary split: objectives/achievements block visually separated (divider) from the itemized Bits-by-stat breakdown — *done: `.summary-divider` ("BITS BREAKDOWN" label + rule) between run stats/objectives and the per-stat rows*
 - [x] [P1] (S) Health bar above the player character (toggleable in settings, default on) — *done: 34px bar above the sprite, green → red below 35% HP (matches HUD threshold); `settings.playerHpBar` toggle in ~/.debuggerrc, pure field addition so old saves need no migration*
+- [ ] [P2] (M) Stop a run and resume later
 - [ ] [P2] (S) Heal feedback: green floating number + brief glow on the player whenever HP is restored (coffee, Heap Purifier, regen ticks ≥1)
 - [ ] [P2] (S) Bug database: render entity sprite thumbnails next to entries (sprites are procedural — draw to offscreen canvas once, cache)
 - [ ] [P2] (S) Bug database: lifetime player stats page — accumulated uptime, total kills, total Bits earned, runs played, victories, bosses slain, favorite weapon
