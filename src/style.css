@@ -308,6 +308,12 @@ html, body {
 .result-heading.win { color: var(--green); text-shadow: 0 0 24px rgba(83,232,168,0.5); }
 .result-heading.lose { color: var(--red); text-shadow: 0 0 24px rgba(255,94,94,0.5); }
 .objective-done { color: var(--gold); font-size: 13px; }
+.summary-divider {
+  display: flex; align-items: center; gap: 10px;
+  margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--line);
+  color: var(--dim); font-size: 11px; letter-spacing: 0.14em;
+}
+.summary-divider::after { content: ''; flex: 1; border-top: 1px solid var(--line); }
 
 /* ---------- codex ---------- */
 

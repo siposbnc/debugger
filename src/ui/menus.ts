@@ -543,6 +543,7 @@ export class UI {
         <div class="row"><span>Bosses resolved</span><span class="v">${results.bossKills}</span></div>
         <div class="row"><span>Level reached</span><span class="v">${results.level}</span></div>
         ${objs}
+        <div class="summary-divider"><span>BITS BREAKDOWN</span></div>
         ${breakdown}
         <div class="row total"><span>BITS EARNED</span><span class="v">⌬ ${results.bits}</span></div>
       </div>
