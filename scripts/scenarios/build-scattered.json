@@ -1,0 +1,10 @@
+{
+  "name": "Build quality A/B — SCATTERED arm: lv 12 @ 6:00, same 11-pick budget on unfocused eco/utility cards, weapon untouched",
+  "char": "ada",
+  "map": "greenfield",
+  "level": 12,
+  "cards": { "cacheHit": 2, "magnetVar": 2, "rubberDuck": 2, "asyncBoost": 2, "coffeeBreak": 2, "nullCheck": 1 },
+  "startMin": 6,
+  "maxMinutes": 15,
+  "bot": { "pick": "first", "mortal": true }
+}

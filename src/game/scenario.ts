@@ -3,6 +3,7 @@ import { MAPS } from '../data/maps';
 import { WEAPONS, MAX_WEAPON_LEVEL, DEFAULT_WEAPON_POOL } from '../data/weapons';
 import { CARD_BY_ID } from '../data/upgrades';
 import { META_UPGRADES } from '../data/meta';
+import { BOSS_INTERVAL } from '../data/bosses';
 import { Run } from './run';
 
 // Run-state injection for reproducing bug reports and testing specific builds:
@@ -30,9 +31,11 @@ export interface Scenario {
   replaceWeapons?: boolean;
   /** Card id → stacks to apply (maxStacks is not enforced — author's intent). */
   cards?: Record<string, number>;
-  /** Run clock start in minutes — spawn phases and the boss schedule follow,
-   *  so starting past 2:00 spawns the due boss immediately (same semantics as
-   *  the dev console's dbg.time). */
+  /** Run clock start in minutes — spawn phases follow, and the boss schedule
+   *  is advanced past already-due bosses (a mid-run state implies they were
+   *  dealt with; they are NOT credited as kills). A boss due exactly at the
+   *  start spawns immediately. Unlike dbg.time, which leaves the schedule
+   *  alone and therefore floods the backlog of bosses on the next frame. */
   startMin?: number;
   // Consumed by the sim harness (scripts/), not by createScenarioRun:
   /** Sim window end in minutes. Default: 15. */
@@ -74,5 +77,12 @@ export function applyScenarioState(run: Run, sc: Scenario): void {
     for (let i = 0; i < n; i++) run.applyCard(card);
   }
   if (sc.level !== undefined) run.level = Math.max(1, Math.round(sc.level));
-  if (sc.startMin) run.time = Math.max(0, sc.startMin * 60);
+  if (sc.startMin) {
+    run.time = Math.max(0, sc.startMin * 60);
+    // skip bosses that were due before the start (boss k spawns at (k+1)·interval);
+    // one due exactly at startMin still spawns on the first frame
+    const past = Math.max(0, Math.ceil(run.time / BOSS_INTERVAL) - 1);
+    run.bossIndex = past;
+    run.nextBossAt = (past + 1) * BOSS_INTERVAL;
+  }
 }

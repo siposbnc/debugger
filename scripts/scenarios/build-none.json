@@ -1,0 +1,9 @@
+{
+  "name": "Build quality A/B — control: lv 12 @ 6:00 with zero picks granted (pure XP-curve position, the wasted-build floor)",
+  "char": "ada",
+  "map": "greenfield",
+  "level": 12,
+  "startMin": 6,
+  "maxMinutes": 15,
+  "bot": { "pick": "first", "mortal": true }
+}

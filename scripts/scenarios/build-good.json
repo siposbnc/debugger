@@ -1,0 +1,11 @@
+{
+  "name": "Build quality A/B — GOOD arm: lv 12 @ 6:00, 11 picks spent on a focused offense build (wand to 6 + dmg/CDR cards)",
+  "char": "ada",
+  "map": "greenfield",
+  "level": 12,
+  "weapons": { "syntaxWand": 6 },
+  "cards": { "garbageDay": 2, "breakpointTrap": 2, "refactor": 1, "hotReload": 1 },
+  "startMin": 6,
+  "maxMinutes": 15,
+  "bot": { "pick": "first", "mortal": true }
+}

@@ -93,7 +93,29 @@ heading-biased, and the quadratic enemy-damage term makes an uncleaned wall leth
 |---|---|---|---|
 | Careless (offer[0]), zero meta | **≤ 30%** win | ~0% | 28% / 0% ✓ |
 | Careless, maxed meta | **≥ 60%** win | ≥ 25% | 72% / 31% ✓ |
-| Synergy picks (greedy bot) | should beat careless | — | **not demonstrable yet**: all bots are XP-starved (median lv 8–11 by 15:00), so in-run build quality barely exists; needs scenario-granted builds (sim-scenarios tooling) |
+| Synergy picks (greedy bot) | should beat careless | — | organic greedy ≈ careless (kiting bots are XP-starved, median lv 8–11 by 15:00 — a bot artifact, not the economy); certified via scenario A/B instead, below |
+
+**In-run build-quality separation** (certified 2026-06-12, n = 16/arm): the `build-good` /
+`build-scattered` / `build-none` scenario presets grant the *same* XP position (ada lv 12 @ 6:00
+= an 11-pick budget) and differ only in how the budget was spent — focused offense (wand lv 6 +
+dmg/CDR cards) vs unfocused eco/utility cards vs nothing. Mortal bot, zero meta, identical
+movement + careless continuation:
+
+| Arm | greenfield | memoryMarsh |
+|---|---|---|
+| Good build, careless onward | **63%** win (10/16) | **44%** (7/16) |
+| Good build, greedy onward | **94%** (15/16) | — |
+| Scattered build | 0/16 (dies ~10:30, 0 bosses ever) | 0/16 (dies ~7:00) |
+| No build (control) | 0/16 (dies ~9:00) | — |
+
+Power, not movement, decides the run — the user directive ("good in-run builds should win much
+more") holds. Target for re-runs: good ≥ 50% on greenfield while scattered stays ≤ 10%.
+Caveat: lv 12 @ 6:00 sits slightly above the §2 invincible-bot curve (plausible for a skilled
+human, generous for an average one); both arms share it, so the comparison is fair.
+
+Re-run with:
+`node scripts/matrix.cjs 16 --scenario=build-good` (also `--pick=greedy`, `--map=memoryMarsh`,
+and the `build-scattered` / `build-none` arms).
 
 Pre-fix baseline for the record: careless zero-meta bots won **83%** on greenfield by
 running away forever (player 150 u/s outruns every enemy; the spawner stopped at the cap
@@ -116,8 +138,10 @@ and stragglers were never recycled — survival needed no kill rate at all).
   zero-meta runs (others 12–37%); turret life cut 10 s → 7 s brought him to 50% — still the
   strongest floor, watch after any turret/hammer change.
 - **memoryMarsh at zero meta** is a 0%-win wall for careless mortal bots (hazard pools +
-  swarm corner the kiter by ~min 4). Maxed meta reaches 31%. Decide by human play whether
-  the second map is meant to be this meta-gated; bots under-perform humans around pools.
+  swarm corner the kiter by ~min 4). Maxed meta reaches 31%. *Resolved 2026-06-12 by the
+  build-quality A/B: the wall is build-gating, not meta-gating — a good zero-meta build wins
+  44% (7/16, `build-good --map=memoryMarsh`) while the same XP spent badly dies by ~7:00.
+  The second map demanding an actual build is by design; left as-is.*
 - **linus under-scales with meta** (maxed-meta careless: 3/8 greenfield, 0/8 marsh vs
   6–7/8 for others) — helpers don't benefit from most meta stats; check when characters
   get a balance pass.

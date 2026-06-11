@@ -5,26 +5,45 @@
 //
 //   npx esbuild scripts/matrix.ts --bundle --platform=node --outfile=scripts/matrix.cjs
 //   node scripts/matrix.cjs [samples=5] [maxMinutes=15] [charId] [--mortal] [--pick=first|greedy]
+//   node scripts/matrix.cjs [samples] --scenario=<name|path> [--map=<id>] [--pick=...]
 //
 // Default is the invincible pacing bot (pick=first). --mortal turns death on and
 // switches to survival kiting; combine with --pick=greedy for the competent-player
 // proxy. Win-rate targets per strategy live in BALANCE.md.
+//
+// --scenario replaces the char × map sweep with N samples of one preconfigured
+// mid-run state (see src/game/scenario.ts) — bot behavior comes from the
+// scenario, overridable by --pick / --map (e.g. the build-quality A/B presets
+// in scripts/scenarios/build-*.json, BALANCE.md §5).
 
+import { readFileSync } from 'node:fs';
 import { Run } from '../src/game/run';
 import { CHARACTERS } from '../src/data/characters';
 import { MAPS } from '../src/data/maps';
 import { DEFAULT_WEAPON_POOL } from '../src/data/weapons';
 import { MAX_ENEMIES } from '../src/data/enemies';
 import { META_UPGRADES } from '../src/data/meta';
+import { createScenarioRun, type Scenario } from '../src/game/scenario';
 import { STEP, botStep, type BotOptions, type PickStrategy } from './simBot';
 
 const flags = process.argv.slice(2).filter((a) => a.startsWith('--'));
 const pos = process.argv.slice(2).filter((a) => !a.startsWith('--'));
 const samples = Number(pos[0] ?? 5);
-const maxMinutes = Number(pos[1] ?? 15);
+
+const scenarioArg = flags.find((f) => f.startsWith('--scenario='))?.slice(11);
+let scenario: Scenario | null = null;
+if (scenarioArg) {
+  const path = /[\\/.]/.test(scenarioArg) ? scenarioArg : `scripts/scenarios/${scenarioArg}.json`;
+  scenario = JSON.parse(readFileSync(path, 'utf-8')) as Scenario;
+  const mapOverride = flags.find((f) => f.startsWith('--map='))?.slice(6);
+  if (mapOverride) scenario.map = mapOverride;
+}
+
+const maxMinutes = scenario?.maxMinutes ?? Number(pos[1] ?? 15);
 const charFilter = pos[2]; // optional: limit to one character
-const mortal = flags.includes('--mortal');
-const pick = (flags.find((f) => f.startsWith('--pick='))?.slice(7) ?? 'first') as PickStrategy;
+const pickFlag = flags.find((f) => f.startsWith('--pick='))?.slice(7) as PickStrategy | undefined;
+const mortal = scenario ? (scenario.bot?.mortal ?? false) : flags.includes('--mortal');
+const pick: PickStrategy = pickFlag ?? scenario?.bot?.pick ?? 'first';
 const metaMax = flags.includes('--meta=max'); // fully bought shop = end-of-progression power
 const bot: BotOptions = { pick, mortal };
 const metaLevels: Record<string, number> = metaMax
@@ -39,13 +58,15 @@ interface Sample {
 }
 
 function simulateOne(charId: string, mapId: string): Sample {
-  const run = new Run(CHARACTERS[charId], MAPS[mapId], metaLevels,
-    [...new Set([...DEFAULT_WEAPON_POOL, CHARACTERS[charId].weapon])], new Set());
+  const run = scenario
+    ? createScenarioRun(scenario)
+    : new Run(CHARACTERS[charId], MAPS[mapId], metaLevels,
+        [...new Set([...DEFAULT_WEAPON_POOL, CHARACTERS[charId].weapon])], new Set());
   run.invincible = !mortal;
 
-  const killsAt = [0], aliveAt = [0], levelAt = [1];
+  const killsAt = [0], aliveAt = [0], levelAt = [run.level];
   let firstSpawnT: number | null = null, firstDieT: number | null = null;
-  let lastMin = 0;
+  let lastMin = Math.floor(run.time / 60);
 
   while (!run.over && run.time < maxMinutes * 60) {
     run.update(STEP);
@@ -79,9 +100,17 @@ interface Flag { config: string; msg: string }
 const verdicts: Flag[] = [];
 
 console.log(`bot: ${mortal ? 'MORTAL' : 'invincible'}, pick=${pick}, meta=${metaMax ? 'max' : 'zero'}`);
+if (scenario) {
+  console.log(`scenario: ${scenario.name ?? scenarioArg} — start lv ${scenario.level ?? 1} @ ${scenario.startMin ?? 0}:00`);
+}
 
-for (const charId of Object.keys(CHARACTERS).filter((c) => !charFilter || c === charFilter)) {
-  for (const mapId of Object.keys(MAPS)) {
+const configs: { charId: string; mapId: string }[] = scenario
+  ? [{ charId: scenario.char ?? 'ada', mapId: scenario.map ?? 'greenfield' }]
+  : Object.keys(CHARACTERS).filter((c) => !charFilter || c === charFilter)
+      .flatMap((charId) => Object.keys(MAPS).map((mapId) => ({ charId, mapId })));
+
+for (const { charId, mapId } of configs) {
+  {
     const config = `${charId} × ${mapId}`;
     const runs: Sample[] = [];
     for (let i = 0; i < samples; i++) runs.push(simulateOne(charId, mapId));
@@ -105,9 +134,9 @@ for (const charId of Object.keys(CHARACTERS).filter((c) => !charFilter || c === 
     console.log(`level   median @5/10/15min: ${lvMed.join(' / ')}`);
 
     // --- checks vs docs/BALANCE.md ---
-    if (mortal) {
-      // mortal runs measure difficulty: win-rate targets per strategy
-      verdicts.push({ config, msg: `win rate ${wins}/${samples} (${pick})` });
+    if (mortal || scenario) {
+      // mortal/scenario runs measure difficulty: win-rate targets per strategy
+      verdicts.push({ config, msg: `win rate ${wins}/${samples} (${scenario ? scenarioArg : pick})` });
       continue;
     }
     if (pinned > 0)
