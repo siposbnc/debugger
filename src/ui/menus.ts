@@ -526,10 +526,38 @@ export class UI {
         </div>
       </div>
     `); // no kbnav onBack: the main loop owns Esc/P while paused (would double-toggle)
+
+    // KILL PROCESS is two-step: first activate arms, second confirms. Mouse,
+    // keyboard and gamepad all funnel through the button's click event (kbnav
+    // activate() dispatches a real click), so one armed flag covers them all.
+    const abandonBtn = s.querySelector<HTMLButtonElement>('[data-act="abandon"]')!;
+    let armed = false;
+    let disarmTimer = 0;
+    const disarm = () => {
+      if (!armed) return;
+      armed = false;
+      clearTimeout(disarmTimer);
+      abandonBtn.textContent = 'KILL PROCESS';
+      abandonBtn.classList.remove('armed');
+    };
+    // Focus moving away (kb/pad nav or mouse hover — all set .kb-focus) disarms.
+    new MutationObserver(() => {
+      if (!abandonBtn.classList.contains('kb-focus')) disarm();
+    }).observe(abandonBtn, { attributes: true, attributeFilter: ['class'] });
+
     s.addEventListener('click', (e) => {
       const act = (e.target as HTMLElement).closest('button')?.dataset.act;
       if (act === 'resume') onResume();
-      else if (act === 'abandon') onAbandon();
+      else if (act === 'abandon') {
+        if (!armed) {
+          armed = true;
+          abandonBtn.textContent = 'SIGKILL — ARE YOU SURE?';
+          abandonBtn.classList.add('armed');
+          disarmTimer = window.setTimeout(disarm, 2000);
+        } else {
+          onAbandon();
+        }
+      }
     });
   }
 

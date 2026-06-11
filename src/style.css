@@ -146,6 +146,8 @@ html, body {
 .btn.primary:hover { color: var(--bg); background: var(--green); box-shadow: 0 0 28px rgba(83, 232, 168, 0.5); }
 .btn.danger { color: var(--red); }
 .btn.danger:hover { border-color: var(--red); background: rgba(255, 94, 94, 0.08); box-shadow: 0 0 18px rgba(255, 94, 94, 0.2); color: var(--red); }
+.btn.danger.armed { border-color: var(--red); background: rgba(255, 94, 94, 0.18); animation: armed-pulse 0.5s ease-in-out infinite alternate; }
+@keyframes armed-pulse { from { box-shadow: 0 0 12px rgba(255, 94, 94, 0.3); } to { box-shadow: 0 0 28px rgba(255, 94, 94, 0.6); } }
 .btn.small { font-size: 19px; min-width: 0; padding: 6px 18px; }
 .btn:disabled { opacity: 0.35; cursor: default; pointer-events: none; }
 
