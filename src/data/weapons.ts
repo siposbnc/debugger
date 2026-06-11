@@ -44,7 +44,9 @@ export const WEAPONS: Record<string, WeaponDef> = {
     desc: 'Fires bolts of executable code at the nearest bug.',
     flavor: 'Speak friend, and compile.',
     evolveTo: 'compilersScepter',
-    levels: levels(L(14, 0.85, 1, 7, 420), { damage: 5, cooldown: 0.06, count: [3, 5, 7], pierce: [6] }),
+    // Base pierce 1 + early pierce step: the wand is the only single-target
+    // starter — without it ada falls behind the minute 3–6 swarm (matrix-verified).
+    levels: levels(L(14, 0.85, 1, 7, 420, 0, 1), { damage: 5, cooldown: 0.06, count: [3, 5, 7], pierce: [3, 6] }),
   },
   compilersScepter: {
     id: 'compilersScepter', name: "Compiler's Scepter", kind: 'bolt', icon: '⌬', color: '#7dffce',

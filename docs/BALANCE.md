@@ -18,8 +18,8 @@ node scripts/deferTest.cjs                  # Defer (level-up skip) behavior che
 
 | Metric | Target | Status |
 |---|---|---|
-| Kill rate vs spawn rate | kills/min ≥ spawns/min before **6:00** for every starting weapon | watchlist; weak auto-pick runs violate it (alive count pins at the 380 cap by ~4:00) — matrix item decides if that's a sim-bot artifact or real |
-| First boss (2:00 Merge Conflict) TTK | **60–100 s** | user-set window |
+| Kill rate vs spawn rate | kills/min ≥ spawns/min before **6:00** for every starting weapon | matrix-verified 2026-06-11 (after the Syntax Wand pierce buff): 0 cap-pinned samples for max/nia/linus, ada ~0–1 in 5 |
+| First boss (2:00 Merge Conflict) TTK | **60–100 s** | **not met by the auto-pick bot in any config** (medians 117–653 s, best linus × greenfield ≈ 117 s) — first actual measurement 2026-06-11; open question whether boss HP, bot build quality, or the target itself is wrong (roadmap balance item) |
 | Later bosses TTK | no target yet — must die before the next boss spawns (< 120 s) *(provisional)* | boss cadence is `BOSS_INTERVAL` = 120 s (`bossLogic.ts`) |
 | Player death pressure | "would-be damage taken" in the sim should stay the same order of magnitude as the HP pool early (≤ ~10× pool by 5:00) *(provisional)* | sim bot is invincible; this is the only survivability proxy |
 
@@ -86,9 +86,11 @@ Total shop cost: meta upgrades **9,425 ⌬** + characters 1,400 + weapons 1,550 
 - **Assertion Blades + cooldown stacking** — strongest known combo; needs a checked-in
   scenario once the sim-scenarios tooling exists.
 - **Exception Beetle density past 10:00** — explosion stacking.
-- **ada auto-pick variance** — 524–2,154 ⌬ observed across same-config runs; weak runs kill
-  0 bosses and let alive count outgrow kills by 4:00. The simulator-matrix item must decide
-  how much is the auto-pick bot (always takes `offer[0]`) vs real balance.
+- **ada auto-pick variance** — *root-caused 2026-06-11 by the matrix*: the Syntax Wand was
+  the only zero-pierce, single-target starter, and ada's passive (+10% XP) adds no combat
+  power, so weak card draws let the minute 3–6 swarm outrun her. Fixed with base pierce 1 +
+  a pierce step at lv 3 (`weapons.ts`); post-fix medians match the other characters. Some
+  variance remains inherent to the offer[0] bot.
 - Boss kills are bimodal in sim (0 or several): once a boss outlives its 120 s slot, bosses
   stack and the run never recovers — TTK regressions show up as `bosses: 0`, not as slightly
   longer kills. Treat any 0-boss rate ≥ ~50% per config as a red flag *(provisional)*.
