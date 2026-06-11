@@ -58,6 +58,14 @@ const padPressedFrame = new Set<number>();
 let menuDir: { x: number; y: number } | null = null;
 let heldDirKey = '';
 let repeatT = 0;
+let padNeutralGate = false;
+
+/** Ignore a held pad direction until the stick/d-pad returns to neutral.
+ *  KbNav calls this on attach so movement held when a screen opens (level-up!)
+ *  can't spin through its items — pad twin of the keyboard liveKeys gate. */
+export function padRequireNeutral(): void {
+  padNeutralGate = true;
+}
 
 export function pollGamepad(dt: number): void {
   menuDir = null;
@@ -101,6 +109,9 @@ export function pollGamepad(dt: number): void {
   const key = dx === 0 && dy === 0 ? '' : `${dx},${dy}`;
   if (key === '') {
     heldDirKey = '';
+    padNeutralGate = false;
+  } else if (padNeutralGate) {
+    // direction held since before the current screen attached — stay quiet
   } else if (key !== heldDirKey) {
     heldDirKey = key;
     menuDir = { x: dx, y: dy };

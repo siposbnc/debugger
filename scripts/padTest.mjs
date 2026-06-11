@@ -6,7 +6,7 @@
 import { chromium } from 'playwright';
 
 const BASE = process.argv[2] || 'http://localhost:4173';
-const BTN = { A: 0, B: 1, START: 9, DOWN: 13 };
+const BTN = { A: 0, B: 1, START: 9, DOWN: 13, RIGHT: 15 };
 
 const browser = await chromium.launch();
 const page = await browser.newPage();
@@ -76,6 +76,21 @@ check('B resumes from pause', await uiEmpty());
 await press(BTN.START);
 await press(BTN.START);
 check('Start toggles pause/resume', await uiEmpty());
+
+// Regression: a direction held while a screen opens (e.g. moving when the
+// level-up modal appears) must not navigate it until released.
+await page.evaluate(() => { window.__pad.axes[1] = 1; });
+await page.waitForTimeout(200);
+await press(BTN.START);
+const f0 = await focused();
+await page.waitForTimeout(600); // > repeat delay — would have rotated without the gate
+const f1 = await focused();
+check('held stick does not navigate a fresh screen', f0 !== null && f0 === f1, `stayed on ${f0}`);
+await page.evaluate(() => { window.__pad.axes[1] = 0; });
+await page.waitForTimeout(100);
+await press(BTN.RIGHT); // pause actions are a horizontal row
+const f2 = await focused();
+check('nav works again after release', f2 !== f1, `${f1} → ${f2}`);
 
 await browser.close();
 console.log(failures === 0 ? 'ALL PASS' : `${failures} FAILURE(S)`);

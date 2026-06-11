@@ -1,4 +1,5 @@
 import { sound } from '../audio/sound';
+import { padRequireNeutral } from '../core/input';
 
 // Spatial keyboard navigation for the DOM menus: WASD/arrows move a roving
 // highlight (.kb-focus), Enter/Space activate it, Esc fires the screen's back
@@ -39,6 +40,7 @@ export class KbNav {
     this.onBack = onBack;
     this.items = [...container.querySelectorAll<HTMLElement>(ITEM_SELECTOR)];
     this.liveKeys.clear();
+    padRequireNeutral();
     window.addEventListener('keydown', this.keyHandler);
     container.addEventListener('mouseover', this.overHandler);
     const prev = this.lastKey ? this.items.findIndex((el) => itemKey(el) === this.lastKey) : -1;
