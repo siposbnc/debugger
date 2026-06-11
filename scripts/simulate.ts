@@ -92,3 +92,9 @@ console.log(`objectives: ${results.newObjectives.join(', ')}`);
 for (const b of results.bitsBreakdown) console.log(`  ${b.label}: +${b.value}`);
 console.log(`TOTAL BITS: ${results.bits}`);
 console.log(`total damage taken (would-be): ${Math.round(damageTaken)} vs pool ~${Math.round(run.stats.maxHp)} HP`);
+console.log('damage by weapon:');
+for (const w of run.weapons) {
+  const dps = w.totalDamage / Math.max(1, run.time - w.acquiredAt);
+  console.log(`  ${w.def.name.padEnd(22)} lv ${w.level}${w.def.isEvolution ? '*' : ' '} ${Math.round(w.totalDamage).toString().padStart(8)} (${Math.round(dps)}/s)`);
+}
+if (run.allyDamage > 0) console.log(`  ${'(allies)'.padEnd(22)}      ${Math.round(run.allyDamage).toString().padStart(8)}`);

@@ -7,9 +7,11 @@ import { SHOP_WEAPONS, WEAPONS } from '../data/weapons';
 import { ENEMIES } from '../data/enemies';
 import { BOSSES } from '../data/bosses';
 import { OBJECTIVES } from '../data/objectives';
+import { CARD_BY_ID } from '../data/upgrades';
+import { RARITY_COLOR, RARITY_ORDER } from '../data/types';
 import { formatTime } from '../core/util';
 import { sound } from '../audio/sound';
-import { makeOffer, applyOffer, type OfferItem } from '../game/levelup';
+import { makeOffer, applyOffer, offerOdds, type OfferItem } from '../game/levelup';
 import type { Run, RunResults } from '../game/run';
 
 // All DOM UI: menus, shop, codex, settings, level-up modal, pause, summary.
@@ -420,15 +422,81 @@ export class UI {
     render();
   }
 
-  // ---------- pause ----------
+  // ---------- pause (current-run overview) ----------
 
-  showPause(onResume: () => void, onAbandon: () => void): void {
+  showPause(run: Run, onResume: () => void, onAbandon: () => void): void {
+    const st = run.stats;
+    const row = (label: string, value: string) =>
+      `<div class="prow"><span>${label}</span><span class="v">${value}</span></div>`;
+    const pct = (v: number) => `${Math.round(v * 100)}%`;
+    const fmtDmg = (v: number) => v >= 10000 ? `${(v / 1000).toFixed(1)}k` : `${Math.round(v)}`;
+
+    // player stat sheet — resolved values, same source the sim uses
+    const statRows = [
+      row('HP', `${Math.ceil(run.hp)} / ${st.maxHp}`),
+      row('Regen', `${st.regen.toFixed(1)} HP/s`),
+      row('Armor', `${st.armor}`),
+      row('Move speed', `${Math.round(st.moveSpeed)}`),
+      row('Damage', `×${st.damageMult.toFixed(2)}`),
+      row('Cooldown', `−${pct(1 - st.cooldownFactor)}`),
+      row('Area', `×${st.areaMult.toFixed(2)}`),
+      row('Projectiles', `+${st.projectiles}`),
+      row('Crit', `${pct(st.critChance)} / ×${st.critMult.toFixed(2)}`),
+      row('Pickup radius', `${Math.round(st.pickupRadius)}`),
+      row('XP gain', `×${st.xpMult.toFixed(2)}`),
+      row('Luck', `${st.luck}`),
+    ].join('');
+
+    // weapons: total damage + DPS since acquired
+    const weaponRows = run.weapons.map((w) => {
+      const dps = w.totalDamage / Math.max(1, run.time - w.acquiredAt);
+      const lvl = w.def.isEvolution ? 'EVO' : `Lv ${w.level}`;
+      return row(
+        `<span style="color:${w.def.color}">${w.def.icon} ${w.def.name}</span> <span class="dim">${lvl}</span>`,
+        `${fmtDmg(w.totalDamage)} <span class="dim">(${fmtDmg(dps)}/s)</span>`,
+      );
+    }).join('') + (run.allyDamage > 0
+      ? row(`<span class="dim">⚙ Allies</span>`, `${fmtDmg(run.allyDamage)}`)
+      : '');
+
+    // taken cards, highest rarity first, with stack counts
+    const taken = [...run.takenCards.entries()]
+      .map(([id, count]) => ({ card: CARD_BY_ID[id], count }))
+      .filter((x) => x.card)
+      .sort((a, b) =>
+        RARITY_ORDER.indexOf(b.card.rarity) - RARITY_ORDER.indexOf(a.card.rarity) || b.count - a.count);
+    const cardRows = taken.length > 0
+      ? taken.map(({ card, count }) => row(
+          `<span style="color:${RARITY_COLOR[card.rarity]}">${card.icon} ${card.name}</span>`,
+          count > 1 ? `×${count}` : '',
+        )).join('')
+      : '<div class="prow"><span class="dim">no patches applied yet</span></div>';
+
+    // live offer odds (per card slot, includes luck and banishes)
+    const odds = offerOdds(run);
+    const oddsRows = [
+      row('Weapon card', pct(odds.weapon)),
+      ...RARITY_ORDER.map((r) => row(
+        `<span style="color:${RARITY_COLOR[r]}">${r.charAt(0).toUpperCase() + r.slice(1)}</span>`,
+        odds.tiers[r] >= 0.005 ? pct(odds.tiers[r]) : `${(odds.tiers[r] * 100).toFixed(1)}%`,
+      )),
+      row('Rerolls / Banishes / Skips', `${run.rerollsLeft} / ${run.banishesLeft} / ${run.skipsLeft}`),
+    ].join('');
+
     const s = this.screen(`
       <div class="screen-heading">execution paused</div>
-      <div class="hint">breakpoint hit at line ${Math.floor(Math.random() * 9000) + 100}</div>
-      <div class="menu-col">
+      <div class="hint">breakpoint hit at ${formatTime(run.time)} — level ${run.level}, ${run.kills} bugs squashed</div>
+      <div class="pause-actions">
         <button class="btn primary" data-act="resume">CONTINUE (ESC)</button>
         <button class="btn danger" data-act="abandon">KILL PROCESS</button>
+      </div>
+      <div class="pause-cols">
+        <div class="pause-panel"><h3>~/player</h3>${statRows}</div>
+        <div class="pause-panel"><h3>~/weapons</h3>${weaponRows}</div>
+        <div class="pause-panel"><h3>~/cards</h3>${cardRows}</div>
+        <div class="pause-panel"><h3>~/card_odds</h3>${oddsRows}
+          <div class="hint" style="margin-top:8px">chance per offered slot</div>
+        </div>
       </div>
     `);
     s.addEventListener('click', (e) => {

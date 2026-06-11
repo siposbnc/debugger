@@ -53,6 +53,7 @@ export interface Projectile {
   color: string;
   kind: 'bolt' | 'arrow' | 'petbolt';
   hit: Set<Enemy>;
+  source?: WeaponInstance;   // damage credit; undefined = ally (turret)
 }
 
 export interface EnemyShot {
@@ -91,6 +92,8 @@ export interface WeaponInstance {
   orbitAngle: number;
   petTimers: number[];
   hitMemo: Map<Enemy, number>;  // last hit time, for orbit contact damage
+  totalDamage: number;       // damage dealt, carries through evolution
+  acquiredAt: number;        // run.time when added (DPS denominator)
 }
 
 export type RunEvent =
@@ -169,6 +172,7 @@ export class Run {
   // scoring
   kills = 0;
   bossKills = 0;
+  allyDamage = 0;            // turret/helper damage (character specials)
   evolvedCount = 0;
   objectivesThisRun: string[] = [];
 
@@ -225,6 +229,7 @@ export class Run {
     this.weapons.push({
       def, level: 1, timer: 0.4, orbitAngle: 0,
       petTimers: [], hitMemo: new Map(),
+      totalDamage: 0, acquiredAt: this.time,
     });
   }
 
@@ -481,7 +486,7 @@ export class Run {
         if (dead || p.hit.has(e)) return;
         if (dist(p.x, p.y, e.x, e.y) > p.radius + e.def.radius) return;
         p.hit.add(e);
-        this.hitEnemy(e, p.damage, { knockFrom: { x: p.x, y: p.y }, knock: 90 });
+        this.hitEnemy(e, p.damage, { knockFrom: { x: p.x, y: p.y }, knock: 90, source: p.source ?? 'ally' });
         if (p.slow > 0) { e.slowAmt = Math.max(e.slowAmt, p.slow); e.slowT = Math.max(e.slowT, p.slowDur); }
         if (p.freeze > 0 && !e.isBoss) e.frozenT = Math.max(e.frozenT, p.freeze);
         if (p.pierce <= 0) dead = true;
@@ -559,7 +564,7 @@ export class Run {
           a.shootT = 0.8;
           let any = false;
           this.grid.forEachInRadius(a.x, a.y, 55, (e) => {
-            this.hitEnemy(e, 11 * this.stats.damageMult, {});
+            this.hitEnemy(e, 11 * this.stats.damageMult, { source: 'ally' });
             any = true;
           });
           if (any) this.emit({ type: 'sweep', x: a.x, y: a.y, angle: 0, radius: 55, full: true, color: '#9be564' });
@@ -638,7 +643,10 @@ export class Run {
   hitEnemy(
     e: Enemy,
     rawDamage: number,
-    opts: { knockFrom?: { x: number; y: number }; knock?: number; noCrit?: boolean; absorb?: boolean },
+    opts: {
+      knockFrom?: { x: number; y: number }; knock?: number; noCrit?: boolean; absorb?: boolean;
+      source?: WeaponInstance | 'ally';
+    },
   ): void {
     if (e.hp <= 0) return;
     let dmg = rawDamage;
@@ -653,6 +661,10 @@ export class Run {
 
     e.hp -= dmg;
     e.hitFlash = 0.12;
+    if (opts.source) {
+      if (opts.source === 'ally') this.allyDamage += dmg;
+      else opts.source.totalDamage += dmg;
+    }
     this.emit({ type: 'damage', x: e.x, y: e.y - e.def.radius, value: Math.round(dmg), crit });
 
     if (opts.knockFrom && opts.knock && !e.isBoss) {

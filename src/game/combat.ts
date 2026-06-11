@@ -62,7 +62,7 @@ function fireBolt(run: Run, w: WeaponInstance, s: ReturnType<typeof effective>):
       vx: Math.cos(ang) * s.speed, vy: Math.sin(ang) * s.speed,
       damage: s.damage, radius: s.area, pierce: s.pierce,
       life: 1.6, slow: 0, slowDur: 0, freeze: 0,
-      color: w.def.color, kind: 'bolt', hit: new Set(),
+      color: w.def.color, kind: 'bolt', hit: new Set(), source: w,
     });
   }
   run.emit({ type: 'shoot' });
@@ -83,7 +83,7 @@ function fireSnipe(run: Run, w: WeaponInstance, s: ReturnType<typeof effective>)
       life: 1.8,
       slow: isFreeze ? 0 : s.slow, slowDur: 2.2,
       freeze: isFreeze ? s.duration : 0,
-      color: w.def.color, kind: 'arrow', hit: new Set(),
+      color: w.def.color, kind: 'arrow', hit: new Set(), source: w,
     });
   }
   run.emit({ type: 'shoot' });
@@ -96,7 +96,7 @@ function fireShockwave(run: Run, w: WeaponInstance, s: ReturnType<typeof effecti
   for (let wave = 0; wave < waves; wave++) {
     const radius = s.area * (1 - wave * 0.35);
     run.grid.forEachInRadius(run.px, run.py, radius, (e) => {
-      run.hitEnemy(e, s.damage, { knockFrom: { x: run.px, y: run.py }, knock: 240 });
+      run.hitEnemy(e, s.damage, { knockFrom: { x: run.px, y: run.py }, knock: 240, source: w });
       if (stun > 0 && !e.isBoss) e.frozenT = Math.max(e.frozenT, stun);
     });
     run.emit({ type: 'shockwave', x: run.px, y: run.py, radius, color: w.def.color });
@@ -118,10 +118,10 @@ function fireSweep(run: Run, w: WeaponInstance, s: ReturnType<typeof effective>)
     // Garbage collection: weakened small bugs get deleted outright.
     const small = !e.isBoss && !e.elite && e.def.radius <= 14;
     if (small && e.hp - s.damage < e.maxHp * 0.3) {
-      run.hitEnemy(e, e.hp, { noCrit: true });
+      run.hitEnemy(e, e.hp, { noCrit: true, source: w });
       absorbed++;
     } else {
-      run.hitEnemy(e, s.damage, { knockFrom: { x: run.px, y: run.py }, knock: 130 });
+      run.hitEnemy(e, s.damage, { knockFrom: { x: run.px, y: run.py }, knock: 130, source: w });
     }
   });
   if (full && absorbed > 0) run.healPlayer(absorbed);
@@ -138,7 +138,7 @@ function fireChain(run: Run, w: WeaponInstance, s: ReturnType<typeof effective>)
   for (let i = 0; i < s.count; i++) {
     visited.add(current);
     points.push({ x: current.x, y: current.y });
-    run.hitEnemy(current, s.damage, {});
+    run.hitEnemy(current, s.damage, { source: w });
     if (isPerfect) current.matchMarkT = 4;
     const next = run.grid.nearest(current.x, current.y, 150, (e) => !visited.has(e));
     if (!next) break;
@@ -165,7 +165,7 @@ function fireColumn(run: Run, w: WeaponInstance, s: ReturnType<typeof effective>
       const cx = t.x + Math.cos(dirAng) * h * s.area * 1.4;
       const cy = t.y + Math.sin(dirAng) * h * s.area * 1.4;
       run.grid.forEachInRadius(cx, cy, s.area, (e) => {
-        run.hitEnemy(e, s.damage, { knockFrom: { x: cx, y: cy }, knock: 100 });
+        run.hitEnemy(e, s.damage, { knockFrom: { x: cx, y: cy }, knock: 100, source: w });
       });
       run.emit({ type: 'column', x: cx, y: cy, radius: s.area, color: w.def.color });
     }
@@ -186,7 +186,7 @@ function updateOrbit(run: Run, w: WeaponInstance, s: ReturnType<typeof effective
       const last = w.hitMemo.get(e) ?? -1;
       if (run.time - last < HIT_INTERVAL) return;
       w.hitMemo.set(e, run.time);
-      run.hitEnemy(e, s.damage, { knockFrom: { x: run.px, y: run.py }, knock: 60 });
+      run.hitEnemy(e, s.damage, { knockFrom: { x: run.px, y: run.py }, knock: 60, source: w });
     });
   }
   if (w.hitMemo.size > 400) w.hitMemo.clear();
@@ -212,7 +212,7 @@ function updatePet(run: Run, w: WeaponInstance, s: ReturnType<typeof effective>,
       vx: ((target.x - px) / d) * s.speed, vy: ((target.y - py) / d) * s.speed,
       damage: s.damage, radius: 6, pierce: 0, life: 1.3,
       slow: 0, slowDur: 0, freeze: 0,
-      color: w.def.color, kind: 'petbolt', hit: new Set(),
+      color: w.def.color, kind: 'petbolt', hit: new Set(), source: w,
     });
   }
 }

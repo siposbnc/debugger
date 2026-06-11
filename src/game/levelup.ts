@@ -105,6 +105,27 @@ function candidates(run: Run, minRarity?: Rarity): Candidate[] {
   return out;
 }
 
+/** Per-slot offer probabilities (first draw): weapon cards + each stat-card tier. */
+export interface OfferOdds {
+  weapon: number;
+  tiers: Record<Rarity, number>;
+}
+
+export function offerOdds(run: Run): OfferOdds {
+  const pool = candidates(run);
+  const odds: OfferOdds = {
+    weapon: 0,
+    tiers: { common: 0, uncommon: 0, rare: 0, epic: 0, legendary: 0 },
+  };
+  const total = pool.reduce((a, c) => a + c.weight, 0);
+  if (total <= 0) return odds;
+  for (const c of pool) {
+    if (c.item.kind === 'card') odds.tiers[CARD_BY_ID[c.item.id].rarity] += c.weight / total;
+    else odds.weapon += c.weight / total;
+  }
+  return odds;
+}
+
 export function makeOffer(run: Run, count = 3, minRarity?: Rarity): OfferItem[] {
   const pool = candidates(run, minRarity);
   const offer: OfferItem[] = [];

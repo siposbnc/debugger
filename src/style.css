@@ -312,6 +312,20 @@ html, body {
 .codex-entry .done { color: var(--green); }
 .codex-entry .undone { color: var(--dim); }
 
+/* ---------- pause overview ---------- */
+
+.pause-actions { display: flex; gap: 14px; flex-wrap: wrap; justify-content: center; }
+.pause-cols { display: flex; gap: 16px; flex-wrap: wrap; justify-content: center; max-width: 1240px; align-items: flex-start; }
+.pause-panel { background: var(--panel); border: 1px solid var(--line); padding: 14px 18px; width: 288px; }
+.pause-panel h3 { font-family: var(--font-display); font-size: 24px; color: var(--cyan); font-weight: 400; margin-bottom: 8px; }
+.pause-panel .prow {
+  display: flex; justify-content: space-between; align-items: baseline; gap: 12px;
+  font-size: 12.5px; padding: 3px 0; border-bottom: 1px dashed var(--line);
+}
+.pause-panel .prow:last-of-type { border-bottom: none; }
+.pause-panel .prow .v { font-family: var(--font-display); font-size: 17px; color: var(--cyan); white-space: nowrap; }
+.pause-panel .dim { color: var(--dim); font-size: 11px; }
+
 /* ---------- settings ---------- */
 
 .settings-box { display: flex; flex-direction: column; gap: 20px; min-width: 360px; }

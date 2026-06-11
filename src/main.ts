@@ -86,9 +86,10 @@ function endRun(): void {
 }
 
 function pause(): void {
-  if (state !== 'run') return;
+  if (state !== 'run' || !run) return;
   state = 'paused';
   ui.showPause(
+    run,
     resume,
     () => { if (run) { run.over = true; run.victory = false; } endRun(); },
   );
