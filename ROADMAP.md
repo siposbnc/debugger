@@ -68,9 +68,14 @@ No new content — only feel, clarity and robustness.
   — *done: implemented exactly as proposed (constants `REPEAT_DECAY`/`REPEAT_FLOOR`/`WEAPON_LEVEL_DECAY` in levelup.ts; note: the 8% floor can't bind with maxStacks ≤ 5 — 0.55⁴ ≈ 9.2% — kept for future high-stack cards). Pause-menu odds reflect it automatically. offerTest asserts the 0.55² ratio (measured 0.31) + tier rates unchanged (legendary 1.41%); weapon-up share decays 10.3% → 5.3% lv1→lv6. Sim: all 4 chars victorious, Bits 1545–1995 (ada weak-variance run 1102, pre-existing)*
 - [ ] [P2] (S) Meta upgrade **"Muscle Memory"** (3 levels): softens the repeat penalty
   (0.55 → 0.70 → 0.85 → 1.0 effectively off) — lets build-focused players buy back consistency
-- [ ] [P1] (S) Rework **Skip** — currently gives nothing, so it's strictly worse than any pick.
+- [x] [P1] (S) Rework **Skip** — currently gives nothing, so it's strictly worse than any pick.
   **Proposal:** Skip = "Defer": bank 20% of the next level's XP requirement (momentum without power).
   Alternative if too strong: flat +5 ⌬ live Bits. Decide, implement, kill the dead button.
+  — *done: went with Defer (20% can't beat a card, and it stays out of the Bits economy). `Run.deferLevel()`
+  banks `0.2 × xpForLevel(level)` — raw XP, no xpMult, not counted in xpCollected (no Bits) — and can chain
+  a queued level-up if the bar was ≥80%. Button now reads "DEFER +20% XP ×n"; Snooze Notification meta desc
+  updated. Verified via `scripts/deferTest.ts` (10 checks: bank amount, skip consumption, chaining,
+  carry-over, 0-skip no-op, gainXp regression)*
 - [x] [P1] (S) Verify rarity weighting math end-to-end (suspected cause of "legendary too common" bug below) — add a `scripts/offerTest.ts` assertion: over 10k offers at luck 0, legendary rate ≈ 1.4%/card — *done: weights were per-card, now per-tier split across available cards; assertion passes at 1.40%*
 
 ### Balance pass (sim-driven, see DESIGN.md §27)
@@ -244,3 +249,4 @@ Parking lot — promote into a milestone before working on these.
 - 2026-06-11 — Incremental build version per user request: on `-dev` builds the patch number is the git commit count (`v0.2.33-dev`) — deterministic, stateless, distinguishes test-server deployments; releases untouched. CI checkout switched to full history so its commit count is correct. (Replaced the timestamp variant shipped an hour earlier)
 - 2026-06-11 — Release-branch policy adopted (user ruling: main = mirror of newest release): releases live on `release/X.Y`, hotfixes commit there and merge back to dev, version substitution now applies on release builds too (`vX.Y.<count>`) so hotfixes bump production versions visibly; CLAUDE.md + roadmap release bullet rewritten, CI covers `release/**`
 - 2026-06-11 — Draft batch 6: KILL PROCESS two-step confirm → v0.2 UX (P2); "Boss mechanics pass" → v0.3 Bosses (P2, design-first) — each boss gets a rule-bending layer that tests the build, not just dodging, with 5 starter proposals to riff on
+- 2026-06-11 — Skip → **Defer** shipped (P1 card-system item, primary proposal): banks 20% of the next level's XP (raw, no xpMult, no Bits credit), button reads "DEFER +20% XP ×n". New `scripts/deferTest.ts` (10 checks). Sim: ada variance reconfirmed across 5 samples (748–2078 Bits; weak runs kill 0 bosses, alive count outgrows kills by min 4) — more fuel for the P1 simulator-matrix item

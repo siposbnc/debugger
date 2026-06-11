@@ -392,7 +392,8 @@ export class UI {
           <div class="levelup-actions">
             <button class="btn small" data-act="reroll" ${run.rerollsLeft <= 0 ? 'disabled' : ''}>REROLL ×${run.rerollsLeft}</button>
             <button class="btn small ${banishMode ? 'danger' : ''}" data-act="banish" ${run.banishesLeft <= 0 ? 'disabled' : ''}>BANISH ×${run.banishesLeft}</button>
-            <button class="btn small" data-act="skip" ${run.skipsLeft <= 0 ? 'disabled' : ''}>SKIP ×${run.skipsLeft}</button>
+            <button class="btn small" data-act="skip" title="Take no card; bank 20% of the next level's XP"
+              ${run.skipsLeft <= 0 ? 'disabled' : ''}>DEFER +20% XP ×${run.skipsLeft}</button>
           </div>
         </div>`;
 
@@ -420,8 +421,7 @@ export class UI {
           render();
           return;
         }
-        if (act === 'skip' && run.skipsLeft > 0) {
-          run.skipsLeft--;
+        if (act === 'skip' && run.deferLevel()) {
           sound.play('click');
           this.hide();
           onDone();
@@ -507,7 +507,7 @@ export class UI {
         `<span style="color:${RARITY_COLOR[r]}">${r.charAt(0).toUpperCase() + r.slice(1)}</span>`,
         odds.tiers[r] >= 0.005 ? pct(odds.tiers[r]) : `${(odds.tiers[r] * 100).toFixed(1)}%`,
       )),
-      row('Rerolls / Banishes / Skips', `${run.rerollsLeft} / ${run.banishesLeft} / ${run.skipsLeft}`),
+      row('Rerolls / Banishes / Defers', `${run.rerollsLeft} / ${run.banishesLeft} / ${run.skipsLeft}`),
     ].join('');
 
     const s = this.screen(`

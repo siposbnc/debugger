@@ -254,8 +254,21 @@ export class Run {
 
   gainXp(v: number): void {
     const gained = v * this.stats.xpMult;
-    this.xp += gained;
     this.xpCollected += gained;
+    this.addXp(gained);
+  }
+
+  /** Skip = "Defer": bank 20% of the next level's XP requirement instead of taking a card.
+   *  Banked XP is progression momentum only — it does not count as collected (no Bits). */
+  deferLevel(): boolean {
+    if (this.skipsLeft <= 0) return false;
+    this.skipsLeft--;
+    this.addXp(this.xpForLevel(this.level) * 0.2);
+    return true;
+  }
+
+  private addXp(amount: number): void {
+    this.xp += amount;
     while (this.xp >= this.xpForLevel(this.level)) {
       this.xp -= this.xpForLevel(this.level);
       this.level++;

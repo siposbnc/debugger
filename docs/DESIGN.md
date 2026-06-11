@@ -45,7 +45,7 @@ die or stabilize the system at 15:00 → Bits → meta shop → run again.
 ## 6. Permanent progression structure
 
 13 meta upgrades (cost = base × 1.55–1.9^level): starting HP/damage/speed/pickup/XP/
-regen/armor/luck, +reroll/+banish/+skip, +1 weapon slot (4→5), boss-reward +25%/lvl.
+regen/armor/luck, +reroll/+banish/+defer, +1 weapon slot (4→5), boss-reward +25%/lvl.
 Plus unlocks: 3 characters (250/450/700 ⌬), 4 weapons (200–600 ⌬), 1 map (500 ⌬).
 
 ## 7. Bits economy
@@ -82,7 +82,8 @@ First meta purchases land after 1–2 runs; full shop ≈ 25–35 runs.
 
 3 cards per level-up; pool = weapon level-ups (weight 70), new weapons (30), 32 stat
 cards (rarity-weighted: 50/28/13/5/1.4, halved per-card; luck multiplies rare+ weights).
-Reroll/banish/skip are meta-unlocked. Examples: **Hotfix** (+8% dmg, C),
+Reroll/banish/defer are meta-unlocked (Defer takes no card and banks 20% of the
+next level's XP requirement — momentum without power). Examples: **Hotfix** (+8% dmg, C),
 **Rubber Duck Insight** (+1 luck +10% XP, R), **Merge Conflict** (+40% dmg −10 HP, E),
 **The 10x Developer** (+10% everything, L). Full list: `src/data/upgrades.ts`.
 
@@ -127,7 +128,7 @@ phase tables (interval + enemy weights per minute band). Enemy cap 380.
 
 In-run HUD: XP bar + level (top), timer, kill & live-Bits counters, next-boss countdown,
 boss HP bar, weapon icons + levels, HP bar, banner system (boss warning, objective,
-evolution). Level-up modal: 3 rarity-glowing cards + reroll/banish/skip. Menus: start,
+evolution). Level-up modal: 3 rarity-glowing cards + reroll/banish/defer. Menus: start,
 characters, maps, shop, codex (stats/bugs/incidents/objectives), settings. Post-run:
 victory/defeat header, stat rows, itemized Bits breakdown.
 

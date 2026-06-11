@@ -65,7 +65,7 @@ export const META_UPGRADES: MetaUpgradeDef[] = [
   },
   {
     id: 'skip', name: 'Snooze Notification', icon: '⏭',
-    desc: '+1 level-up skip per run, per level.',
+    desc: '+1 Defer per run, per level (Defer skips the card pick and banks 20% of the next level\'s XP).',
     maxLevel: 2, baseCost: 60, costGrowth: 1.8,
     modsPerLevel: { skips: 1 },
   },
