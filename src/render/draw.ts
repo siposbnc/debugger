@@ -26,6 +26,7 @@ export class Renderer {
   t = 0; // render clock for HUD pulses
   shakeMag = 0;
   shakeEnabled = true;
+  playerHpBarEnabled = true;
   flash = 0; // screen flash on level up
 
   particles: Particle[] = [];
@@ -448,6 +449,16 @@ export class Renderer {
           if (flip) { ctx.translate(s.x, 0); ctx.scale(-1, 1); ctx.translate(-s.x, 0); }
           ctx.drawImage(sprite, s.x - sprite.width / 4, s.y - sprite.height / 2 - 6, sprite.width / 2, sprite.height / 2);
           ctx.restore();
+
+          if (this.playerHpBarEnabled) {
+            const bw = 34;
+            const by = s.y - sprite.height / 2 - 14;
+            const frac = clamp(run.hp / run.stats.maxHp, 0, 1);
+            ctx.fillStyle = 'rgba(0,0,0,0.6)';
+            ctx.fillRect(s.x - bw / 2, by, bw, 5);
+            ctx.fillStyle = frac > 0.35 ? '#41d97f' : '#ff5e5e';
+            ctx.fillRect(s.x - bw / 2, by, bw * frac, 5);
+          }
         },
       });
     }

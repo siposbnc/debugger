@@ -30,6 +30,7 @@ function applySettings(): void {
   sound.musicVolume = save.settings.music;
   sound.applyVolumes();
   renderer.shakeEnabled = save.settings.shake;
+  renderer.playerHpBarEnabled = save.settings.playerHpBar;
 }
 applySettings();
 ui.onSettingsChanged = applySettings;

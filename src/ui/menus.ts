@@ -318,6 +318,10 @@ export class UI {
           <button class="toggle ${st.shake ? '' : 'off'}" id="shake">${st.shake ? 'ON' : 'OFF'}</button>
         </div>
         <div class="setting-row">
+          <label>Player health bar</label>
+          <button class="toggle ${st.playerHpBar ? '' : 'off'}" id="hpbar">${st.playerHpBar ? 'ON' : 'OFF'}</button>
+        </div>
+        <div class="setting-row">
           <label>Save data</label>
           <button class="btn small danger" id="wipe">rm -rf save</button>
         </div>
@@ -334,6 +338,12 @@ export class UI {
     s.querySelector('#music')!.addEventListener('input', sync);
     s.querySelector('#shake')!.addEventListener('click', () => {
       st.shake = !st.shake;
+      this.persist();
+      this.onSettingsChanged();
+      this.showSettings();
+    });
+    s.querySelector('#hpbar')!.addEventListener('click', () => {
+      st.playerHpBar = !st.playerHpBar;
       this.persist();
       this.onSettingsChanged();
       this.showSettings();

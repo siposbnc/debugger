@@ -21,7 +21,7 @@ export interface SaveData {
   lastCharacter: string;
   lastMap: string;
   lifetime: LifetimeStats;
-  settings: { sfx: number; music: number; shake: boolean };
+  settings: { sfx: number; music: number; shake: boolean; playerHpBar: boolean };
 }
 
 const KEY = 'debugger-save-v1';
@@ -61,7 +61,7 @@ function defaults(): SaveData {
     lastCharacter: 'ada',
     lastMap: 'greenfield',
     lifetime: { runs: 0, kills: 0, bossKills: 0, bitsEarned: 0, bestTimeSec: 0, bestLevel: 0, victories: 0 },
-    settings: { sfx: 0.7, music: 0.5, shake: true },
+    settings: { sfx: 0.7, music: 0.5, shake: true, playerHpBar: true },
   };
 }
 
