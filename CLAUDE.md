@@ -8,6 +8,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Workflow — read this first
 
+- **Sync before anything else.** Other sessions push to `origin/dev` between sessions — a stale checkout means redoing work that's already done. At session start, before reading ROADMAP.md, run exactly one command: `git pull --ff-only`. Only if it fails, fall back to `git fetch` + `git rebase origin/dev` (stash uncommitted local edits first and pop them after — they may be the user's). Don't browse upstream history beyond this; the refreshed ROADMAP.md tells you what's done.
 - **[ROADMAP.md](ROADMAP.md) is the source of truth** for what to work on. At session start, read it; pick the top `[P1]` item in the current milestone unless told otherwise. P1 bugs in "Known issues" come before feature work. Check items off and append to its Progress log when done.
 - **`docs/DRAFT.md`** is the user's raw-idea scratch pad. If it has unprocessed entries: refine them, integrate into ROADMAP.md with priorities/proposals, then move them (verbatim) under the draft's "Processed" section.
 - **Branches**: `main` is for releases only — all work happens on `dev`. While on `dev`, `package.json` version carries a `-dev` suffix (e.g. `0.2.0-dev`); drop the suffix when `dev` is merged into `main` for a release.
