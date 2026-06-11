@@ -5,6 +5,30 @@ into [ROADMAP.md](../ROADMAP.md), and moves them to **Processed** below.
 
 ## Draft ideas
 
+*(empty — add new ideas here)*
+
+## Dev env ideas
+
+*(empty)*
+
+## Bugs
+
+*(empty)*
+
+---
+
+## Processed → ROADMAP.md (2026-06-11, batch 2)
+
+- Shield system (HP overlay, shield cards, doesn't count as real damage) → **v0.3 Cards & enemies, P2 (M)** — includes the "Starting Shield" meta upgrade; regen-vs-pickup refill left as a design-time question
+- Meta upgrade: decrease boss timer → **v0.3, P3 (S)** with an open question (might fit better as a v0.4 curse toggle than a meta buy)
+- New objectives: "Don't get hit" / "Don't move" for the whole run → **folded into the v0.3 objectives item** (no-hit interacts with shield rule per the draft)
+- Bug: evolved weapon's base version re-offered → **triaged into Known issues and fixed immediately** (P1; new-weapon pool now skips bases whose evolution is owned)
+
+<details>
+<summary>Batch 2 — original notes (kept for reference)</summary>
+
+### Draft ideas
+
 - Shield (on top of health, 0 by default)
     - Increased with cards (new Shield cards)
     - Taking shield damage doesn't count as real damage (doesn't fail the "Don't get hit" objective)
@@ -15,15 +39,11 @@ into [ROADMAP.md](../ROADMAP.md), and moves them to **Processed** below.
     - Don't get hit for 15 minutes (whole run)
     - Don't move for 15 minutes (whole run)
 
-## Dev env ideas
-
-*(empty)*
-
-## Bugs
+### Bugs
 
 - When owning an evolved weapon, the base version can be offered again
 
----
+</details>
 
 ## Processed → ROADMAP.md (2026-06-11)
 
