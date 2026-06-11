@@ -5,8 +5,7 @@ into [ROADMAP.md](../ROADMAP.md), and moves them to **Processed** below.
 
 ## Draft ideas
 
-- warning on cards when the stat's soft/hard cap is reached already
-    - pairs well with displaying actual stat changes
+*(empty)*
 
 ## Dev env ideas
 
@@ -17,6 +16,30 @@ into [ROADMAP.md](../ROADMAP.md), and moves them to **Processed** below.
 *(empty)*
 
 ---
+
+## Processed → ROADMAP.md (2026-06-11, batch 7)
+
+- Cap warning on cards → **folded into the v0.2 P2 card-tooltip item** — caps are real and code-derivable (`computeStats()` clamps cooldown at 60% CDR, crit at 100%): badge fully wasted picks "CAPPED", show truncated results for partial waste, computed by diffing stats with the card hypothetically applied (no duplicated cap constants in the UI). Pairs with the "dmg 34 → 38" display exactly as the draft suspected
+- Dev console run-manipulation tool → **🛠️ Dev tooling, P2 (M) "Dev console API"** — `window.dbg` with `bits()`, `offer()`, `give()`, `list()` etc.; prod/dev split already exists via the `-dev` version suffix, so the tool gates on `__APP_VERSION__` (works on test-server dev deploys, unlike `import.meta.env.DEV`), no-op in release builds. Thin layer in `main.ts` over `Run` methods so the headless rule holds; forced offers share the state-injection surface with the planned Simulation-scenarios tooling
+
+<details>
+<summary>Batch 7 — original notes (kept for reference)</summary>
+
+### Draft ideas
+
+- warning on cards when the stat's soft/hard cap is reached already
+    - pairs well with displaying actual stat changes
+
+### Dev env ideas
+
+- prod/dev builds
+    - dev tooling enabled on dev build.
+    - dev tool should be able to manipulate the current run. should work from console
+        - add bits
+        - make specific offers
+        - list items
+
+</details>
 
 ## Processed → ROADMAP.md (2026-06-11, batch 6)
 
