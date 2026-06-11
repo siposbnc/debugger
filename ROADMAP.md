@@ -8,11 +8,11 @@
 ## How to use this file
 
 - `- [ ]` = not started · `- [x]` = done · `- [~]` = in progress / partially done
-- Tags: `[P1]` do next, `[P2]` soon, `[P3]` someday. `(S/M/L)` = rough effort (hours / a day / multi-day).
+- Tags: `[P1]` blocks this milestone's release — sessions work these first. `[P2]` ships if done by release, otherwise rolls into the next milestone. `[P3]` someday — auto-demoted to the Backlog at release unless explicitly promoted. `(S/M/L)` = rough effort (hours / a day / multi-day).
 - Items inside a milestone are roughly ordered top-to-bottom by priority.
 - New ideas go to the **💡 Backlog** at the bottom first; promote them into a milestone when committed.
 - **Idea intake:** raw ideas are scribbled in [docs/DRAFT.md](docs/DRAFT.md). Claude refines them, integrates them here, then moves them under the "Processed" section of the draft. Don't work directly from the draft.
-- **On release** (milestone fully checked): cut `release/X.Y` from `dev` (drop the `-dev` suffix there, tag, point `main` at it — full policy in CLAUDE.md), then **move the milestone section out of this file into [CHANGELOG.md](CHANGELOG.md)** — rewritten as a clean release entry (what shipped, past tense; note anything dropped/deferred) — and bump `dev` to the next minor `-dev`. The roadmap only tracks unshipped work; history lives in the changelog. Hotfixes on `release/X.Y` bump the shown version automatically (commit-count patch number).
+- **On release** (trigger: **all `[P1]` items in the milestone checked** — the cut is then mechanical, not a judgment call): cut `release/X.Y` from `dev` (drop the `-dev` suffix there, tag, point `main` at it — full policy in CLAUDE.md), then **move the milestone section out of this file into [CHANGELOG.md](CHANGELOG.md)** — rewritten as a clean release entry (what shipped, past tense; note anything dropped/deferred). Unchecked `[P2]`s move into the next milestone; unchecked `[P3]`s drop to the Backlog (promote explicitly to save one). Then bump `dev` to the next minor `-dev`. The roadmap only tracks unshipped work; history lives in the changelog. Hotfixes on `release/X.Y` bump the shown version automatically (commit-count patch number).
 - Detailed design rationale lives in [docs/DESIGN.md](docs/DESIGN.md); the original brief is `Debugger_Game_Design_Brief.md`. This file tracks **execution**, those track **intent**.
 
 ---
@@ -36,13 +36,13 @@ No new content — only feel, clarity and robustness.
 - [x] [P1] (S) Health bar above the player character (toggleable in settings, default on) — *done: 34px bar above the sprite, green → red below 35% HP (matches HUD threshold); `settings.playerHpBar` toggle in ~/.debuggerrc, pure field addition so old saves need no migration*
 - [x] [P1] (S) Confirm before **KILL PROCESS** (abandon run) — two-step: first activate arms the button (`SIGKILL — ARE YOU SURE?`), second confirms; disarms on focus move or ~2s timeout. Must work identically for mouse, keyboard and gamepad (it's one kbnav activate away from a dead run) — *promoted 2026-06-11: run-loss safety, effectively a latent bug now that kbnav/gamepad ship* — *done: armed state lives on the button's click handler, which all three inputs share (kbnav `activate()` dispatches a real click); disarm via `.kb-focus` MutationObserver (covers kb/pad nav + mouse hover-away) and 2s timer; pulsing red `.armed` style. Verified by `scripts/pauseGuardTest.mjs` (arm text, no-kill on arm, timeout + focus-move disarm, keyboard arm/confirm)*
 - [x] [P1] (S) Card tooltips in level-up modal: show resulting stat ("dmg 34 → 38"), not just "+8%" — **and warn when the stat is already capped** so dead picks are visible before buying: `computeStats()` hard-clamps cooldown (60% CDR) and crit chance (100%); if a card's mod would be fully wasted, badge it ("CAPPED", dimmed value), if partially wasted show the truncated result. Derive from the same clamps in `stats.ts` (compute stats with the card hypothetically applied and diff) — don't duplicate cap constants in the UI — *promoted 2026-06-11: highest informative-value-per-hour item left; directly the milestone goal* — *done exactly as specified: `cardStatPreview()` in menus.ts diffs `computeStats(…, [...cardMods, card.mods])` against live stats per mod key (`STAT_VIEW` mapping), so all clamps + floors are inherited; per-line "cur → new" rows, CAPPED mark on dead lines, fully dead cards dim with "⚠ ALREADY AT CAP — NO EFFECT". Verified by `scripts/cardPreviewTest.mjs` (11 checks via dev console forced offers: normal, weapon-card-no-preview, truncated-at-cap, fully capped, mixed) + screenshot*
-- [ ] [P2] (S) Heal feedback: green floating number + brief glow on the player whenever HP is restored (coffee, Heap Purifier, regen ticks ≥1)
+- [ ] [P1] (S) Heal feedback: green floating number + brief glow on the player whenever HP is restored (coffee, Heap Purifier, regen ticks ≥1)
 - [ ] [P2] (M) Stop a run and resume later
 - [ ] [P2] (M) Minimap or edge-radar showing boss, elites, chests
-- [ ] [P2] (S) Bug database: render entity sprite thumbnails next to entries (sprites are procedural — draw to offscreen canvas once, cache)
-- [ ] [P2] (S) Bug database: lifetime player stats page — accumulated uptime, total kills, total Bits earned, runs played, victories, bosses slain, favorite weapon
-- [ ] [P2] (S) In-game FPS counter overlay (toggle in settings, default off) — also gives the FPS-safeguard item (Robustness) something visible to verify against
-- [ ] [P3] (S) "NEW" badge in codex/shop for unseen entries — *demoted 2026-06-11: cosmetic, no gameplay/clarity stakes*
+- [ ] [P1] (S) Bug database: render entity sprite thumbnails next to entries (sprites are procedural — draw to offscreen canvas once, cache)
+- [ ] [P1] (S) Bug database: lifetime player stats page — accumulated uptime, total kills, total Bits earned, runs played, victories, bosses slain, favorite weapon
+- [ ] [P1] (S) In-game FPS counter overlay (toggle in settings, default off) — also gives the FPS-safeguard item (Robustness) something visible to verify against
+- [ ] [P1] (S) "NEW" badge in codex/shop for unseen entries — *demoted 2026-06-11: cosmetic, no gameplay/clarity stakes; re-promoted 2026-06-12 by user as part of the v0.2 release scope*
 - [ ] [P3] (S) Run-end screen: show per-weapon damage breakdown (cheap now — per-weapon tracking already exists from the pause-menu item)
 
 ### Controls & accessibility
@@ -51,7 +51,7 @@ No new content — only feel, clarity and robustness.
 - [ ] [P2] (S) Remappable keys in settings
 - [ ] [P2] (S) Volume sliders split: master / music / SFX (currently single toggle-ish)
 - [ ] [P2] (S) Reduce-flash mode (tone down screen flash + shake for photosensitivity)
-- [ ] [P3] (M) Touch controls (virtual stick) — unlocks mobile browser play
+- [ ] [P1] (M) Touch controls (virtual stick) — unlocks mobile browser play
 
 ### Robustness & tech debt
 - [x] [P1] (S) Save-data versioning + migration shim (before any content patch changes shapes) — *done: `SAVE_VERSION` + stepwise `MIGRATIONS[n]` (n → n+1) run before the defaults merge; pure field additions still need no migration. Newer-than-current saves pass through untouched and unknown fields survive a persist round-trip (safe downgrade). Verified with a Node localStorage-stub test (legacy, future-version, corrupt saves)*
