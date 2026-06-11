@@ -5,7 +5,8 @@ into [ROADMAP.md](../ROADMAP.md), and moves them to **Processed** below.
 
 ## Draft ideas
 
-*(empty)*
+- warning on cards when the stat's soft/hard cap is reached already
+    - pairs well with displaying actual stat changes
 
 ## Dev env ideas
 

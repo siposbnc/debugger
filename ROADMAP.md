@@ -79,7 +79,7 @@ No new content — only feel, clarity and robustness.
 - [x] [P1] (S) Verify rarity weighting math end-to-end (suspected cause of "legendary too common" bug below) — add a `scripts/offerTest.ts` assertion: over 10k offers at luck 0, legendary rate ≈ 1.4%/card — *done: weights were per-card, now per-tier split across available cards; assertion passes at 1.40%*
 
 ### Balance pass (sim-driven, see DESIGN.md §27)
-- [ ] [P1] (S) **Balance goal sheet**: write `docs/BALANCE.md` documenting target numbers (TTK windows, kill-rate floors, Bits/run bands, rarity rates, level curve timing) — the sim and watchlist check against this instead of tribal knowledge
+- [x] [P1] (S) **Balance goal sheet**: write `docs/BALANCE.md` documenting target numbers (TTK windows, kill-rate floors, Bits/run bands, rarity rates, level curve timing) — the sim and watchlist check against this instead of tribal knowledge — *done: combat pacing, level curve checkpoints, card tier/penalty rates, Bits faucet formula + full-shop cost (12,875 ⌬ → 25–35 run window), known outliers. Provisional numbers (level checkpoints, 0-boss red-flag rate) explicitly marked for recalibration by the simulator-matrix item*
 - [ ] [P1] (M) Run simulator matrix (4 chars × 2 maps × 15 min), record kill-rate vs spawn-rate per minute; fix any char that falls behind before min 6
 - [ ] [P2] (S) Tune Assertion Blades + cooldown-build scaling (flagged as outlier)
 - [ ] [P2] (S) Exception Beetle density above minute 10 (explosion stacking)
@@ -191,7 +191,8 @@ Theme proposal: prestige = **"The Great Rewrite"** — you ship v(N+1).0 of your
 
 ## ⚖️ Balance watchlist
 
-Standing concerns to re-check after every content change (run `scripts/simulate.ts`):
+Standing concerns to re-check after every content change (run `scripts/simulate.ts`).
+Full target numbers live in [docs/BALANCE.md](docs/BALANCE.md) — this is the short list:
 
 - Kill rate ≥ spawn rate before minute 6 for **every** starting weapon
 - First boss TTK in 60–100s window
@@ -250,3 +251,4 @@ Parking lot — promote into a milestone before working on these.
 - 2026-06-11 — Release-branch policy adopted (user ruling: main = mirror of newest release): releases live on `release/X.Y`, hotfixes commit there and merge back to dev, version substitution now applies on release builds too (`vX.Y.<count>`) so hotfixes bump production versions visibly; CLAUDE.md + roadmap release bullet rewritten, CI covers `release/**`
 - 2026-06-11 — Draft batch 6: KILL PROCESS two-step confirm → v0.2 UX (P2); "Boss mechanics pass" → v0.3 Bosses (P2, design-first) — each boss gets a rule-bending layer that tests the build, not just dodging, with 5 starter proposals to riff on
 - 2026-06-11 — Skip → **Defer** shipped (P1 card-system item, primary proposal): banks 20% of the next level's XP (raw, no xpMult, no Bits credit), button reads "DEFER +20% XP ×n". New `scripts/deferTest.ts` (10 checks). Sim: ada variance reconfirmed across 5 samples (748–2078 Bits; weak runs kill 0 bosses, alive count outgrows kills by min 4) — more fuel for the P1 simulator-matrix item
+- 2026-06-11 — `docs/BALANCE.md` goal sheet written (P1): pacing targets, level-curve checkpoints, card tier/penalty rates, Bits faucet + 12,875 ⌬ full-shop cost; provisional values flagged for the matrix item. Watchlist now links to it. Noted: sim boss kills are bimodal (0 or several) — once a boss outlives its 120s slot the run never recovers, so TTK regressions surface as `bosses: 0`
