@@ -24,6 +24,11 @@ const RARITY_BASE: Record<Rarity, number> = {
   common: 50, uncommon: 28, rare: 13, epic: 5, legendary: 1.4,
 };
 
+// RARITY_BASE values are per-TIER rates (≈% of a card slot at luck 0). Each
+// tier's weight is split across its currently-available cards, then scaled so
+// the stat-card block keeps the same total weight vs weapon offers as before.
+const STAT_BLOCK_SCALE = 3.85;
+
 function rarityWeight(rarity: Rarity, luck: number): number {
   const base = RARITY_BASE[rarity];
   switch (rarity) {
@@ -78,14 +83,17 @@ function candidates(run: Run, minRarity?: Rarity): Candidate[] {
     }
   }
 
-  // Stat cards
-  for (const card of UPGRADE_CARDS) {
-    if (run.banished.has(card.id)) continue;
-    if (rarityFloor[card.rarity] < floor) continue;
-    const taken = run.takenCards.get(card.id) ?? 0;
-    if (taken >= (card.maxStacks ?? 5)) continue;
+  // Stat cards — tier weight divided by the tier's available-card count, so
+  // tier rates match RARITY_BASE regardless of pool size/banishes/max stacks.
+  const available = UPGRADE_CARDS.filter((card) =>
+    !run.banished.has(card.id) &&
+    rarityFloor[card.rarity] >= floor &&
+    (run.takenCards.get(card.id) ?? 0) < (card.maxStacks ?? 5));
+  const tierCount = new Map<Rarity, number>();
+  for (const card of available) tierCount.set(card.rarity, (tierCount.get(card.rarity) ?? 0) + 1);
+  for (const card of available) {
     out.push({
-      weight: rarityWeight(card.rarity, run.stats.luck) / 2,
+      weight: STAT_BLOCK_SCALE * rarityWeight(card.rarity, run.stats.luck) / tierCount.get(card.rarity)!,
       item: {
         kind: 'card', id: card.id, name: card.name, icon: card.icon,
         color: RARITY_COLOR[card.rarity], rarityLabel: card.rarity.toUpperCase(),
