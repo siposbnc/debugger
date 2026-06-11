@@ -1,27 +1,61 @@
 // Headless balance/system verification: runs a full game run in Node.
-// Bundled with esbuild (no DOM access in game logic). The "bot" is invincible
-// and drifts toward chests so reward flow can be observed.
+// Bundled with esbuild (no DOM access in game logic). The default "bot" is
+// invincible and drifts toward chests so reward flow can be observed.
 //
 //   npx esbuild scripts/simulate.ts --bundle --platform=node --outfile=scripts/simulate.cjs
-//   node scripts/simulate.cjs
+//   node scripts/simulate.cjs [characterId] [mapId] [maxMinutes] [--scenario=<name|path>]
+//
+// --scenario starts the run from a preconfigured mid-run state (build, level,
+// clock, bot behavior) instead of fresh — for bug reports and specific builds.
+// A bare name resolves to scripts/scenarios/<name>.json; schema + injection
+// live in src/game/scenario.ts. Positional args override scenario fields.
 //
 // Bot behavior (auto-pick, chests, movement) lives in simBot.ts, shared with matrix.ts.
 
+import { readFileSync } from 'node:fs';
 import { Run } from '../src/game/run';
 import { CHARACTERS } from '../src/data/characters';
 import { MAPS } from '../src/data/maps';
 import { DEFAULT_WEAPON_POOL } from '../src/data/weapons';
 import { formatTime } from '../src/core/util';
-import { STEP, botStep } from './simBot';
+import { createScenarioRun, type Scenario } from '../src/game/scenario';
+import { STEP, botStep, DEFAULT_BOT, type BotOptions } from './simBot';
 
-// usage: node simulate.cjs [characterId] [mapId] [maxMinutes]
-const charId = process.argv[2] ?? 'ada';
-const mapId = process.argv[3] ?? 'greenfield';
-const maxMinutes = Number(process.argv[4] ?? 15);
+const flags = process.argv.slice(2).filter((a) => a.startsWith('--'));
+const pos = process.argv.slice(2).filter((a) => !a.startsWith('--'));
+
+const scenarioArg = flags.find((f) => f.startsWith('--scenario='))?.slice(11);
+let scenario: Scenario | null = null;
+if (scenarioArg) {
+  const path = /[\\/.]/.test(scenarioArg) ? scenarioArg : `scripts/scenarios/${scenarioArg}.json`;
+  scenario = JSON.parse(readFileSync(path, 'utf-8')) as Scenario;
+  if (pos[0]) scenario.char = pos[0];
+  if (pos[1]) scenario.map = pos[1];
+  if (pos[2]) scenario.maxMinutes = Number(pos[2]);
+}
+
+const charId = scenario?.char ?? pos[0] ?? 'ada';
+const mapId = scenario?.map ?? pos[1] ?? 'greenfield';
+const maxMinutes = scenario?.maxMinutes ?? Number(pos[2] ?? 15);
+const bot: BotOptions = scenario?.bot
+  ? { ...DEFAULT_BOT, ...scenario.bot }
+  : DEFAULT_BOT;
+
 console.log(`=== simulating ${charId} on ${mapId} (${maxMinutes} min cap) ===`);
-const run = new Run(CHARACTERS[charId], MAPS[mapId], {},
-  [...new Set([...DEFAULT_WEAPON_POOL, CHARACTERS[charId].weapon])], new Set());
-run.invincible = true;
+let run: Run;
+if (scenario) {
+  run = createScenarioRun(scenario);
+  console.log(`scenario: ${scenario.name ?? scenarioArg}`);
+  console.log(`  start: lv ${run.level}, ${formatTime(run.time)}, bot ${bot.mortal ? 'mortal' : 'invincible'}/${bot.pick}`);
+  console.log(`  weapons: ${run.weapons.map((w) => `${w.def.id}:${w.level}`).join(', ')}`);
+  if (run.takenCards.size > 0) {
+    console.log(`  cards: ${[...run.takenCards.entries()].map(([id, n]) => `${id}×${n}`).join(', ')}`);
+  }
+} else {
+  run = new Run(CHARACTERS[charId], MAPS[mapId], {},
+    [...new Set([...DEFAULT_WEAPON_POOL, CHARACTERS[charId].weapon])], new Set());
+}
+run.invincible = !bot.mortal;
 
 let lastLogMin = -1;
 let damageTaken = 0;
@@ -31,7 +65,7 @@ run.hurtPlayer = (amount: number) => { damageTaken += amount; originalHurt(amoun
 while (!run.over && run.time < maxMinutes * 60) {
   run.update(STEP);
 
-  const chestCard = botStep(run);
+  const chestCard = botStep(run, bot);
   if (chestCard) console.log(`  [${formatTime(run.time)}] chest bonus card: ${chestCard}`);
 
   for (const ev of run.events) {

@@ -31,6 +31,8 @@ There are no unit tests or linter; `tsc` via `npm run build` is the static check
 # Full headless run in Node with per-minute balance logs (game logic is DOM-free):
 npx esbuild scripts/simulate.ts --bundle --platform=node --outfile=scripts/simulate.cjs && node scripts/simulate.cjs [charId] [mapId] [maxMinutes]
 # e.g. node scripts/simulate.cjs ada greenfield 15   (ids: see src/data/characters.ts, maps.ts)
+# --scenario=<name|path> starts from a preconfigured mid-run state (build/level/clock/bot) —
+# presets in scripts/scenarios/*.json, schema in src/game/scenario.ts
 
 # Card-offer distribution check (same esbuild pattern):
 npx esbuild scripts/offerTest.ts --bundle --platform=node --outfile=scripts/offerTest.cjs && node scripts/offerTest.cjs

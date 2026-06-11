@@ -1,0 +1,11 @@
+{
+  "name": "Assertion Blades + cooldown stacking (watchlist: strongest known combo)",
+  "char": "nia",
+  "map": "greenfield",
+  "level": 20,
+  "weapons": { "assertBlades": 8 },
+  "cards": { "breakpointTrap": 4, "hotReload": 2, "refactor": 3, "garbageDay": 2 },
+  "startMin": 5,
+  "maxMinutes": 15,
+  "bot": { "pick": "greedy", "mortal": false }
+}
