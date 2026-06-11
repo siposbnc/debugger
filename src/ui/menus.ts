@@ -13,12 +13,14 @@ import { formatTime } from '../core/util';
 import { sound } from '../audio/sound';
 import { makeOffer, applyOffer, offerOdds, type OfferItem } from '../game/levelup';
 import type { Run, RunResults } from '../game/run';
+import { KbNav } from './kbnav';
 
 // All DOM UI: menus, shop, codex, settings, level-up modal, pause, summary.
 // Mutates the shared SaveData for purchases and persists immediately.
 
 export class UI {
   private root: HTMLElement;
+  private nav = new KbNav();
   save: SaveData;
   onStartRun: (charId: string, mapId: string) => void = () => {};
   onSettingsChanged: () => void = () => {};
@@ -29,14 +31,16 @@ export class UI {
   }
 
   hide(): void {
+    this.nav.detach();
     this.root.innerHTML = '';
   }
 
-  private screen(html: string): HTMLElement {
+  private screen(html: string, onBack: (() => void) | null = null): HTMLElement {
     this.root.innerHTML = `<div class="screen">${html}</div>`;
     const el = this.root.firstElementChild as HTMLElement;
     el.querySelectorAll('button').forEach((b) =>
       b.addEventListener('mousedown', () => sound.play('click')));
+    this.nav.attach(el, onBack);
     return el;
   }
 
@@ -59,7 +63,7 @@ export class UI {
         <button class="btn" data-act="codex">BUG DATABASE</button>
         <button class="btn" data-act="settings">SETTINGS</button>
       </div>
-      <div class="controls-hint"><kbd>WASD</kbd> move &nbsp; <kbd>ESC</kbd> pause &nbsp; auto-attack: just survive</div>
+      <div class="controls-hint"><kbd>WASD</kbd> move/navigate &nbsp; <kbd>ENTER</kbd> select &nbsp; <kbd>ESC</kbd> back/pause &nbsp; auto-attack: just survive</div>
       <div class="version-tag">v${__APP_VERSION__}</div>
     `);
     s.addEventListener('click', (e) => {
@@ -99,7 +103,7 @@ export class UI {
       <div class="bits-display">⌬ ${this.save.bits} bits</div>
       <div class="grid">${cards}</div>
       <button class="btn" data-act="back">BACK</button>
-    `);
+    `, () => this.showMainMenu());
     s.addEventListener('click', (e) => {
       const t = e.target as HTMLElement;
       if (t.closest('button')?.dataset.act === 'back') { this.showMainMenu(); return; }
@@ -147,7 +151,7 @@ export class UI {
       <div class="bits-display">⌬ ${this.save.bits} bits</div>
       <div class="grid">${cards}</div>
       <button class="btn" data-act="back">BACK</button>
-    `);
+    `, () => this.showMainMenu());
     s.addEventListener('click', (e) => {
       const t = e.target as HTMLElement;
       if (t.closest('button')?.dataset.act === 'back') { this.showMainMenu(); return; }
@@ -215,7 +219,7 @@ export class UI {
         ${weaponRows}
       </div>
       <button class="btn" data-act="back">BACK</button>
-    `);
+    `, () => this.showMainMenu());
     s.addEventListener('click', (e) => {
       const btn = (e.target as HTMLElement).closest('button');
       if (!btn) return;
@@ -288,7 +292,7 @@ export class UI {
         <div class="codex-panel"><h3>~/objectives</h3>${objectives}</div>
       </div>
       <button class="btn" data-act="back">BACK</button>
-    `);
+    `, () => this.showMainMenu());
     s.addEventListener('click', (e) => {
       if ((e.target as HTMLElement).closest('button')?.dataset.act === 'back') this.showMainMenu();
     });
@@ -319,7 +323,7 @@ export class UI {
         </div>
       </div>
       <button class="btn" data-act="back">BACK</button>
-    `);
+    `, () => this.showMainMenu());
     const sync = () => {
       st.sfx = Number((s.querySelector('#sfx') as HTMLInputElement).value) / 100;
       st.music = Number((s.querySelector('#music') as HTMLInputElement).value) / 100;
@@ -378,6 +382,13 @@ export class UI {
         </div>`;
 
       const wrap = this.root.firstElementChild as HTMLElement;
+      // Esc only cancels banish mode — there is no backing out of a level-up.
+      this.nav.attach(wrap, () => {
+        if (banishMode) {
+          banishMode = false;
+          render();
+        }
+      });
       wrap.addEventListener('click', (e) => {
         const t = e.target as HTMLElement;
         const act = t.closest('button')?.dataset.act;
@@ -499,7 +510,7 @@ export class UI {
           <div class="hint" style="margin-top:8px">chance per offered slot</div>
         </div>
       </div>
-    `);
+    `); // no kbnav onBack: the main loop owns Esc/P while paused (would double-toggle)
     s.addEventListener('click', (e) => {
       const act = (e.target as HTMLElement).closest('button')?.dataset.act;
       if (act === 'resume') onResume();
@@ -536,7 +547,7 @@ export class UI {
         <div class="row total"><span>BITS EARNED</span><span class="v">⌬ ${results.bits}</span></div>
       </div>
       <button class="btn primary" data-act="continue">CONTINUE</button>
-    `);
+    `, onContinue);
     s.addEventListener('click', (e) => {
       if ((e.target as HTMLElement).closest('button')?.dataset.act === 'continue') onContinue();
     });

@@ -151,6 +151,14 @@ html, body {
 
 .menu-col { display: flex; flex-direction: column; gap: 12px; align-items: stretch; }
 
+/* keyboard-navigation highlight (kbnav.ts) */
+.kb-focus { outline: 2px solid var(--cyan); outline-offset: 3px; }
+.btn.primary.kb-focus { outline-color: var(--green); }
+.btn.danger.kb-focus { outline-color: var(--red); }
+.select-card.kb-focus { outline-color: var(--accent, var(--cyan)); }
+.upgrade-card.kb-focus { outline-color: var(--rarity, var(--cyan)); }
+.upgrade-card.banish-mode.kb-focus { outline-color: var(--red); }
+
 .screen-heading {
   font-family: var(--font-display);
   font-size: 44px;

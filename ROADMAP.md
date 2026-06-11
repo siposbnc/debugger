@@ -43,7 +43,7 @@ No new content — only feel, clarity and robustness.
 - [ ] [P3] (S) Run-end screen: show per-weapon damage breakdown
 
 ### Controls & accessibility
-- [ ] [P1] (M) Keyboard navigation in **all** menus + card selection (WASD/arrows + Enter/Space, Esc = back) — do this first, it's the foundation gamepad menu support reuses
+- [x] [P1] (M) Keyboard navigation in **all** menus + card selection (WASD/arrows + Enter/Space, Esc = back) — do this first, it's the foundation gamepad menu support reuses — *done: `src/ui/kbnav.ts` — spatial (geometry-based) roving highlight, works on every screen incl. level-up cards, shop, sliders (←/→ adjust) and pause; focus survives screen re-renders (purchase/reroll); gamepad can drive `move()`/`activate()` directly. Esc backs out of menus / cancels banish mode; pause keeps Esc/P in the main loop to avoid double-toggle. Verified end-to-end with a Playwright run-through (menus, buy, level-up pick, abandon, summary)*
 - [ ] [P1] (M) Gamepad support (move + menu navigation, standard mapping)
 - [ ] [P2] (S) Remappable keys in settings
 - [ ] [P2] (S) Volume sliders split: master / music / SFX (currently single toggle-ish)
@@ -213,3 +213,4 @@ Parking lot — promote into a milestone before working on these.
 - 2026-06-11 — Pause menu rebuilt as a current-run overview (stat sheet, weapons dmg/DPS, taken cards, live card odds); per-weapon damage tracking added to the sim layer + simulate.ts end-of-run damage table. Sim note: ada auto-pick runs vary widely (947–2144 Bits observed; one weak run killed 0 bosses) — the P1 simulator-matrix item should look at ada's variance
 - 2026-06-11 — Render QoL: damage numbers merge instead of stacking past 40 on screen; off-screen bosses get a pulsing edge indicator arrow
 - 2026-06-11 — Main menu shows the version number (injected from package.json at build time, so release bumps propagate automatically)
+- 2026-06-11 — Keyboard navigation in all menus + card selection (kbnav.ts): spatial nav with same-row/column preference, Enter/Space activate, Esc = back, sliders adjustable. Space-resume now comes from the pause screen's default CONTINUE highlight instead of a main-loop special case. Verified via headless Playwright drive-through

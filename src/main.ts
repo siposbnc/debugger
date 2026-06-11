@@ -176,11 +176,11 @@ function frame(now: number): void {
     acc = 0;
   }
 
+  // Esc/P pause toggling lives here, not in kbnav — menus handle their own Esc=back.
+  // Space-resume comes from kbnav: the pause screen's default highlight is CONTINUE.
   if (wasPressed('Escape') || wasPressed('KeyP')) {
     if (state === 'run') pause();
     else if (state === 'paused') resume();
-  } else if (state === 'paused' && wasPressed('Space')) {
-    resume();
   }
   consumePressed();
 
