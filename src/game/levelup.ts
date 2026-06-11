@@ -29,6 +29,14 @@ const RARITY_BASE: Record<Rarity, number> = {
 // the stat-card block keeps the same total weight vs weapon offers as before.
 const STAT_BLOCK_SCALE = 3.85;
 
+// Repeat-pick penalty (offer variety): every copy of a stat card already
+// taken multiplies its weight by REPEAT_DECAY, floored at REPEAT_FLOOR of
+// base so a build piece never quite vanishes. Weapon level-ups decay more
+// gently per level — they must stay findable to reach max level + evolution.
+const REPEAT_DECAY = 0.55;
+const REPEAT_FLOOR = 0.08;
+const WEAPON_LEVEL_DECAY = 0.85;
+
 function rarityWeight(rarity: Rarity, luck: number): number {
   const base = RARITY_BASE[rarity];
   switch (rarity) {
@@ -55,7 +63,7 @@ function candidates(run: Run, minRarity?: Rarity): Candidate[] {
     if (w.def.isEvolution || w.level >= MAX_WEAPON_LEVEL) continue;
     if (floor > 1) continue; // chest bonuses give stat cards, not weapon levels
     out.push({
-      weight: 70,
+      weight: 70 * Math.pow(WEAPON_LEVEL_DECAY, w.level),
       item: {
         kind: 'weaponUp', id: w.def.id, name: w.def.name, icon: w.def.icon,
         color: w.def.color, rarityLabel: 'WEAPON',
@@ -95,8 +103,10 @@ function candidates(run: Run, minRarity?: Rarity): Candidate[] {
   const tierCount = new Map<Rarity, number>();
   for (const card of available) tierCount.set(card.rarity, (tierCount.get(card.rarity) ?? 0) + 1);
   for (const card of available) {
+    const base = STAT_BLOCK_SCALE * rarityWeight(card.rarity, run.stats.luck) / tierCount.get(card.rarity)!;
+    const picks = run.takenCards.get(card.id) ?? 0;
     out.push({
-      weight: STAT_BLOCK_SCALE * rarityWeight(card.rarity, run.stats.luck) / tierCount.get(card.rarity)!,
+      weight: base * Math.max(Math.pow(REPEAT_DECAY, picks), REPEAT_FLOOR),
       item: {
         kind: 'card', id: card.id, name: card.name, icon: card.icon,
         color: RARITY_COLOR[card.rarity], rarityLabel: card.rarity.toUpperCase(),

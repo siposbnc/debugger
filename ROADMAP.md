@@ -60,10 +60,11 @@ No new content — only feel, clarity and robustness.
 - [ ] [P3] (S) Export/import save as JSON string (manual backup)
 
 ### Card system rework
-- [ ] [P1] (M) Repeat-pick penalty: picked cards get less likely to reappear, for offer variety.
+- [x] [P1] (M) Repeat-pick penalty: picked cards get less likely to reappear, for offer variety.
   **Proposed formula** (tune in sim): stat card `weight × 0.55^timesPicked` (floor 8% of base);
   weapon level-up cards get a gentler `weight × 0.85^currentLevel` (they must stay findable to
   reach max level + evolution). Banished cards stay at weight 0 as today.
+  — *done: implemented exactly as proposed (constants `REPEAT_DECAY`/`REPEAT_FLOOR`/`WEAPON_LEVEL_DECAY` in levelup.ts; note: the 8% floor can't bind with maxStacks ≤ 5 — 0.55⁴ ≈ 9.2% — kept for future high-stack cards). Pause-menu odds reflect it automatically. offerTest asserts the 0.55² ratio (measured 0.31) + tier rates unchanged (legendary 1.41%); weapon-up share decays 10.3% → 5.3% lv1→lv6. Sim: all 4 chars victorious, Bits 1545–1995 (ada weak-variance run 1102, pre-existing)*
 - [ ] [P2] (S) Meta upgrade **"Muscle Memory"** (3 levels): softens the repeat penalty
   (0.55 → 0.70 → 0.85 → 1.0 effectively off) — lets build-focused players buy back consistency
 - [ ] [P1] (S) Rework **Skip** — currently gives nothing, so it's strictly worse than any pick.
@@ -229,3 +230,4 @@ Parking lot — promote into a milestone before working on these.
 - 2026-06-11 — Session-start sync rule added to CLAUDE.md (`git pull --ff-only` before reading the roadmap) after a stale checkout nearly redid finished work; local-only subagents commit rebased onto origin/dev, user's "stop & resume a run" roadmap item restored. Gamepad support shipped: standard mapping, analog move merged into moveVector(), kbnav driven by stick/d-pad + A/B/Start, sliders pad-adjustable; verified via scripts/padTest.mjs (Playwright, stubbed Gamepad API, 10/10 checks) + build + sim (ada 885 Bits, weak-variance run, logic untouched in Node)
 - 2026-06-11 — Type-check gate shipped: pre-commit hook (`tsc --noEmit`, hooksPath set by npm `prepare`) + GitHub Actions CI (build, offerTest assertions, 5-min sim smoke); hook verified to block a type error
 - 2026-06-11 — User-reported bug fixed same day: held gamepad direction navigated freshly opened screens (level-up) — pad now requires a return to neutral on every screen attach, mirroring the keyboard liveKeys gate; padTest.mjs grew 2 regression checks (12/12 pass)
+- 2026-06-11 — Repeat-pick penalty shipped with the proposed formula (0.55^picks stat cards / 0.85^level weapon-ups, 8% floor); offerTest grew penalty assertions (ratio 0.31 ≈ 0.55², tiers unchanged); 4-char sim sweep all victories, Bits 1102–1995
