@@ -17,6 +17,19 @@ into [ROADMAP.md](../ROADMAP.md), and moves them to **Processed** below.
 
 ---
 
+## Processed → resolved, no roadmap item needed (2026-06-11, batch 8)
+
+- build-verifier / sim-verifier agents not found → **investigated, nothing to restore**: both files are intact, valid (correct frontmatter) and committed in `.claude/agents/` (a918598, 20:34). Claude Code loads subagent definitions **only at session start** — `/clear` does not re-scan them, and there is no runtime reload command (confirmed against the official subagents docs). The session that reported them missing was started before the registry picked them up. **Fix: restart the Claude Code session** — the agents will appear automatically. Until then, sessions fall back to running build/sim verification inline.
+
+<details>
+<summary>Batch 8 — original notes (kept for reference)</summary>
+
+### Dev env ideas
+
+- build-verifier and sim-verifier agents are not found. investigate what happened and restore them
+
+</details>
+
 ## Processed → ROADMAP.md (2026-06-11, batch 7)
 
 - Cap warning on cards → **folded into the v0.2 P2 card-tooltip item** — caps are real and code-derivable (`computeStats()` clamps cooldown at 60% CDR, crit at 100%): badge fully wasted picks "CAPPED", show truncated results for partial waste, computed by diffing stats with the card hypothetically applied (no duplicated cap constants in the UI). Pairs with the "dmg 34 → 38" display exactly as the draft suspected
