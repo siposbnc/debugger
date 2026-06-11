@@ -32,14 +32,15 @@ No new content — only feel, clarity and robustness.
 - [x] [P1] (S) Damage-number cap / merge when >40 on screen (legibility past minute 10) — *done: above 40 numbers, new damage merges into the nearest live number (value accumulates, crit upgrades, life refreshed); falls back to recycling the oldest slot*
 - [x] [P1] (S) Off-screen boss indicator arrow (boss alive but out of view) — *done: pulsing edge marker in boss color (⚠ disc + rim arrowhead), clamped below the XP bar; handles multiple bosses incl. split halves*
 - [x] [P1] (S) Show version number on the main menu — *done: `__APP_VERSION__` injected from package.json via Vite `define`, rendered bottom-right (`.version-tag`); single source of truth, follows the release version bump automatically*
-- [ ] [P2] (S) Run summary split: objectives/achievements block visually separated (divider) from the itemized Bits-by-stat breakdown
-- [ ] [P2] (S) Health bar above the player character (toggleable in settings, default on)
+- [ ] [P1] (S) Run summary split: objectives/achievements block visually separated (divider) from the itemized Bits-by-stat breakdown
+- [ ] [P1] (S) Health bar above the player character (toggleable in settings, default on)
 - [ ] [P2] (S) Heal feedback: green floating number + brief glow on the player whenever HP is restored (coffee, Heap Purifier, regen ticks ≥1)
 - [ ] [P2] (S) Bug database: render entity sprite thumbnails next to entries (sprites are procedural — draw to offscreen canvas once, cache)
 - [ ] [P2] (S) Bug database: lifetime player stats page — accumulated uptime, total kills, total Bits earned, runs played, victories, bosses slain, favorite weapon
 - [ ] [P2] (M) Minimap or edge-radar showing boss, elites, chests
 - [ ] [P2] (S) Card tooltips in level-up modal: show resulting stat ("dmg 34 → 38"), not just "+8%"
 - [ ] [P2] (S) "NEW" badge in codex/shop for unseen entries
+- [ ] [P2] (S) In-game FPS counter overlay (toggle in settings, default off) — also gives the FPS-safeguard item (Robustness) something visible to verify against
 - [ ] [P3] (S) Run-end screen: show per-weapon damage breakdown
 
 ### Controls & accessibility
@@ -86,6 +87,7 @@ records in `src/data/` plus a behavior key in `src/game/` and a sprite in `src/r
 - [ ] [P1] (L) **Production Server** — industrial server room; hazard: overheating floor vents (periodic damage zones); enemy skew: exception beetles + deadlock scarabs; ×1.5 Bits
 - [ ] [P2] (L) **Cyber Glacier** — frozen processes; hazard: latency fields (player + enemy slow zones); enemy skew: tanks; ×1.5 Bits
 - [ ] Each new map needs: palette, spawnPlan, bossOrder, 1 unique hazard, 1–2 map objectives, shop unlock entry, codex entry
+- [ ] [P2] (L) **Terrain & obstacles** — maps stop being featureless planes: impassable blockers (server racks, crashed processes) and terrain patches (e.g. slow zones distinct from hazards). Scope check before starting: needs collision for player *and* enemies (spatial hash covers entities, not static geometry yet), enemy steering around blockers (flow-field or simple slide-along — full pathfinding is overkill), isometric draw-order sorting for tall props, and spawn-point validation. Keep obstacle layout data-driven per map (seeded `mulberry32` like decoration) so the sim stays headless. Start with 1 obstacle type on one map as a vertical slice
 
 ### Bosses (target: +3, total 8)
 - [ ] [P1] (M) **The Race Condition** — teleports unpredictably, leaves a damaging afterimage copy
@@ -188,7 +190,6 @@ Parking lot — promote into a milestone before working on these.
 - More biomes: Stack Canyon, Cloud Citadel, Firewall Bastion, Legacy Ruins, Nullwood Forest, Memory Marsh hard-mode
 - Passive item slots (separate from stat cards, Vampire-Survivors-style item grid)
 - Boss codex lore entries ("post-mortem reports" written as incident reviews)
-- Daily login… no. (Anti-idea: keep it honest, no retention mechanics)
 - Pet cosmetics for Daemon Familiar
 - Photo mode / screenshot key with HUD hidden
 - Speedrun timer + splits per boss

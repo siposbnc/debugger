@@ -5,7 +5,7 @@ into [ROADMAP.md](../ROADMAP.md), and moves them to **Processed** below.
 
 ## Draft ideas
 
-*(empty — add new ideas here)*
+*(empty)*
 
 ## Dev env ideas
 
@@ -16,6 +16,22 @@ into [ROADMAP.md](../ROADMAP.md), and moves them to **Processed** below.
 *(empty)*
 
 ---
+
+## Processed → ROADMAP.md (2026-06-11, batch 4)
+
+- Better map design (terrain, obstacles) → **v0.3 Maps, P2 (L) "Terrain & obstacles"** — scoped as a vertical slice (1 obstacle type, 1 map first); flagged the real costs: static-geometry collision, enemy steering, iso draw order, spawn validation; layout stays data-driven/seeded so the headless sim survives
+- In-game FPS counter (toggleable) → **v0.2 UX, P2 (S)** — settings toggle, default off; doubles as the verification surface for the existing FPS-safeguard robustness item
+
+<details>
+<summary>Batch 4 — original notes (kept for reference)</summary>
+
+### Draft ideas
+
+- better map design, not just a 2d plane
+    - different terrain, obstacles
+- in-game FPS counter (can be toggled in settings)
+
+</details>
 
 ## Processed → ROADMAP.md (2026-06-11, batch 3)
 
