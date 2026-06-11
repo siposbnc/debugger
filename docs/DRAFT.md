@@ -20,7 +20,7 @@ into [ROADMAP.md](../ROADMAP.md), and moves them to **Processed** below.
 ## Processed → ROADMAP.md (2026-06-11, batch 7)
 
 - Cap warning on cards → **folded into the v0.2 P2 card-tooltip item** — caps are real and code-derivable (`computeStats()` clamps cooldown at 60% CDR, crit at 100%): badge fully wasted picks "CAPPED", show truncated results for partial waste, computed by diffing stats with the card hypothetically applied (no duplicated cap constants in the UI). Pairs with the "dmg 34 → 38" display exactly as the draft suspected
-- Dev console run-manipulation tool → **🛠️ Dev tooling, P2 (M) "Dev console API"** — `window.dbg` with `bits()`, `offer()`, `give()`, `list()` etc.; prod/dev split already exists via the `-dev` version suffix, so the tool gates on `__APP_VERSION__` (works on test-server dev deploys, unlike `import.meta.env.DEV`), no-op in release builds. Thin layer in `main.ts` over `Run` methods so the headless rule holds; forced offers share the state-injection surface with the planned Simulation-scenarios tooling
+- Dev console run-manipulation tool → **🛠️ Dev tooling, P2 (M) "Dev console API"** — `window.dbg` with `bits()`, `offer()`, `give()`, `list()` etc. *User clarified: real build configurations* — `vite build --mode dev` vs prod, compile-time `__DEV_TOOLS__` define; the dev API is dead-code-eliminated from prod bundles entirely (CI greps `dist/` to prove it), not runtime-gated. Test servers deploy the dev configuration; the `-dev` version suffix follows the build mode. Thin layer in `main.ts` over `Run` methods so the headless rule holds; forced offers share the state-injection surface with the planned Simulation-scenarios tooling
 
 <details>
 <summary>Batch 7 — original notes (kept for reference)</summary>
