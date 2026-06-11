@@ -12,17 +12,19 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **[ROADMAP.md](ROADMAP.md) is the source of truth** for what to work on. At session start, read it; pick the top `[P1]` item in the current milestone unless told otherwise. P1 bugs in "Known issues" come before feature work. Check items off and append to its Progress log when done.
 - **`docs/DRAFT.md`** is the user's raw-idea scratch pad. If it has unprocessed entries: refine them, integrate into ROADMAP.md with priorities/proposals, then move them (verbatim) under the draft's "Processed" section.
 - **Branches**: all work happens on `dev`. Each release lives on a `release/X.Y` branch (e.g. `release/0.2`); hotfixes for a shipped version are committed there and merged (or cherry-picked) back into `dev`. `main` is a read-only mirror of the newest release tip — never commit to it directly; update it with `git push origin release/X.Y:main --force-with-lease`.
-- **Versioning**: `package.json` holds only `X.Y.0` (+ `-dev` on the dev branch); the build replaces the patch number with the git commit count (`vite.config.ts`). Dev builds show `vX.Y.<count>-dev`, release builds `vX.Y.<count>` — a hotfix commit on `release/X.Y` bumps the production version automatically.
-- **On milestone release** (trigger: every `[P1]` in the milestone checked — `[P1]` = release-blocking, `[P2]` rolls into the next milestone, `[P3]` drops to the Backlog): cut `release/X.Y` from `dev`; on it drop the `-dev` suffix from `package.json` and tag the actual built version (`git describe`-able, e.g. `v0.2.41`); point `main` at it (see above). On `dev`: move the milestone section from ROADMAP.md to a past-tense entry in [CHANGELOG.md](CHANGELOG.md) (carrying the P2/P3 roll-over with it) and bump `package.json` to the next minor with `-dev` (e.g. `0.3.0-dev`).
+- **Versioning**: `package.json` holds only `X.Y.0` (+ `-dev` on the dev branch); the build replaces the patch number with the git commit count **since the `vX.Y-base` tag** (`vite.config.ts`) — the tag sits on the commit that bumped `package.json` to `X.Y.0-dev`, so the patch counter restarts at every minor. Dev builds show `vX.Y.<count>-dev`, release builds `vX.Y.<count>` — a hotfix commit on `release/X.Y` (which descends from the base tag) bumps the production version automatically. Counting falls back to total history if the tag is unreachable; CI fetches tags for this (`fetch-tags: true`).
+- **Test server**: deployed manually with `npm run deploy:test` — local `build:dev` + Netlify CLI upload (`netlify deploy --prod --dir=dist`), so no Netlify build minutes are used and the version matches the local commit exactly. CI builds on the Netlify site are stopped by design — don't re-enable webhook/auto-deploys. The script refuses a dirty working tree (`-- --dirty` overrides).
+- **On milestone release** (trigger: every `[P1]` in the milestone checked — `[P1]` = release-blocking, `[P2]` rolls into the next milestone, `[P3]` drops to the Backlog): cut `release/X.Y` from `dev`; on it drop the `-dev` suffix from `package.json` and tag the actual built version (`git describe`-able, e.g. `v0.2.41`); point `main` at it (see above). On `dev`: move the milestone section from ROADMAP.md to a past-tense entry in [CHANGELOG.md](CHANGELOG.md) (carrying the P2/P3 roll-over with it) and bump `package.json` to the next minor with `-dev` (e.g. `0.3.0-dev`) — **tag that bump commit `vX.Y-base` and push the tag** (the patch counter restarts from it).
 - **Git**: commit often — one commit per logical fix/feature as you go, not one batch commit per session. Push to `origin` when the session's work is done and verified (build + sim pass).
 - Design rationale lives in `docs/DESIGN.md` (incl. balance targets in §27); the original brief is `Debugger_Game_Design_Brief.md`.
 
 ## Commands
 
 ```bash
-npm run dev        # Vite dev server → http://localhost:5173
-npm run build      # tsc (type check) && vite build → dist/ (prod: dev console excluded)
-npm run build:dev  # dev-configured build (--mode dev): window.dbg dev console compiled in
+npm run dev          # Vite dev server → http://localhost:5173
+npm run build        # tsc (type check) && vite build → dist/ (prod: dev console excluded)
+npm run build:dev    # dev-configured build (--mode dev): window.dbg dev console compiled in
+npm run deploy:test  # test-server deploy: local build:dev + netlify CLI upload (user-triggered)
 ```
 
 There are no unit tests or linter; `tsc` via `npm run build` is the static check. Verification is simulation-based:

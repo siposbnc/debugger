@@ -12,6 +12,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0 # full history: the build version embeds the commit count
+          fetch-tags: true # …counted since the vX.Y-base tag (vite.config.ts)
       - uses: actions/setup-node@v4
         with:
           node-version: 22

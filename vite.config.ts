@@ -2,16 +2,28 @@ import { defineConfig } from 'vite';
 import { execSync } from 'node:child_process';
 import pkg from './package.json';
 
-// The patch number is the git commit count: dev builds show vX.Y.<count>-dev,
-// release-branch builds vX.Y.<count> — so hotfix commits on a release/X.Y
-// branch bump the production version automatically. Deterministic: rebuilding
-// the same commit yields the same number. package.json keeps X.Y.0[-dev];
-// only major.minor are hand-maintained (see CLAUDE.md release policy).
+// The patch number is the git commit count since this minor's base tag
+// (vX.Y-base, laid on the commit that bumped package.json to X.Y.0-dev — see
+// CLAUDE.md release policy): dev builds show vX.Y.<count>-dev, release-branch
+// builds vX.Y.<count> — the patch resets at every minor bump, and hotfix
+// commits on a release/X.Y branch (the base tag is an ancestor) bump the
+// production version automatically. Deterministic: rebuilding the same commit
+// yields the same number. package.json keeps X.Y.0[-dev]; only major.minor
+// are hand-maintained. Falls back to the total commit count if the base tag
+// is unreachable (shallow clone, missing tag fetch) — a too-big patch number
+// beats a build failure.
 function buildVersion(devTools: boolean): string {
   const suffix = pkg.version.endsWith('-dev') || devTools ? '-dev' : '';
+  const [major, minor] = pkg.version.split('.');
+  const git = (cmd: string) =>
+    execSync(cmd, { stdio: ['ignore', 'pipe', 'ignore'] }).toString().trim();
   try {
-    const count = execSync('git rev-list --count HEAD', { stdio: ['ignore', 'pipe', 'ignore'] }).toString().trim();
-    const [major, minor] = pkg.version.split('.');
+    let count: string;
+    try {
+      count = git(`git rev-list --count v${major}.${minor}-base..HEAD`);
+    } catch {
+      count = git('git rev-list --count HEAD');
+    }
     return `${major}.${minor}.${count}${suffix}`;
   } catch {
     return pkg.version; // no git available (e.g. tarball build)
