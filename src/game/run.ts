@@ -666,12 +666,19 @@ export class Run {
 
     if (e.isBoss) {
       const boss = e.def as BossDef;
-      this.bossKills++;
       this.kills++;
-      this.emit({ type: 'bossDie', x: e.x, y: e.y, name: boss.name });
-      // big xp shower + chest
+      // Each split half showers XP, but one boss = one boss kill: the chest,
+      // bossKills credit and death fanfare come only from the last-killed half.
       const xpTotal = 60 * (1 + e.bossTier * 0.5);
       for (let i = 0; i < 8; i++) this.dropXp(e.x + rand(-40, 40), e.y + rand(-40, 40), Math.ceil(xpTotal / 8));
+      const twinAlive = boss.mechanic === 'split' && e.splitDone &&
+        this.enemies.some((o) => o.isBoss && o.def === e.def && o.splitDone);
+      if (twinAlive) {
+        this.emit({ type: 'kill', x: e.x, y: e.y, color: boss.color, big: true });
+        return;
+      }
+      this.bossKills++;
+      this.emit({ type: 'bossDie', x: e.x, y: e.y, name: boss.name });
       this.pickups.push({ kind: 'chest', x: e.x, y: e.y, value: 0, magnet: false, vx: 0, vy: 0, bossTier: e.bossTier });
       return;
     }
