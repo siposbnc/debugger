@@ -23,6 +23,7 @@ export class Renderer {
   ctx: CanvasRenderingContext2D;
   w = 0; h = 0; dpr = 1;
   camX = 0; camY = 0;
+  t = 0; // render clock for HUD pulses
   shakeMag = 0;
   shakeEnabled = true;
   flash = 0; // screen flash on level up
@@ -82,7 +83,24 @@ export class Renderer {
         break;
       }
       case 'damage':
-        if (this.damageNums.length < 80) {
+        // Legibility cap: past 40 numbers, merge into the nearest live one
+        // (accumulating its value) instead of stacking more text.
+        if (this.damageNums.length >= 40) {
+          let best: DamageNum | null = null;
+          let bestD = 120;
+          for (const d of this.damageNums) {
+            const dd = Math.abs(d.x - ev.x) + Math.abs(d.y - ev.y);
+            if (dd < bestD) { best = d; bestD = dd; }
+          }
+          if (best) {
+            best.value += ev.value;
+            best.crit ||= ev.crit;
+            best.life = Math.max(best.life, 0.45);
+          } else {
+            this.damageNums.shift(); // nothing nearby: recycle the oldest slot
+            this.damageNums.push({ x: ev.x + rand(-8, 8), y: ev.y, value: ev.value, life: 0.7, crit: ev.crit });
+          }
+        } else {
           this.damageNums.push({ x: ev.x + rand(-8, 8), y: ev.y, value: ev.value, life: 0.7, crit: ev.crit });
         }
         break;
@@ -151,6 +169,7 @@ export class Renderer {
   // ---------- frame ----------
 
   update(dt: number): void {
+    this.t += dt;
     this.shakeMag *= Math.pow(0.0001, dt);
     this.flash = Math.max(0, this.flash - dt * 1.6);
     for (const list of [this.rings, this.arcs, this.beams, this.columns] as { t: number; dur: number }[][]) {
@@ -207,7 +226,10 @@ export class Renderer {
     if (run) this.drawWorld(run);
     ctx.translate(-ox, -oy);
 
-    if (run) this.drawHud(run);
+    if (run) {
+      this.drawHud(run);
+      this.drawBossIndicators(run);
+    }
     this.drawBanners();
 
     if (this.flash > 0) {
@@ -584,6 +606,51 @@ export class Renderer {
   }
 
   // ---------- HUD ----------
+
+  /** Edge arrows pointing at bosses that are alive but out of view. */
+  private drawBossIndicators(run: Run): void {
+    const ctx = this.ctx;
+    const slack = 40;   // boss counts as visible until this far past the edge
+    const margin = 34;  // arrow inset from the screen edge
+    for (const e of run.enemies) {
+      if (!e.isBoss) continue;
+      const p = this.proj(e.x, e.y);
+      const sx = p.x - this.camX + this.w / 2;
+      const sy = p.y - this.camY + this.h / 2;
+      if (sx > -slack && sx < this.w + slack && sy > -slack && sy < this.h + slack) continue;
+
+      const ax = clamp(sx, margin, this.w - margin);
+      const ay = clamp(sy, margin + 44, this.h - margin); // stay below the XP bar
+      const ang = Math.atan2(sy - ay, sx - ax);
+      const pulse = 0.75 + 0.25 * Math.sin(this.t * 7);
+
+      ctx.save();
+      ctx.translate(ax, ay);
+      ctx.globalAlpha = pulse;
+      ctx.fillStyle = 'rgba(8, 12, 18, 0.75)';
+      ctx.beginPath();
+      ctx.arc(0, 0, 16, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = e.def.color;
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+      ctx.font = '15px VT323, monospace';
+      ctx.textAlign = 'center';
+      ctx.fillStyle = e.def.color;
+      ctx.fillText('⚠', 0, 5);
+      // arrowhead on the rim, pointing at the boss
+      ctx.rotate(ang);
+      ctx.fillStyle = e.def.color;
+      ctx.beginPath();
+      ctx.moveTo(26, 0);
+      ctx.lineTo(16, -6);
+      ctx.lineTo(16, 6);
+      ctx.closePath();
+      ctx.fill();
+      ctx.restore();
+    }
+    ctx.globalAlpha = 1;
+  }
 
   private drawHud(run: Run): void {
     const ctx = this.ctx;

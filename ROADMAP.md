@@ -29,8 +29,8 @@ No new content — only feel, clarity and robustness.
   - per-weapon total damage + DPS (requires per-weapon damage tracking — shared with run-end breakdown below)
   - current card odds (rarity chances incl. luck, repeat penalties once implemented)
   — *done: 4 panels (~/player, ~/weapons, ~/cards, ~/card_odds). Damage credited per WeaponInstance via `hitEnemy` source (carries through evolution); turret/helper damage shown as "Allies". Odds computed from the live `candidates()` weights so they include luck, banishes and max stacks; repeat penalties will show up automatically once implemented. Sim now prints per-weapon damage/DPS at run end.*
-- [ ] [P1] (S) Damage-number cap / merge when >40 on screen (legibility past minute 10)
-- [ ] [P1] (S) Off-screen boss indicator arrow (boss alive but out of view)
+- [x] [P1] (S) Damage-number cap / merge when >40 on screen (legibility past minute 10) — *done: above 40 numbers, new damage merges into the nearest live number (value accumulates, crit upgrades, life refreshed); falls back to recycling the oldest slot*
+- [x] [P1] (S) Off-screen boss indicator arrow (boss alive but out of view) — *done: pulsing edge marker in boss color (⚠ disc + rim arrowhead), clamped below the XP bar; handles multiple bosses incl. split halves*
 - [ ] [P2] (S) Run summary split: objectives/achievements block visually separated (divider) from the itemized Bits-by-stat breakdown
 - [ ] [P2] (S) Health bar above the player character (toggleable in settings, default on)
 - [ ] [P2] (S) Heal feedback: green floating number + brief glow on the player whenever HP is restored (coffee, Heap Purifier, regen ticks ≥1)
@@ -210,3 +210,4 @@ Parking lot — promote into a milestone before working on these.
 - 2026-06-11 — All four P1 Known-issue bugs fixed (F5 hint, clipped menus, legendary rate, Merge Conflict double chest) + rarity verification item: offerTest.ts now asserts tier rates (legendary 1.40% @ luck 0); sim re-run, Bits/run 1318–1957 band unchanged vs baseline
 - 2026-06-11 — Per user rulings: Merge Conflict halves now also share one boss-kill credit/banner (not just the chest), and Max Pipeline's turret gets full projectile-count scaling. Git workflow added to CLAUDE.md: commit per fix, push when session work is verified
 - 2026-06-11 — Pause menu rebuilt as a current-run overview (stat sheet, weapons dmg/DPS, taken cards, live card odds); per-weapon damage tracking added to the sim layer + simulate.ts end-of-run damage table. Sim note: ada auto-pick runs vary widely (947–2144 Bits observed; one weak run killed 0 bosses) — the P1 simulator-matrix item should look at ada's variance
+- 2026-06-11 — Render QoL: damage numbers merge instead of stacking past 40 on screen; off-screen bosses get a pulsing edge indicator arrow
