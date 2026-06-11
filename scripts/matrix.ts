@@ -4,29 +4,44 @@
 // then checks them against docs/BALANCE.md.
 //
 //   npx esbuild scripts/matrix.ts --bundle --platform=node --outfile=scripts/matrix.cjs
-//   node scripts/matrix.cjs [samples=5] [maxMinutes=15] [charId]
+//   node scripts/matrix.cjs [samples=5] [maxMinutes=15] [charId] [--mortal] [--pick=first|greedy]
+//
+// Default is the invincible pacing bot (pick=first). --mortal turns death on and
+// switches to survival kiting; combine with --pick=greedy for the competent-player
+// proxy. Win-rate targets per strategy live in BALANCE.md.
 
 import { Run } from '../src/game/run';
 import { CHARACTERS } from '../src/data/characters';
 import { MAPS } from '../src/data/maps';
 import { DEFAULT_WEAPON_POOL } from '../src/data/weapons';
 import { MAX_ENEMIES } from '../src/data/enemies';
-import { STEP, botStep } from './simBot';
+import { META_UPGRADES } from '../src/data/meta';
+import { STEP, botStep, type BotOptions, type PickStrategy } from './simBot';
 
-const samples = Number(process.argv[2] ?? 5);
-const maxMinutes = Number(process.argv[3] ?? 15);
-const charFilter = process.argv[4]; // optional: limit to one character
+const flags = process.argv.slice(2).filter((a) => a.startsWith('--'));
+const pos = process.argv.slice(2).filter((a) => !a.startsWith('--'));
+const samples = Number(pos[0] ?? 5);
+const maxMinutes = Number(pos[1] ?? 15);
+const charFilter = pos[2]; // optional: limit to one character
+const mortal = flags.includes('--mortal');
+const pick = (flags.find((f) => f.startsWith('--pick='))?.slice(7) ?? 'first') as PickStrategy;
+const metaMax = flags.includes('--meta=max'); // fully bought shop = end-of-progression power
+const bot: BotOptions = { pick, mortal };
+const metaLevels: Record<string, number> = metaMax
+  ? Object.fromEntries(META_UPGRADES.map((m) => [m.id, m.maxLevel]))
+  : {};
 
 interface Sample {
   bits: number; level: number; bossKills: number; victory: boolean;
+  deathAt: number | null; // seconds (mortal runs)
   killsAt: number[]; aliveAt: number[]; levelAt: number[]; // index = whole minute
   firstBossTTK: number | null; // s from first spawn to first boss death (null = never)
 }
 
 function simulateOne(charId: string, mapId: string): Sample {
-  const run = new Run(CHARACTERS[charId], MAPS[mapId], {},
+  const run = new Run(CHARACTERS[charId], MAPS[mapId], metaLevels,
     [...new Set([...DEFAULT_WEAPON_POOL, CHARACTERS[charId].weapon])], new Set());
-  run.invincible = true;
+  run.invincible = !mortal;
 
   const killsAt = [0], aliveAt = [0], levelAt = [1];
   let firstSpawnT: number | null = null, firstDieT: number | null = null;
@@ -34,7 +49,7 @@ function simulateOne(charId: string, mapId: string): Sample {
 
   while (!run.over && run.time < maxMinutes * 60) {
     run.update(STEP);
-    botStep(run);
+    botStep(run, bot);
     for (const ev of run.events) {
       if (ev.type === 'bossSpawn' && firstSpawnT === null) firstSpawnT = run.time;
       if (ev.type === 'bossDie' && firstDieT === null) firstDieT = run.time;
@@ -49,6 +64,7 @@ function simulateOne(charId: string, mapId: string): Sample {
   const r = run.computeBits();
   return {
     bits: r.bits, level: r.level, bossKills: r.bossKills, victory: r.victory,
+    deathAt: run.over && !run.victory ? run.time : null,
     killsAt, aliveAt, levelAt,
     firstBossTTK: firstSpawnT !== null && firstDieT !== null ? firstDieT - firstSpawnT : null,
   };
@@ -57,9 +73,12 @@ function simulateOne(charId: string, mapId: string): Sample {
 const median = (xs: number[]) => [...xs].sort((a, b) => a - b)[Math.floor(xs.length / 2)];
 const fmtList = (xs: (number | null)[], unit = '') =>
   xs.map((x) => (x === null ? '—' : `${Math.round(x)}${unit}`)).join(',');
+const fmtTime = (s: number) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
 
 interface Flag { config: string; msg: string }
-const flags: Flag[] = [];
+const verdicts: Flag[] = [];
+
+console.log(`bot: ${mortal ? 'MORTAL' : 'invincible'}, pick=${pick}, meta=${metaMax ? 'max' : 'zero'}`);
 
 for (const charId of Object.keys(CHARACTERS).filter((c) => !charFilter || c === charFilter)) {
   for (const mapId of Object.keys(MAPS)) {
@@ -70,37 +89,42 @@ for (const charId of Object.keys(CHARACTERS).filter((c) => !charFilter || c === 
     const bits = runs.map((r) => r.bits);
     const bosses = runs.map((r) => r.bossKills);
     const ttks = runs.map((r) => r.firstBossTTK);
+    const wins = runs.filter((r) => r.victory).length;
     const zeroBoss = bosses.filter((b) => b === 0).length;
+    const deaths = runs.map((r) => r.deathAt).filter((d): d is number => d !== null);
 
-    // pacing: minute where kill rate first falls behind spawn rate for good
-    // (alive count growing) and whether alive pins at the enemy cap by 6:00
     const pinned = runs.filter((r) =>
       r.aliveAt.slice(0, 7).some((a) => a >= MAX_ENEMIES - 10)).length;
     const aliveMed = [2, 3, 4, 5, 6].map((m) => median(runs.map((r) => r.aliveAt[m] ?? 0)));
     const lvMed = [5, 10, 15].map((m) => median(runs.map((r) => r.levelAt[Math.min(m, r.levelAt.length - 1)] ?? 0)));
 
     console.log(`\n=== ${config}  (${samples} samples) ===`);
-    console.log(`bits    min/med/max: ${Math.min(...bits)}/${median(bits)}/${Math.max(...bits)}   victories: ${runs.filter((r) => r.victory).length}/${samples}`);
+    console.log(`bits    min/med/max: ${Math.min(...bits)}/${median(bits)}/${Math.max(...bits)}   victories: ${wins}/${samples}${deaths.length ? `   deaths at: ${deaths.map(fmtTime).join(', ')}` : ''}`);
     console.log(`bosses  per sample: ${fmtList(bosses)}   first-boss TTK: ${fmtList(ttks, 's')}  (— = never killed; >120s = bosses stacked)`);
     console.log(`alive   median @2:00..6:00: ${aliveMed.join(' / ')}   pinned at cap ≤6:00: ${pinned}/${samples}`);
     console.log(`level   median @5/10/15min: ${lvMed.join(' / ')}`);
 
     // --- checks vs docs/BALANCE.md ---
+    if (mortal) {
+      // mortal runs measure difficulty: win-rate targets per strategy
+      verdicts.push({ config, msg: `win rate ${wins}/${samples} (${pick})` });
+      continue;
+    }
     if (pinned > 0)
-      flags.push({ config, msg: `kill rate < spawn rate before 6:00 (alive pinned at cap in ${pinned}/${samples} samples)` });
+      verdicts.push({ config, msg: `FLAG kill rate < spawn rate before 6:00 (alive pinned at cap in ${pinned}/${samples} samples)` });
     const ttkKilled = ttks.filter((t): t is number => t !== null);
     if (ttkKilled.length && median(ttkKilled) > 100)
-      flags.push({ config, msg: `first-boss TTK median ${Math.round(median(ttkKilled))}s (target 60–100s)` });
+      verdicts.push({ config, msg: `FLAG first-boss TTK median ${Math.round(median(ttkKilled))}s (target 60–100s)` });
     if (zeroBoss * 2 >= samples)
-      flags.push({ config, msg: `0 bosses killed in ${zeroBoss}/${samples} samples (red flag per BALANCE.md §5)` });
+      verdicts.push({ config, msg: `FLAG 0 bosses killed in ${zeroBoss}/${samples} samples (red flag per BALANCE.md §6)` });
     if (lvMed[2] < 20)
-      flags.push({ config, msg: `median level ${lvMed[2]} at 15:00 (provisional target ≥20)` });
+      verdicts.push({ config, msg: `FLAG median level ${lvMed[2]} at 15:00 (provisional target ≥20)` });
   }
 }
 
 console.log('\n=== VERDICT ===');
-if (flags.length === 0) {
+if (verdicts.length === 0) {
   console.log('all configs within BALANCE.md targets');
 } else {
-  for (const f of flags) console.log(`FLAG  ${f.config}: ${f.msg}`);
+  for (const f of verdicts) console.log(`${f.config}: ${f.msg}`);
 }
