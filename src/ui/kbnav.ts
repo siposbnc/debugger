@@ -56,11 +56,17 @@ export class KbNav {
     this.onBack = null;
   }
 
-  /** Move the highlight to the nearest item in direction (dx,dy); wraps around when at an edge. */
+  /** Move the highlight to the nearest item in direction (dx,dy); wraps around when at an edge.
+   *  Horizontal input on a focused range slider adjusts it instead of moving. */
   move(dx: number, dy: number): void {
     if (this.items.length === 0) return;
     const cur = this.items[this.idx];
     if (!cur) { this.focus(0, true, true); return; }
+    if (dy === 0 && cur instanceof HTMLInputElement && cur.type === 'range') {
+      cur.value = String(Number(cur.value) + dx * 5);
+      cur.dispatchEvent(new Event('input'));
+      return;
+    }
     const a = cur.getBoundingClientRect();
     const ax = a.left + a.width / 2, ay = a.top + a.height / 2;
     let lane = -1, laneScore = Infinity;   // candidates overlapping on the cross axis (same row/column)
@@ -100,6 +106,11 @@ export class KbNav {
     cur.click();
   }
 
+  /** Fire the screen's back action (Esc equivalent) — used by gamepad B. */
+  back(): void {
+    this.onBack?.();
+  }
+
   private onKey(e: KeyboardEvent): void {
     // A key held from before this screen appeared only emits auto-repeats —
     // ignore those so movement keys can't spam through the level-up cards.
@@ -118,12 +129,6 @@ export class KbNav {
     const dir = DIR[e.code];
     if (dir) {
       e.preventDefault();
-      const cur = this.items[this.idx];
-      if (dir.y === 0 && cur instanceof HTMLInputElement && cur.type === 'range') {
-        cur.value = String(Number(cur.value) + dir.x * 5);
-        cur.dispatchEvent(new Event('input'));
-        return;
-      }
       this.move(dir.x, dir.y);
       return;
     }

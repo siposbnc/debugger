@@ -35,6 +35,11 @@ export class UI {
     this.root.innerHTML = '';
   }
 
+  // Gamepad → menu navigation (the main loop polls the pad and drives these).
+  navMove(dx: number, dy: number): void { this.nav.move(dx, dy); }
+  navActivate(): void { this.nav.activate(); }
+  navBack(): void { this.nav.back(); }
+
   private screen(html: string, onBack: (() => void) | null = null): HTMLElement {
     this.root.innerHTML = `<div class="screen">${html}</div>`;
     const el = this.root.firstElementChild as HTMLElement;
@@ -63,7 +68,7 @@ export class UI {
         <button class="btn" data-act="codex">BUG DATABASE</button>
         <button class="btn" data-act="settings">SETTINGS</button>
       </div>
-      <div class="controls-hint"><kbd>WASD</kbd> move/navigate &nbsp; <kbd>ENTER</kbd> select &nbsp; <kbd>ESC</kbd> back/pause &nbsp; auto-attack: just survive</div>
+      <div class="controls-hint"><kbd>WASD</kbd> move/navigate &nbsp; <kbd>ENTER</kbd> select &nbsp; <kbd>ESC</kbd> back/pause &nbsp; <kbd>🎮</kbd> gamepad works too &nbsp; auto-attack: just survive</div>
       <div class="version-tag">v${__APP_VERSION__}</div>
     `);
     s.addEventListener('click', (e) => {

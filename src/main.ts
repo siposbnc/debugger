@@ -1,5 +1,5 @@
 import './style.css';
-import { initInput, wasPressed, consumePressed } from './core/input';
+import { initInput, wasPressed, consumePressed, pollGamepad, padWasPressed, padMenuDir, PAD } from './core/input';
 import { loadSave, persistSave } from './save/save';
 import { CHARACTERS } from './data/characters';
 import { MAPS } from './data/maps';
@@ -147,6 +147,8 @@ function frame(now: number): void {
   const elapsed = Math.min(0.1, (now - last) / 1000);
   last = now;
 
+  pollGamepad(elapsed);
+
   if (state === 'run' && run) {
     acc += elapsed;
     const speedMult = TURBO ? 6 : 1;
@@ -177,11 +179,22 @@ function frame(now: number): void {
     acc = 0;
   }
 
-  // Esc/P pause toggling lives here, not in kbnav — menus handle their own Esc=back.
+  // Gamepad menu navigation: stick/d-pad moves the kbnav highlight, A activates,
+  // B = back (no-op on the pause screen, which has no onBack — handled below).
+  if (state !== 'run') {
+    const dir = padMenuDir();
+    if (dir) ui.navMove(dir.x, dir.y);
+    if (padWasPressed(PAD.A)) ui.navActivate();
+    if (padWasPressed(PAD.B)) ui.navBack();
+  }
+
+  // Esc/P/Start pause toggling lives here, not in kbnav — menus handle their own Esc=back.
   // Space-resume comes from kbnav: the pause screen's default highlight is CONTINUE.
-  if (wasPressed('Escape') || wasPressed('KeyP')) {
+  if (wasPressed('Escape') || wasPressed('KeyP') || padWasPressed(PAD.START)) {
     if (state === 'run') pause();
     else if (state === 'paused') resume();
+  } else if (state === 'paused' && padWasPressed(PAD.B)) {
+    resume();
   }
   consumePressed();
 
