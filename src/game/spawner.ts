@@ -6,6 +6,18 @@ import type { Enemy, Run } from './run';
 /** Distance from the player at which enemies pop in (just past screen edge). */
 const SPAWN_RADIUS = 760;
 
+/** Past this distance an enemy has been outrun for good — teleport it back onto
+ *  the spawn ring. Without this, running in one direction sheds the entire swarm
+ *  (player 150 u/s outpaces every enemy at any difficulty) and survival needs no
+ *  kill rate at all; with it, the horde encircles and the build is the defense. */
+const RECYCLE_RADIUS = 1000;
+
+/** While the player is in motion, most recycled stragglers land in a cone ahead
+ *  of the heading: running away converts the swarm behind you into a wall in
+ *  front of you. A player holding ground gets a uniform ring instead. */
+const RECYCLE_AHEAD_CHANCE = 0.65;
+const RECYCLE_AHEAD_SPREAD = 0.8; // radians each side of the heading
+
 function currentPhase(run: Run): SpawnPhase {
   const minutes = run.time / 60;
   const plan = run.map.spawnPlan;
@@ -36,7 +48,29 @@ export function makeEnemy(run: Run, def: EnemyDef, x: number, y: number, elite: 
   };
 }
 
+function recycleStragglers(run: Run): void {
+  const hx = run.px - run.prevPx, hy = run.py - run.prevPy;
+  run.prevPx = run.px; run.prevPy = run.py;
+  const moving = hx * hx + hy * hy > 0.16; // ≈ 24 u/s at 60 fps
+  const heading = Math.atan2(hy, hx);
+
+  const r2 = RECYCLE_RADIUS * RECYCLE_RADIUS;
+  for (const e of run.enemies) {
+    if (e.isBoss) continue; // bosses keep their position (mechanics + edge arrow)
+    const dx = e.x - run.px, dy = e.y - run.py;
+    if (dx * dx + dy * dy < r2) continue;
+    const ang = moving && Math.random() < RECYCLE_AHEAD_CHANCE
+      ? heading + rand(-RECYCLE_AHEAD_SPREAD, RECYCLE_AHEAD_SPREAD)
+      : Math.random() * Math.PI * 2;
+    const r = SPAWN_RADIUS + rand(0, 90);
+    e.x = run.px + Math.cos(ang) * r;
+    e.y = run.py + Math.sin(ang) * r;
+    e.knockX = 0; e.knockY = 0;
+  }
+}
+
 export function updateSpawner(run: Run, dt: number): void {
+  recycleStragglers(run); // must run even (especially) when the cap is full
   if (run.enemies.length >= MAX_ENEMIES) return;
 
   const minutes = run.time / 60;

@@ -72,7 +72,10 @@ export const ELITE = {
 export function difficulty(minutes: number) {
   return {
     hpMult: 1 + 0.24 * minutes + 0.015 * minutes * minutes,
-    damageMult: 1 + 0.11 * minutes,
+    // Quadratic late term: an uncleaned full-density horde must become lethal
+    // past ~min 8 — without it, brushing through the wall stays survivable and
+    // movement alone beats the game (mortal-bot win targets in BALANCE.md §5).
+    damageMult: 1 + 0.11 * minutes + 0.006 * minutes * minutes,
     speedMult: Math.min(1.35, 1 + 0.013 * minutes),
     spawnRateMult: Math.pow(0.915, minutes), // multiplies spawn interval (lower = faster)
     bossHpMult: 1 + 0.5 * minutes * 0.5,

@@ -139,6 +139,7 @@ export class Run {
 
   // player
   px = 0; py = 0;
+  prevPx = 0; prevPy = 0; // last frame's position — spawner reads it for recycle heading bias
   hp: number;
   faceX = 1; faceY = 0;
   hurtFlash = 0;
@@ -529,7 +530,10 @@ export class Run {
       this.turretT -= dt;
       if (this.turretT <= 0) {
         this.turretT = 12;
-        this.allies.push({ kind: 'turret', x: this.px + rand(-50, 50), y: this.py + rand(-50, 50), life: 10, shootT: 0.3 });
+        // 7s life (58% uptime, was 10s/83%): the free-DPS floor alone shouldn't
+        // carry a pickless run — mortal-bot data had max winning 9/12 at lv 7.
+        // Scaling via +projectiles (user ruling) is untouched and still rewards builds.
+        this.allies.push({ kind: 'turret', x: this.px + rand(-50, 50), y: this.py + rand(-50, 50), life: 7, shootT: 0.3 });
       }
     }
     if (this.character.special === 'helpers') {

@@ -33,7 +33,7 @@ spawn interval × `0.915^m` (m = minutes). Elites from 4:00, chance `0.015 + 0.0
 `xpForLevel(l) = round(10 + 7(l−1) + (l−1)^1.9)` (`run.ts`). Boss XP burst: 60 × (1 + 0.5·tier).
 
 Checkpoint targets at luck/XP-meta 0, auto-pick *(all provisional — huge observed variance,
-see §5)*:
+see §6)*:
 
 | Time | Level (healthy run) |
 |---|---|
@@ -81,7 +81,25 @@ Total shop cost: meta upgrades **9,425 ⌬** + characters 1,400 + weapons 1,550 
 **12,875 ⌬** → at the target bands a full clear lands in the user-set **25–35 runs** window
 (avg ~370–515 ⌬/run blended).
 
-## 5. Known outliers & open questions (re-check after every content change)
+## 5. Difficulty certification (mortal-bot win rates)
+
+The matrix can run a **mortal** bot (`--mortal`, survival kiting + real death) with pick
+strategies (`--pick=first|greedy`) and meta power (`--meta=max`). Survival must be decided
+by power, not movement: straggler recycling (`spawner.ts`) makes the horde inescapable and
+heading-biased, and the quadratic enemy-damage term makes an uncleaned wall lethal past
+~min 8. Targets (zero meta unless stated, n ≥ 8 per config):
+
+| Bot | greenfield | memoryMarsh | Status (2026-06-11) |
+|---|---|---|---|
+| Careless (offer[0]), zero meta | **≤ 30%** win | ~0% | 28% / 0% ✓ |
+| Careless, maxed meta | **≥ 60%** win | ≥ 25% | 72% / 31% ✓ |
+| Synergy picks (greedy bot) | should beat careless | — | **not demonstrable yet**: all bots are XP-starved (median lv 8–11 by 15:00), so in-run build quality barely exists; needs scenario-granted builds (sim-scenarios tooling) |
+
+Pre-fix baseline for the record: careless zero-meta bots won **83%** on greenfield by
+running away forever (player 150 u/s outruns every enemy; the spawner stopped at the cap
+and stragglers were never recycled — survival needed no kill rate at all).
+
+## 6. Known outliers & open questions (re-check after every content change)
 
 - **Assertion Blades + cooldown stacking** — strongest known combo; needs a checked-in
   scenario once the sim-scenarios tooling exists.
@@ -94,3 +112,12 @@ Total shop cost: meta upgrades **9,425 ⌬** + characters 1,400 + weapons 1,550 
 - Boss kills are bimodal in sim (0 or several): once a boss outlives its 120 s slot, bosses
   stack and the run never recovers — TTK regressions show up as `bosses: 0`, not as slightly
   longer kills. Treat any 0-boss rate ≥ ~50% per config as a red flag *(provisional)*.
+- **max's free-DPS floor**: turrets + 360° starter let a pickless max win 75% of mortal
+  zero-meta runs (others 12–37%); turret life cut 10 s → 7 s brought him to 50% — still the
+  strongest floor, watch after any turret/hammer change.
+- **memoryMarsh at zero meta** is a 0%-win wall for careless mortal bots (hazard pools +
+  swarm corner the kiter by ~min 4). Maxed meta reaches 31%. Decide by human play whether
+  the second map is meant to be this meta-gated; bots under-perform humans around pools.
+- **linus under-scales with meta** (maxed-meta careless: 3/8 greenfield, 0/8 marsh vs
+  6–7/8 for others) — helpers don't benefit from most meta stats; check when characters
+  get a balance pass.

@@ -200,6 +200,10 @@ is boss kills, gated by bossRewardMult price.
 - **Late-run legibility**: enforced palette separation (player=cool, enemy=warm) + damage-number cap.
 - **The stationary degenerate strategy**: drains (leech), pools, scarab slows and charge
   dashes all punish standing still.
+- **The running degenerate strategy**: the player (150 u/s) outpaces every enemy at any
+  difficulty, so outrun enemies past ~1150 units are recycled onto the spawn ring around
+  the player (`spawner.ts`). The horde can be dodged but never shed — kill rate, not
+  movement speed, decides survival. Mortal-bot win-rate targets: BALANCE.md §5.
 - **Joke fatigue**: humor lives in flavor text only; mechanical text stays literal.
 
 ## 29. Roadmap
