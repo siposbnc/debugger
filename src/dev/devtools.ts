@@ -29,17 +29,17 @@ const CATALOGS: Record<string, Record<string, { name: string }>> = {
   maps: MAPS,
 };
 
-const HELP = `${BANNER} — window.dbg
-  dbg.list(kind?)      ids by kind: ${Object.keys(CATALOGS).join(', ')}
-  dbg.bits(n=1000)     add n Bits to the save (meta currency, persisted)
-  dbg.xp(n=50)         grant n XP to the current run (xpMult applies)
-  dbg.offer(...ids)    force the next level-up offer to these weapon/card ids
-                       (triggers a level-up; reroll falls back to a normal draw)
-  dbg.give(id)         grant a weapon (or apply a card) immediately
-  dbg.level(id, n)     set an owned weapon's level (1–${MAX_WEAPON_LEVEL}; grants it if missing)
-  dbg.god(on?)         toggle invincibility
-  dbg.time(min)        jump the run clock to minute min (bosses/spawn phases follow)
-  dbg.help()           this text`;
+const HELP: [call: string, what: string][] = [
+  ['dbg.list(kind?)', `ids by kind: ${Object.keys(CATALOGS).join(', ')}`],
+  ['dbg.bits(n=1000)', 'add n Bits to the save (meta currency, persisted)'],
+  ['dbg.xp(n=50)', 'grant n XP to the current run (xpMult applies)'],
+  ['dbg.offer(...ids)', 'force the next level-up offer to these weapon/card ids (triggers a level-up; reroll falls back to a normal draw)'],
+  ['dbg.give(id)', 'grant a weapon (or apply a card) immediately'],
+  ['dbg.level(id, n)', `set an owned weapon's level (1–${MAX_WEAPON_LEVEL}; grants it if missing)`],
+  ['dbg.god(on?)', 'toggle invincibility'],
+  ['dbg.time(min)', 'jump the run clock to minute min (bosses/spawn phases follow)'],
+  ['dbg.help()', 'this text'],
+];
 
 function buildApi(ctx: DevContext) {
   const needRun = (): Run | null => {
@@ -54,7 +54,17 @@ function buildApi(ctx: DevContext) {
   };
 
   const dbg = {
-    help(): string { return HELP; },
+    // Prints (instead of returning) so the console renders real line breaks,
+    // styled call names and aligned columns rather than one quoted "\n" string.
+    help(): void {
+      const pad = Math.max(...HELP.map(([call]) => call.length)) + 2;
+      console.log(
+        `%c${BANNER} — window.dbg\n\n` +
+        HELP.map(([call, what]) => `%c${call.padEnd(pad)}%c${what}`).join('\n'),
+        'color:#7fff7f;font-weight:bold',
+        ...HELP.flatMap(() => ['color:#7fd4ff', 'color:inherit']),
+      );
+    },
 
     list(kind?: string): string {
       const kinds = kind ? [kind] : Object.keys(CATALOGS);

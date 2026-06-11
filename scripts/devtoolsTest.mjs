@@ -19,7 +19,12 @@ await page.goto(`${BASE}/?autostart`); // straight into a run
 await page.waitForFunction(() => typeof window.dbg === 'object');
 const dbg = (expr) => page.evaluate(expr);
 
-check('dbg installed, help shows banner', (await dbg(() => window.dbg.help())).includes('Debugger dev console'));
+// help() prints (multi-line, styled) rather than returning a string — capture the log
+const logs = [];
+page.on('console', (msg) => logs.push(msg.text()));
+await dbg(() => window.dbg.help());
+const helpLog = logs.find((l) => l.includes('Debugger dev console'));
+check('dbg installed, help logs formatted text', !!helpLog && helpLog.includes('\n') && helpLog.includes('dbg.god(on?)'));
 check('list returns table summary', (await dbg(() => window.dbg.list('weapons'))) === '1 table(s) above');
 check('list rejects unknown kind', (await dbg(() => window.dbg.list('nonsense'))).includes('unknown kind'));
 
