@@ -37,6 +37,15 @@ In-browser dev flags: `?autostart` skips the menu into a run; `?autostart&turbo`
 
 After any gameplay/content/balance change, run the simulator and check against the "Balance watchlist" in ROADMAP.md (kill rate ≥ spawn rate before min 6, first-boss TTK 60–100s, Bits/run bands).
 
+### Subagent delegation (cost policy)
+
+The main session runs on an expensive frontier model — reserve it for design, implementation, and debugging. Routine verification is delegated to cheaper project subagents (defined in `.claude/agents/`):
+
+- **`build-verifier`** (Haiku): runs `npm run build` and reports tsc errors. Use it after every code change instead of running the build inline.
+- **`sim-verifier`** (Sonnet): runs the headless simulator (and the offer test when relevant) and checks results against the ROADMAP.md balance watchlist. Use it after every gameplay/content/balance change instead of running the sim inline.
+
+Run them in the background (or in parallel with each other) while continuing other work; act on their reports in the main session. Do not delegate implementation or fixes to them — they are run-and-report only.
+
 ## Architecture
 
 The load-bearing rule: **`src/game/` and `src/data/` never touch the DOM, Canvas, or WebAudio.** That is what makes the headless Node simulator possible — don't break it. The simulation communicates outward only through `run.events` (the `RunEvent` discriminated union in `src/game/run.ts`), which `src/main.ts` drains each frame and fans out to the renderer (particles/banners/shake) and sound.
