@@ -952,30 +952,53 @@ export class UI {
       row('Luck', `${st.luck}`),
     ].join('');
 
-    // weapons inventory: desc + the resolved live stat sheet per weapon (the
-    // same effective() values combat fires with — global mults applied, unlike
-    // the raw-table weapon-card previews), plus total damage / DPS tallies
-    const weaponRows = run.weapons.map((w) => {
+    // Inventory — the pause screen's primary pane (user feedback 2026-06-13:
+    // the old one-column weapons panel felt cramped). One large card per
+    // weapon: icon tile, level pips, damage/DPS tally, desc, the resolved live
+    // stat sheet (the same effective() values combat fires with — global mults
+    // applied, unlike the raw-table weapon-card previews) and evolution state.
+    const weaponCards = run.weapons.map((w) => {
       const dps = w.totalDamage / Math.max(1, run.time - w.acquiredAt);
-      const lvl = w.def.isEvolution ? 'EVO' : `Lv ${w.level}`;
       const eff = effective(run, w);
       const stats = WEAPON_FIELD_VIEW
         .filter(([key]) => eff[key] !== 0)
         .map(([key, label, fmt]) =>
           `<span class="wstat"><span class="wl">${label}</span> ${fmt(eff[key])}</span>`)
         .join('');
-      return `<div class="wpn">
-        <div class="wpn-head">
-          <span style="color:${w.def.color}">${w.def.icon} ${w.def.name}</span>
-          <span class="dim">${lvl}</span>
-          <span class="v">${fmtDmg(w.totalDamage)} <span class="dim">(${fmtDmg(dps)}/s)</span></span>
+      const maxLv = w.def.levels.length;
+      const pips = w.def.isEvolution
+        ? '<span class="evo-tag">EVO</span>'
+        : Array.from({ length: maxLv }, (_, i) =>
+            `<span class="pip ${i < w.level ? 'on' : ''}"></span>`).join('')
+          + `<span class="dim">Lv ${w.level}</span>`;
+      const evo = w.def.evolveTo
+        ? w.level >= maxLv
+          ? `<div class="wpn-evo ready">⚡ evolution ready — the next boss chest forges ${WEAPONS[w.def.evolveTo].name}</div>`
+          : `<div class="wpn-evo">⮕ evolves into ${WEAPONS[w.def.evolveTo].name} at Lv ${maxLv}</div>`
+        : EVOLVED_FROM[w.def.id]
+          ? `<div class="wpn-evo">⮑ evolved from ${WEAPONS[EVOLVED_FROM[w.def.id]].name}</div>`
+          : '';
+      return `
+      <div class="inv-card" style="--accent:${w.def.color}">
+        <div class="inv-head">
+          <div class="inv-icon">${w.def.icon}</div>
+          <div class="inv-title">
+            <b>${w.def.name}</b>
+            <div class="pips">${pips}</div>
+          </div>
+          <div class="inv-dmg">${fmtDmg(w.totalDamage)} <span class="dim">dmg · ${fmtDmg(dps)}/s</span></div>
         </div>
         <div class="wpn-desc">${w.def.desc}</div>
         <div class="wpn-stats">${stats}</div>
+        ${evo}
       </div>`;
-    }).join('') + (run.allyDamage > 0
-      ? row(`<span class="dim">⚙ Allies</span>`, `${fmtDmg(run.allyDamage)}`)
-      : '');
+    }).join('')
+      // open slots communicate capacity: a new-weapon card fills one at level-up
+      + Array.from({ length: Math.max(0, run.stats.weaponSlots - run.weapons.length) },
+          () => '<div class="inv-card empty">open slot — take a weapon card to fill it</div>').join('');
+    const allyLine = run.allyDamage > 0
+      ? `<div class="inv-allies">⚙ allies dealt ${fmtDmg(run.allyDamage)} dmg on top</div>`
+      : '';
 
     // taken cards, highest rarity first, with stack counts
     const taken = [...run.takenCards.entries()]
@@ -1010,9 +1033,13 @@ export class UI {
         <button class="btn" data-act="suspend" title="save the run and exit — resume from the main menu">SUSPEND PROCESS</button>
         <button class="btn danger" data-act="abandon">KILL PROCESS</button>
       </div>
-      <div class="pause-cols">
+      <div class="pause-inventory">
+        <h3>~/inventory</h3>
+        <div class="inv-grid">${weaponCards}</div>
+        ${allyLine}
+      </div>
+      <div class="pause-cols pause-secondary">
         <div class="pause-panel"><h3>~/player</h3>${statRows}</div>
-        <div class="pause-panel"><h3>~/weapons</h3>${weaponRows}</div>
         <div class="pause-panel"><h3>~/cards</h3>${cardRows}</div>
         <div class="pause-panel"><h3>~/card_odds</h3>${oddsRows}
           <div class="hint" style="margin-top:8px">chance per offered slot</div>

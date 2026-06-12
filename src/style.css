@@ -460,18 +460,49 @@ html, body {
 .pause-panel .prow .v { font-family: var(--font-display); font-size: 17px; color: var(--cyan); white-space: nowrap; }
 .pause-panel .dim { color: var(--dim); font-size: 11px; }
 
-/* weapons inventory blocks (icon/name/level + tallies, desc, resolved stats) */
-.pause-panel .wpn { padding: 5px 0; border-bottom: 1px dashed var(--line); }
-.pause-panel .wpn:last-of-type { border-bottom: none; }
-.pause-panel .wpn-head { display: flex; align-items: baseline; gap: 8px; font-size: 12.5px; }
-.pause-panel .wpn-head .v {
-  margin-left: auto; font-family: var(--font-display); font-size: 15px;
-  color: var(--cyan); white-space: nowrap;
+/* inventory — the primary pause pane: one large card per weapon */
+.pause-inventory {
+  background: var(--panel); border: 1px solid var(--line);
+  padding: 14px 18px 16px; width: min(936px, 94vw);
 }
-.pause-panel .wpn-desc { font-size: 11px; color: var(--dim); line-height: 1.4; margin: 2px 0 3px; }
-.pause-panel .wpn-stats { display: flex; flex-wrap: wrap; gap: 2px 10px; font-size: 11px; }
-.pause-panel .wpn-stats .wstat { color: var(--green); white-space: nowrap; }
-.pause-panel .wpn-stats .wl { color: var(--dim); }
+.pause-inventory h3 { font-family: var(--font-display); font-size: 24px; color: var(--cyan); font-weight: 400; margin-bottom: 10px; }
+.inv-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(270px, 1fr)); gap: 10px; }
+.inv-card {
+  background: linear-gradient(160deg, var(--panel2), var(--panel));
+  border: 1px solid var(--line); border-left: 3px solid var(--accent, var(--line));
+  padding: 10px 12px; display: flex; flex-direction: column; gap: 6px;
+}
+.inv-card.empty {
+  border: 1px dashed var(--line); background: none;
+  align-items: center; justify-content: center;
+  color: var(--dim); font-size: 11px; min-height: 110px;
+}
+.inv-head { display: flex; align-items: center; gap: 10px; }
+.inv-icon {
+  width: 42px; height: 42px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 24px; color: var(--accent, var(--text));
+  border: 1px solid var(--line); border-radius: 4px;
+}
+.inv-title { min-width: 0; }
+.inv-title b { font-size: 14px; color: var(--accent, var(--text)); }
+.inv-title .pips { display: flex; align-items: center; gap: 3px; margin-top: 4px; }
+.inv-title .pip { width: 9px; height: 9px; border: 1px solid var(--line); transform: rotate(45deg); }
+.inv-title .pip.on { background: var(--green); border-color: var(--green); box-shadow: 0 0 5px rgba(83, 232, 168, 0.6); }
+.inv-title .pips .dim { margin-left: 6px; }
+.inv-dmg { margin-left: auto; text-align: right; font-family: var(--font-display); font-size: 16px; color: var(--cyan); white-space: nowrap; }
+.evo-tag { font-family: var(--font-display); font-size: 13px; color: var(--gold); letter-spacing: 0.1em; text-shadow: 0 0 8px rgba(255, 193, 46, 0.5); }
+.wpn-evo { font-size: 11px; color: var(--dim); border-top: 1px dashed var(--line); padding-top: 5px; margin-top: auto; }
+.wpn-evo.ready { color: var(--gold); }
+.inv-allies { margin-top: 10px; font-size: 11px; color: var(--dim); }
+.inv-card .wpn-desc, .pause-panel .wpn-desc { font-size: 11px; color: var(--dim); line-height: 1.4; margin: 2px 0 3px; }
+.inv-card .wpn-stats, .pause-panel .wpn-stats { display: flex; flex-wrap: wrap; gap: 2px 10px; font-size: 11px; }
+.inv-card .wstat, .pause-panel .wstat { color: var(--green); white-space: nowrap; }
+.inv-card .wl, .pause-panel .wl { color: var(--dim); }
+.inv-card .dim, .pause-inventory .dim { color: var(--dim); font-size: 11px; }
+
+/* secondary row under the inventory: player stats / cards / odds, demoted */
+.pause-secondary .pause-panel h3 { font-size: 18px; }
 
 /* ---------- settings ---------- */
 
