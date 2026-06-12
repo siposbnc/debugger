@@ -37,8 +37,9 @@ below for its type, then verify.
 - [ ] Record with a full **8-entry `levels` table** (`MAX_WEAPON_LEVEL = 8`); index 0 = level 1.
       Growth must be monotonic and roughly match a comparable weapon's curve.
 - [ ] Decide the `WeaponKind`. **Existing kind = data-only.** A new kind needs:
-      a branch in `src/game/combat.ts` (DOM-free!), visuals in `src/render/draw.ts`
-      (+ `src/render/sprites.ts` if it has a baked sprite).
+      a branch in `src/game/combat.ts` (DOM-free!), visuals in `src/render/glRenderer.ts`
+      (+ `src/render/sprites.ts` if it has a baked sprite; the Canvas2D fallback
+      in `canvasRenderer.ts` is frozen — don't add new visuals there).
 - [ ] Evolution? `evolveTo` on the base + an `isEvolution: true` record for the evolved form.
 - [ ] Reachability: add to `DEFAULT_WEAPON_POOL` **or** `SHOP_WEAPONS` (with a cost in line
       with the others) **or** make it a character's starting weapon — otherwise it never appears.

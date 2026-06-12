@@ -258,7 +258,11 @@ must stay wide (BALANCE.md §5) — never tune it away.
 
 ## 28. Risks & design challenges
 
-- **Perf**: capped at 380 enemies, baked sprites, spatial hash; degrade gracefully by lowering cap.
+- **Perf**: WebGL2 batched-quad world renderer (2026-06-12 — late-game particle density
+  is the design, so the renderer must scale past it, not shed it): atlas-packed baked
+  sprites + SDF primitives, normally one draw call per frame; particle cap 6000 (2D
+  fallback: 900). Enemy cap 380 (a balance constant, not a render limit), spatial hash.
+  Degrade path: FPS safeguard sheds particle density, never the enemy cap.
 - **Late-run legibility**: enforced palette separation (player=cool, enemy=warm) + damage-number cap.
 - **The stationary degenerate strategy**: drains (leech), pools, scarab slows and charge
   dashes all punish standing still.

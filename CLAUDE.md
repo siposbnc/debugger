@@ -70,8 +70,12 @@ src/game/    run.ts (state + orchestration), combat.ts (weapon kinds), spawner.t
              (boss mechanics), levelup.ts (card offers/rarity weighting),
              stats.ts (StatMods resolution).
 src/core/    input, spatial hash (collision), seeded RNG/math utils.
-src/render/  sprites.ts (procedural sprite baking), draw.ts (2:1 isometric
-             renderer, particles, HUD, handles RunEvents).
+src/render/  sprites.ts (procedural sprite baking), rendererBase.ts (RunEvent
+             handling, effect/particle state, all 2D overlays/HUD on #hud) +
+             world-pass backends: glRenderer.ts (WebGL2 batched quads — the
+             default; gl/ holds the quad batcher + sprite atlas) and
+             canvasRenderer.ts (frozen legacy fallback if WebGL2 init fails —
+             keep it compiling, don't add new visuals to it).
 src/ui/      menus.ts — all DOM UI (menus, shop, codex, level-up modal, summary).
 src/audio/   sound.ts — synthesized SFX + generative music ("intensity" driven).
 src/save/    save.ts — localStorage key `debugger-save-v1`; loads by merging
@@ -79,7 +83,7 @@ src/save/    save.ts — localStorage key `debugger-save-v1`; loads by merging
 ```
 
 **Adding content** = add a record in `src/data/` + handle its behavior key if new:
-- New **weapon**: record in `weapons.ts` (8-entry `levels` table, optional `evolveTo`). A new `WeaponKind` also needs a branch in `combat.ts` and visuals in `draw.ts`/`sprites.ts`.
+- New **weapon**: record in `weapons.ts` (8-entry `levels` table, optional `evolveTo`). A new `WeaponKind` also needs a branch in `combat.ts` and visuals in `glRenderer.ts`/`sprites.ts`.
 - New **enemy**: record in `enemies.ts`; a new `shape` needs a sprite in `sprites.ts`; new behaviors are flags handled in `run.ts`.
 - New **boss**: record in `bosses.ts`; new `BossMechanic` → `bossLogic.ts`.
 - New **map**: record in `maps.ts` (palette, `spawnPlan` phase table, `bossOrder`); also a shop unlock entry.
