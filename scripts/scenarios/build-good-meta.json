@@ -1,0 +1,12 @@
+{
+  "name": "Build quality — GOOD arm with a fully bought meta shop (meta-gating certification: the same build that fails a hard map at zero meta should win with meta)",
+  "char": "ada",
+  "map": "greenfield",
+  "level": 12,
+  "meta": "max",
+  "weapons": { "syntaxWand": 6 },
+  "cards": { "garbageDay": 2, "breakpointTrap": 2, "refactor": 1, "hotReload": 1 },
+  "startMin": 6,
+  "maxMinutes": 15,
+  "bot": { "pick": "first", "mortal": true }
+}

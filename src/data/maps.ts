@@ -31,6 +31,7 @@ export const MAPS: Record<string, MapDef> = {
       grid: '#33505c', accent: '#54e06b', fog: '#0a1014',
     },
     hazardPools: true,
+    enemyScale: 1.2,  // meta-gating: a fresh save shouldn't clear this on build alone
     spawnPlan: [
       { fromMin: 0, interval: 1.2, weights: { syntaxMite: 8, memoryLeech: 4 } },
       { fromMin: 1, interval: 1.0, weights: { syntaxMite: 8, memoryLeech: 5, cacheTick: 4 } },
@@ -52,6 +53,7 @@ export const MAPS: Record<string, MapDef> = {
       grid: '#4a3835', accent: '#ff9b3d', fog: '#120d0e',
     },
     hazardVents: true,
+    enemyScale: 1.35, // meta-gating: near-impossible without serious meta investment
     // Skew: exception beetles from minute 0, deadlock scarabs early — uptime
     // pressure (explosions to dodge, locks slowing the escape) on hot floors.
     // Late beetle weight stays ≤5: explosion stacking past min 10 is a known
