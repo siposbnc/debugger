@@ -123,9 +123,49 @@ check('boss crushes the rack it stands in', run.obstacles.length === racksBefore
 check('crush event emitted', run.events.some((ev) => ev.type === 'crush'));
 run.events.length = 0;
 
+// --- terrain patches: Data Bus (production) ---
+check('production rolls data-bus lanes', run.patches.length >= 3 && run.patches.every((p) => p.kind === 'bus'),
+  `${run.patches.length}`);
+const bus = run.patches[0];
+const rider = { x: bus.x, y: bus.y };
+for (let i = 0; i < 60; i++) run.applyPatches(rider, 1 / 60); // one second on the belt
+const carried = (rider.x - bus.x) * bus.ux + (rider.y - bus.y) * bus.uy;
+check('bus carries a rider along the lane', Math.abs(carried - bus.strength) < 1,
+  `${carried.toFixed(1)} u/s vs ${bus.strength}`);
+const bystander = { x: bus.x - bus.uy * (bus.halfWidth + 40), y: bus.y + bus.ux * (bus.halfWidth + 40) };
+const b0 = { ...bystander };
+run.applyPatches(bystander, 1);
+check('off-lane bystander unaffected', bystander.x === b0.x && bystander.y === b0.y);
+
+// --- terrain patches: Swap Space (marsh) ---
+const marshRun = new Run(CHARACTERS.ada, MAPS.memoryMarsh, {}, pool, new Set());
+check('marsh rolls swap wells', marshRun.patches.length >= 4 && marshRun.patches.every((p) => p.kind === 'swap'),
+  `${marshRun.patches.length}`);
+const well = marshRun.patches[0];
+const sucked = { x: well.x + well.radius * 0.6, y: well.y };
+const d0 = well.radius * 0.6;
+for (let i = 0; i < 60; i++) marshRun.applyPatches(sucked, 1 / 60);
+const d1 = Math.hypot(sucked.x - well.x, sucked.y - well.y);
+check('well pulls a body toward its center', d1 < d0 - 20, `d ${d0.toFixed(0)} → ${d1.toFixed(0)}`);
+
+// integration: a frozen bug in a well still gets paged inward (drift is
+// physical, not behavioral — frozen skips moveEnemy, never the terrain)
+for (let t = 0; t < 5 * 60 && marshRun.enemies.length === 0; t++) { marshRun.update(1 / 60); marshRun.events.length = 0; marshRun.pendingLevelUps = 0; }
+const bug = marshRun.enemies.find((e) => !e.isBoss);
+check('precondition: marsh bug spawned', !!bug);
+if (bug) {
+  bug.frozenT = 10; bug.knockX = 0; bug.knockY = 0;
+  bug.x = well.x + well.radius * 0.7; bug.y = well.y;
+  const bd0 = Math.hypot(bug.x - well.x, bug.y - well.y);
+  for (let t = 0; t < 30; t++) { marshRun.update(1 / 60); marshRun.events.length = 0; marshRun.pendingLevelUps = 0; }
+  const bd1 = Math.hypot(bug.x - well.x, bug.y - well.y);
+  check('frozen bug drifts into the well', bd1 < bd0 - 5, `d ${bd0.toFixed(0)} → ${bd1.toFixed(0)}`);
+}
+
 // --- balance-sim policy: noTerrain runs are terrain-free (user 2026-06-12) ---
 const simRun = new Run(CHARACTERS.ada, MAPS.productionServer, {}, pool, new Set(), { noTerrain: true });
 check('noTerrain run rolls no obstacles (sim policy)', simRun.obstacles.length === 0);
+check('noTerrain rolls no patches either', simRun.patches.length === 0);
 check('noTerrain keeps hazards (vents are difficulty, not terrain)', simRun.zones.length > 0);
 
 // --- map isolation ---

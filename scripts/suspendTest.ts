@@ -96,13 +96,18 @@ check('restored run still fights (kills advance)', r2.kills > k0, `${k0} → ${r
 const prodRun = new Run(CHARACTERS.ada, MAPS.productionServer, {},
   [...new Set([...DEFAULT_WEAPON_POOL, CHARACTERS.ada.weapon])], new Set());
 check('precondition: racks rolled', prodRun.obstacles.length > 0, `${prodRun.obstacles.length}`);
+check('precondition: bus lanes rolled', prodRun.patches.length > 0, `${prodRun.patches.length}`);
 const psnap: SuspendedRun = JSON.parse(JSON.stringify(snapshotRun(prodRun)));
 const pr = restoreRun(psnap, new Set());
 check('obstacles restored exactly (not re-rolled)',
   JSON.stringify(pr.obstacles) === JSON.stringify(prodRun.obstacles));
+check('patches restored exactly (not re-rolled)',
+  JSON.stringify(pr.patches) === JSON.stringify(prodRun.patches));
 delete psnap.obstacles;
+delete psnap.patches;
 const prLegacy = restoreRun(psnap, new Set());
 check('pre-terrain snapshot restores rackless', prLegacy.obstacles.length === 0);
+check('pre-patch snapshot restores patchless', prLegacy.patches.length === 0);
 
 // --- 3. content drift is rejected, not resumed ---
 const bad: SuspendedRun = JSON.parse(JSON.stringify(snap));

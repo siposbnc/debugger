@@ -136,6 +136,25 @@ export class CanvasRenderer extends RendererBase {
       ctx.stroke();
     }
 
+    // terrain patches (gameplay-relevant: drift sources must be visible;
+    // the GL animations stay GL-only — this backend is frozen)
+    for (const tp of run.patches) {
+      if (tp.kind === 'bus') {
+        const a = this.proj(tp.x - tp.ux * tp.halfLen, tp.y - tp.uy * tp.halfLen);
+        const c = this.proj(tp.x + tp.ux * tp.halfLen, tp.y + tp.uy * tp.halfLen);
+        ctx.strokeStyle = 'rgba(95, 215, 255, 0.3)';
+        ctx.lineWidth = tp.halfWidth;
+        ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(c.x, c.y); ctx.stroke();
+      } else {
+        const s = this.proj(tp.x, tp.y);
+        ctx.fillStyle = 'rgba(155, 123, 212, 0.12)';
+        ctx.beginPath(); ctx.ellipse(s.x, s.y, tp.radius, tp.radius / 2, 0, 0, 7); ctx.fill();
+        ctx.strokeStyle = 'rgba(155, 123, 212, 0.5)';
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+      }
+    }
+
     // terrain blockers (gameplay-critical: collision must be visible; the GL
     // rack sprite stays GL-only — this backend is frozen)
     for (const o of run.obstacles) {

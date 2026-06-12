@@ -26,13 +26,17 @@ export const MAPS: Record<string, MapDef> = {
 
   memoryMarsh: {
     id: 'memoryMarsh', name: 'Memory Marsh',
-    desc: 'A swamp of leaked allocations. Toxic heap-pools slow your step, and everything here hits harder. ×1.25 Bits.',
+    desc: 'A swamp of leaked allocations. Toxic heap-pools slow your step, swap-space sinkholes drag everything toward their centers, and everything here hits harder. ×1.25 Bits.',
     icon: '🪵', bitsMult: 1.25, cost: 500,
     palette: {
       ground1: '#1f2b33', ground2: '#26343d',
       grid: '#33505c', accent: '#54e06b', fog: '#0a1014',
     },
     hazardPools: true,
+    // Terrain (v0.3): swap-space gravity wells — drag EVERYTHING toward their
+    // centers; bait the horde through one to bunch it for AoE, at the cost of
+    // pools pairing nastily with the pull.
+    patches: { kind: 'swap', count: 6 },
     enemyScale: 1.2,  // meta-gating: a fresh save shouldn't clear this on build alone
     spawnPlan: [
       { fromMin: 0, interval: 1.2, weights: { syntaxMite: 8, memoryLeech: 4 } },
@@ -57,9 +61,12 @@ export const MAPS: Record<string, MapDef> = {
       grid: '#4a3835', accent: '#ff9b3d', fog: '#120d0e',
     },
     hazardVents: true,
-    // Terrain vertical slice (v0.3): server-rack blockers — aisles between them
-    // are the map's terrain identity; bosses crush past, bullets fly over.
+    // Terrain (v0.3): server-rack blockers — aisles between them are the map's
+    // terrain identity; bosses crush past, bullets fly over. Data-bus conveyor
+    // lanes run between the aisles (ride to escape, fight upstream, lure the
+    // horde onto an away-flowing lane).
     obstacles: { count: 14, rMin: 26, rMax: 40 },
+    patches: { kind: 'bus', count: 5 },
     // meta-gating: near-impossible without serious meta investment. 1.35 → 1.4
     // after the v0.3 weapon equalization lifted the zero-meta ceiling here to
     // ~12.5% (inverting the ladder vs marsh's 0%) — §5 re-certed at 1.4

@@ -184,6 +184,11 @@ export interface MapDef {
    *  radius range. Block player + regular enemy movement (bosses crush past);
    *  projectiles fly over. See Run.obstacles. */
   obstacles?: { count: number; rMin: number; rMax: number };
+  /** Terrain patches (non-damaging floor terrain, affects player AND bugs —
+   *  bosses/stationaries exempt; disabled in balance sims like obstacles):
+   *  'bus' = directional conveyor lanes carrying riders along the strip;
+   *  'swap' = gravity wells paging everything toward their center. */
+  patches?: { kind: 'bus' | 'swap'; count: number };
   /** Enemy + boss HP/damage multiplier (default 1). The meta-gating lever:
    *  pricier maps are tuned to be unwinnable without meta-shop investment,
    *  even on a good in-run build — see BALANCE.md §5. */

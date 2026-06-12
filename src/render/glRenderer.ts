@@ -149,6 +149,41 @@ export class GlRenderer extends RendererBase {
     const px = (wx: number, wy: number) => wx - wy + ox;
     const py = (wx: number, wy: number) => (wx + wy) / 2 + oy;
 
+    // terrain patches (floor-most: under zones and everything else)
+    for (const tp of run.patches) {
+      if (tp.kind === 'bus') {
+        const x1 = tp.x - tp.ux * tp.halfLen, y1 = tp.y - tp.uy * tp.halfLen;
+        const x2 = tp.x + tp.ux * tp.halfLen, y2 = tp.y + tp.uy * tp.halfLen;
+        const sx1 = px(x1, y1), sy1 = py(x1, y1), sx2 = px(x2, y2), sy2 = py(x2, y2);
+        b.color('#5fd7ff', 0.10);
+        b.line(sx1, sy1, sx2, sy2, tp.halfWidth * 1.5);
+        b.color('#5fd7ff', 0.35);
+        b.line(sx1, sy1, sx2, sy2, 1.5);
+        // marching data packets: dashes flowing along the carry direction
+        const len = 2 * tp.halfLen;
+        const phase = (this.t * tp.strength * 1.6) % 60;
+        b.color('#bdeeff', 0.7);
+        for (let d0 = phase; d0 < len; d0 += 60) {
+          const t0 = d0 / len, t1 = Math.min(1, (d0 + 14) / len);
+          const ax = x1 + (x2 - x1) * t0, ay = y1 + (y2 - y1) * t0;
+          const bx = x1 + (x2 - x1) * t1, by = y1 + (y2 - y1) * t1;
+          b.line(px(ax, ay), py(ax, ay), px(bx, by), py(bx, by), 2.5);
+        }
+      } else {
+        const sx = px(tp.x, tp.y), sy = py(tp.x, tp.y);
+        b.color('#9b7bd4', 0.10);
+        b.ellipse(sx, sy, tp.radius, tp.radius / 2);
+        b.color('#9b7bd4', 0.45);
+        b.ring(sx, sy, tp.radius, tp.radius / 2, 1.5);
+        // rings falling inward — the pull made visible
+        for (let k = 0; k < 3; k++) {
+          const f = 1 - ((this.t * 0.45 + k / 3) % 1);
+          b.color('#c9b3f0', 0.35 * (1 - f));
+          b.ring(sx, sy, tp.radius * f, (tp.radius * f) / 2, 1.5);
+        }
+      }
+    }
+
     // ground zones
     for (const z of run.zones) {
       const sx = px(z.x, z.y), sy = py(z.x, z.y);

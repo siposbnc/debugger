@@ -120,6 +120,22 @@ export interface Obstacle {
   x: number; y: number; r: number;
 }
 
+/** Non-damaging terrain patch (user-picked v0.3 concepts). Affects player AND
+ *  regular bugs symmetrically; bosses and stationary enemies are exempt, like
+ *  all terrain. Disabled in balance sims (`noTerrain`).
+ *  'bus'  — conveyor strip: carries riders `strength` u/s along (ux, uy);
+ *           strip = segment of half-length halfLen, half-width halfWidth.
+ *  'swap' — gravity well: drags everything inside `radius` toward the center,
+ *           ramping from 40% strength at the rim to 100% at the middle. */
+export interface TerrainPatch {
+  kind: 'bus' | 'swap';
+  x: number; y: number;
+  ux: number; uy: number;
+  halfLen: number; halfWidth: number;
+  radius: number;
+  strength: number;
+}
+
 export interface GroundZone {
   kind: 'leak' | 'marsh' | 'vent' | 'latency';
   x: number; y: number;
@@ -321,6 +337,7 @@ export class Run {
   pickups: Pickup[] = [];
   zones: GroundZone[] = [];
   obstacles: Obstacle[] = [];
+  patches: TerrainPatch[] = [];
   allies: Ally[] = [];
   grid = new SpatialHash<Enemy>(80);
   events: RunEvent[] = [];
@@ -442,6 +459,69 @@ export class Run {
           this.obstacles.push({ x, y, r });
           break;
         }
+      }
+    }
+    if (map.patches && !this.opts.noTerrain) {
+      for (let i = 0; i < map.patches.count; i++) {
+        for (let tries = 0; tries < 30; tries++) {
+          const a = this.rng() * Math.PI * 2;
+          const d = 260 + this.rng() * 1200;
+          const x = Math.cos(a) * d, y = Math.sin(a) * d;
+          if (map.patches.kind === 'bus') {
+            const ang = this.rng() * Math.PI * 2;
+            const p: TerrainPatch = {
+              kind: 'bus', x, y,
+              ux: Math.cos(ang), uy: Math.sin(ang),
+              halfLen: 220 + this.rng() * 100, halfWidth: 38 + this.rng() * 6,
+              radius: 0, strength: 60,
+            };
+            // the lane's center line must clear racks and vent grates — a
+            // conveyor running through a cabinet reads as a bug, not terrain
+            const clear = (px: number, py: number) =>
+              !this.obstacles.some((o) => dist(px, py, o.x, o.y) < o.r + p.halfWidth + 12) &&
+              !this.zones.some((z) => dist(px, py, z.x, z.y) < z.radius + p.halfWidth);
+            let ok = true;
+            for (let t = -1; t <= 1 && ok; t += 0.25) {
+              ok = clear(x + p.ux * p.halfLen * t, y + p.uy * p.halfLen * t);
+            }
+            if (!ok || this.patches.some((q) => dist(x, y, q.x, q.y) < q.halfLen + p.halfLen)) continue;
+            this.patches.push(p);
+          } else {
+            const r = 110 + this.rng() * 40;
+            // wells keep clear of pool centers (the pull + pool combo is the
+            // point, but a well CENTERED on a pool would be a death funnel)
+            if (this.zones.some((z) => dist(x, y, z.x, z.y) < z.radius + r * 0.5)) continue;
+            if (this.patches.some((q) => dist(x, y, q.x, q.y) < q.radius + r + 120)) continue;
+            this.patches.push({
+              kind: 'swap', x, y, ux: 0, uy: 0,
+              halfLen: 0, halfWidth: 0, radius: r, strength: 40,
+            });
+          }
+          break;
+        }
+      }
+    }
+  }
+
+  /** Apply terrain-patch drift (conveyor carry / well pull) to a body. */
+  applyPatches(b: { x: number; y: number }, dt: number): void {
+    for (const p of this.patches) {
+      if (p.kind === 'bus') {
+        // inside the strip = within halfWidth of the center segment
+        const rx = b.x - p.x, ry = b.y - p.y;
+        const along = rx * p.ux + ry * p.uy;
+        if (along < -p.halfLen || along > p.halfLen) continue;
+        const ox = rx - p.ux * along, oy = ry - p.uy * along;
+        if (ox * ox + oy * oy > p.halfWidth * p.halfWidth) continue;
+        b.x += p.ux * p.strength * dt;
+        b.y += p.uy * p.strength * dt;
+      } else {
+        const dx = p.x - b.x, dy = p.y - b.y;
+        const d = Math.hypot(dx, dy);
+        if (d >= p.radius || d < 1) continue;
+        const pull = p.strength * (0.4 + 0.6 * (1 - d / p.radius));
+        b.x += (dx / d) * pull * dt;
+        b.y += (dy / d) * pull * dt;
       }
     }
   }
@@ -728,10 +808,11 @@ export class Run {
     const sp = this.stats.moveSpeed * this.playerSlow * (this.crunchT > 0 ? CRUNCH_SPEED_MULT : 1);
     this.px += wx * sp * dt;
     this.py += wy * sp * dt;
-    if (this.obstacles.length > 0) {
+    if (this.patches.length > 0 || this.obstacles.length > 0) {
       const s = this.obstacleScratch;
       s.x = this.px; s.y = this.py;
-      this.resolveObstacles(s, 13);
+      this.applyPatches(s, dt);       // conveyor carry / well pull first…
+      this.resolveObstacles(s, 13);   // …so terrain can never push INTO a rack
       this.px = s.x; this.py = s.y;
     }
     if (wx !== 0 || wy !== 0) {
@@ -766,20 +847,20 @@ export class Run {
       // racks block regular bugs (movement + knockback alike); bosses CRUSH
       // them (user ruling) — walking through a rack destroys it, so boss
       // fights progressively clear the arena and a boss is never stranded.
-      // Stationary pillars never moved into one to begin with.
-      if (this.obstacles.length > 0) {
-        if (e.isBoss) {
-          for (let oi = this.obstacles.length - 1; oi >= 0; oi--) {
-            const o = this.obstacles[oi];
-            // substantial overlap, not a graze — the crush should read as deliberate
-            if (dist(e.x, e.y, o.x, o.y) < e.def.radius + o.r * 0.5) {
-              this.obstacles.splice(oi, 1);
-              this.emit({ type: 'crush', x: o.x, y: o.y, radius: o.r });
-            }
+      // Terrain patches carry/pull regular bugs too (symmetric by ruling);
+      // bosses and stationary pillars are exempt from all terrain.
+      if (e.isBoss) {
+        for (let oi = this.obstacles.length - 1; oi >= 0; oi--) {
+          const o = this.obstacles[oi];
+          // substantial overlap, not a graze — the crush should read as deliberate
+          if (dist(e.x, e.y, o.x, o.y) < e.def.radius + o.r * 0.5) {
+            this.obstacles.splice(oi, 1);
+            this.emit({ type: 'crush', x: o.x, y: o.y, radius: o.r });
           }
-        } else if (!(e.def as EnemyDef).stationary) {
-          this.resolveObstacles(e, e.def.radius);
         }
+      } else if (!(e.def as EnemyDef).stationary && (this.patches.length > 0 || this.obstacles.length > 0)) {
+        this.applyPatches(e, dt);
+        this.resolveObstacles(e, e.def.radius);
       }
 
       if (e.isBoss) updateBossMechanics(this, e, dt);

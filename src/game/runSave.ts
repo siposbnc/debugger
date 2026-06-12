@@ -4,7 +4,7 @@ import { WEAPONS } from '../data/weapons';
 import { ENEMIES } from '../data/enemies';
 import { BOSSES } from '../data/bosses';
 import { CARD_BY_ID } from '../data/upgrades';
-import { Run, type Enemy, type Pickup, type GroundZone, type Obstacle, type Ally, type Mushi, type Slam } from './run';
+import { Run, type Enemy, type Pickup, type GroundZone, type Obstacle, type TerrainPatch, type Ally, type Mushi, type Slam } from './run';
 
 // Suspend & resume: a full-fidelity snapshot of a live run, stored inside
 // SaveData (suspendedRun) so a run survives closing the browser. Projectiles
@@ -61,6 +61,8 @@ export interface SuspendedRun {
   zones: ZoneSnap[];
   /** terrain blockers — optional: pre-terrain snapshots restore rackless */
   obstacles?: Obstacle[];
+  /** terrain patches — optional: pre-patch snapshots restore patchless */
+  patches?: TerrainPatch[];
   allies: Ally[];
   // The Precipitate (easter egg) — optional: snapshots from before it existed
   // restore with the default "not this run" state. mushiAt Infinity → null (JSON).
@@ -116,6 +118,7 @@ export function snapshotRun(run: Run): SuspendedRun {
     enemies: run.enemies.map(snapEnemy),
     pickups: run.pickups.map((p) => ({ ...p })),
     obstacles: run.obstacles.map((o) => ({ ...o })),
+    patches: run.patches.map((p) => ({ ...p })),
     zones: run.zones.map((z) => ({
       ...z,
       life: Number.isFinite(z.life) ? z.life : null,
@@ -182,9 +185,10 @@ export function restoreRun(snap: SuspendedRun, doneObjectives: Set<string>): Run
   run.enemies = snap.enemies.map(restoreEnemy);
   run.pickups = snap.pickups.map((p) => ({ ...p }));
   run.zones = snap.zones.map((z) => ({ ...z, life: z.life ?? Infinity, maxLife: z.maxLife ?? Infinity }));
-  // the fresh Run constructor rolled its own racks — replace with the snapshot's
-  // (pre-terrain snapshots restore rackless rather than re-rolling a new layout)
+  // the fresh Run constructor rolled its own terrain — replace with the snapshot's
+  // (pre-terrain snapshots restore terrainless rather than re-rolling a new layout)
   run.obstacles = (snap.obstacles ?? []).map((o) => ({ ...o }));
+  run.patches = (snap.patches ?? []).map((p) => ({ ...p }));
   run.allies = snap.allies.map((a) => ({ ...a }));
   run.mushi = snap.mushi ? { ...snap.mushi } : null;
   run.mushiAt = snap.mushiAt ?? Infinity; // pre-Precipitate snapshot: don't re-roll mid-run

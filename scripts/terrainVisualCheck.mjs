@@ -32,5 +32,21 @@ await page.evaluate(() => {
 await page.waitForTimeout(2600);
 await page.evaluate(() => window.dispatchEvent(new KeyboardEvent('keyup', { code: 'KeyW' })));
 await page.screenshot({ path: 'scripts/terrain-check-2.png' });
+
+// marsh: swap-space wells (violet inward-pulsing rings among the green pools).
+// addInitScript, not a live evaluate — the running game autosaves its own
+// lastMap and races a direct localStorage edit; init scripts run pre-boot
+// (and after the first one, so marsh wins the lastMap write).
+await page.addInitScript(() => {
+  localStorage.setItem('debugger-save-v1', JSON.stringify({
+    unlockedMaps: ['greenfield', 'memoryMarsh', 'productionServer'],
+    lastMap: 'memoryMarsh',
+  }));
+});
+await page.goto(`${BASE}/?autostart`);
+await page.waitForFunction(() => typeof window.dbg === 'object');
+await page.evaluate(() => window.dbg.god(true));
+await page.waitForTimeout(3000);
+await page.screenshot({ path: 'scripts/terrain-check-3.png' });
 await browser.close();
-console.log('screenshots → scripts/terrain-check-1.png, terrain-check-2.png');
+console.log('screenshots → scripts/terrain-check-{1,2,3}.png');
