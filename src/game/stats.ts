@@ -71,7 +71,10 @@ export function computeStats(
     armor: BASE.armor + armor,
     moveSpeed: BASE.moveSpeed * (1 + speed),
     damageMult: Math.max(0.1, BASE.damageMult + dmg),
-    cooldownFactor: 1 - clamp(cdr, 0, 0.6),
+    // CDR cap is an endgame asymptote (v0.3 headroom pass: 60% → 75%) — a
+    // dedicated build pins it in the last third, not mid-run. Balance-sensitive:
+    // re-run blades-cdr + the §5 arms when touching (BALANCE.md).
+    cooldownFactor: 1 - clamp(cdr, 0, 0.75),
     areaMult: Math.max(0.3, BASE.areaMult + area),
     projectiles: BASE.projectiles + Math.round(proj),
     critChance: clamp(BASE.critChance + crit, 0, 1),

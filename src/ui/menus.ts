@@ -40,7 +40,7 @@ function keyLabel(code: string): string {
 
 // Card stat preview: each StatMods key → the resolved stat it lands on and how
 // to print it. Resulting values come from computeStats() with the card
-// hypothetically applied, so every cap/floor (60% CDR, 100% crit, …) is
+// hypothetically applied, so every cap/floor (75% CDR, 100% crit, …) is
 // inherited — never duplicate clamp constants here.
 const STAT_VIEW: Partial<Record<keyof StatMods, {
   label: string; get: (s: ComputedStats) => number; fmt: (v: number) => string;

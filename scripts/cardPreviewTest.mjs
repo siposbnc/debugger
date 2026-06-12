@@ -63,15 +63,15 @@ info = await cardInfo();
 check('new-weapon preview shows lv-1 sheet', info.lines.some((l) => /Damage\s*\d+/.test(l.text)) && info.lines.some((l) => /Cooldown/.test(l.text)), JSON.stringify(info.lines));
 await pick();
 
-// --- partial truncation: result clamps at the 60% CDR cap ---
-// (breakpointTrap is 12% since the v0.3 card tuning — 4× + autoformat = 54%)
-await dbg(() => { for (let i = 0; i < 4; i++) window.dbg.give('breakpointTrap'); window.dbg.give('autoformat'); });
-// CDR now 12×4+6 = 54%; +12% would be 66% → preview must show the clamped −60%
+// --- partial truncation: result clamps at the 75% CDR cap (headroom pass) ---
+// breakpointTrap ×5 + autoformat ×2 = 72% (dbg bypasses stack caps)
+await dbg(() => { for (let i = 0; i < 5; i++) window.dbg.give('breakpointTrap'); window.dbg.give('autoformat', 2); });
+// CDR now 12×5+6×2 = 72%; +12% would be 84% → preview must show the clamped −75%
 await openOffer('breakpointTrap');
 info = await cardInfo();
-check('truncated result shows the cap', info.lines[0]?.text.includes('−60%'), info.lines[0]?.text);
+check('truncated result shows the cap', info.lines[0]?.text.includes('−75%'), info.lines[0]?.text);
 check('partial waste is not CAPPED', !info.lines[0]?.wasted && !info.capped, JSON.stringify(info));
-await pick(); // CDR raw 66% → resolved 60%
+await pick(); // CDR raw 84% → resolved 75%
 
 // --- fully wasted single-stat card: CAPPED badge + dimmed card ---
 await openOffer('autoformat'); // +6% CDR on a capped stat
@@ -81,7 +81,7 @@ check('card badged + dimmed', info.capped && (info.warning ?? '').includes('NO E
 await pick(); // picking a dead card must still close the modal
 
 // --- mixed card: capped stat wasted, live stat still previews ---
-await openOffer('raceCondition'); // +22% CDR (dead) + 8% speed (live)
+await openOffer('raceCondition'); // +16% CDR (dead) + 8% speed (live)
 info = await cardInfo();
 const dead = info.lines.filter((l) => l.wasted), live = info.lines.filter((l) => !l.wasted);
 check('mixed card: cooldown line wasted', dead.length === 1 && dead[0].text.includes('Cooldown'), JSON.stringify(info.lines));

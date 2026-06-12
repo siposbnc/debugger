@@ -151,6 +151,17 @@ this table are greedy-bot numbers, but the `build-good*` presets set
 `bot.pick: "first"` — always pass `--pick=greedy` explicitly when re-certifying, or the
 rates come out ~3–4× lower and aren't comparable to this table.
 
+**Post-CDR-cap-raise re-cert (2026-06-12, §7 headroom pass, pooled n=48–64 on the
+moved arms):** greenfield zero **29%** (14/48), marsh zero 1/16, production zero 1/16,
+glacier zero 0/16; greenfield meta **69%** (11/16), marsh meta **39%** (25/64),
+production meta **47%** (15/32), glacier meta **36%** (23/64). The gap shape is intact;
+the cap raise itself moved nothing measurably (the greedy bot rarely stacks past the
+old cap — blades-cdr was also flat, §6). Two arms now sit at band edges, both
+attributable to the earlier +11-card pool dilution rather than the cap (the zero-meta
+greenfield 44% row above was never re-measured after that growth): **greenfield zero
+29%** (band ~30–50%) and **marsh meta 39%** (floor 40%). Treat them as the current
+baseline; only further drops are regressions.
+
 Reading the ladder: on the starter map, *either* meta or build/skill buys a fair shot and
 both together make it comfortable; each next map shifts the requirement one notch toward
 "both, and more meta". Bot rates understate humans (careless continuation, orbit kiting),
@@ -201,6 +212,11 @@ and stragglers were never recycled — survival needed no kill rate at all).
   swarm corner the kiter by ~min 4). *The earlier "build-gating, not meta-gating, by design"
   ruling is superseded (user directive 2026-06-12): marsh is now explicitly meta-gated via
   `enemyScale` 1.2 — a good zero-meta build wins only 12.5%, maxed meta 56% (§5 table).*
+- **Assertion Blades + CDR after the §7 cap raise (2026-06-12):** blades-cdr instrument
+  flat across the change (2/8 victories, ~4–5 bosses, first-boss TTK median 85s → 93s,
+  n=8 each) — the preset's 66% raw CDR only gains a 15% attack-rate step from the new
+  cap (0.40 → 0.34 cooldown factor). The combo's edge is unchanged; the risk-tier
+  framing (§8) governs any further tuning.
 - **linus under-scales with meta** — *re-measured 2026-06-12 (v0.3 close-out, from-zero
   mortal greedy at maxed meta): linus 3/24 pooled vs ada 6/24; greenfield head-to-head
   2/16 vs 5/16. The ~2× gap persists across the difficulty overhaul.* Root cause is
@@ -210,3 +226,60 @@ and stragglers were never recycled — survival needed no kill rate at all).
   Any quick helper buff also buffs zero-meta linus (whose floor is fine). Deferred to a
   character meta-scaling pass (tracked v0.4 P2) — candidate direction: allies inherit
   more of the player's computed stats (crit, or an ally-keyed meta upgrade).
+
+## 7. Stat caps (headroom pass 2026-06-12)
+
+Caps live in `computeStats()` (`src/game/stats.ts`) only — previews, CAPPED badges and
+the sim all inherit them; never duplicate clamp constants elsewhere.
+
+| Stat | Cap | Picks to pin (full dedication) | Status |
+|---|---|---|---|
+| Cooldown reduction | **75%** (was 60%) | ~7 dedicated rare/epic picks (3× breakpointTrap + 2× raceCondition + 2× autoformat) | endgame asymptote — raised because 60% was pinnable with ~5 picks mid-run, deadening later attack-speed cards |
+| Crit chance | 100% | ~17 picks (max attainable from cards ≈ 110%: base 5 + codeReview 20 + unitTests 30 + profiler 24 + fuzzTester 21 + rootAccess 10; no crit meta exists) | reviewed, unchanged — already an asymptote |
+
+The raise shipped **without** per-card CDR trims: §5 arms and the blades-cdr instrument
+were flat across the change (§6). At the cap, attack rate is 4× base (cooldown ×0.25) vs
+2.5× before — any new CDR card/meta must re-run blades-cdr + the §5 arms (watchlist).
+
+## 8. Weapon design axes & solo bands (risk-adjusted equalization)
+
+Weapons are **near**-equal, not equal (user 2026-06-12): a weapon is an outlier only
+relative to its **declared profile**, not the raw arm average. Two axes per weapon —
+the declarations live here; `scripts/weaponSweep.ts` (PROFILES) must mirror this table:
+
+- **Risk tier** (`low`/`high`): how the weapon is meant to be used. High risk =
+  self-endangering reach or positioning (orbit/sweep/shockwave/wall) and earns a higher
+  reward ceiling — but the premium must not compound with player scaling into late-game
+  dominance (verify with `--scaled`).
+- **Growth profile** (`early`/`steady`/`late`): where on the weapon-level curve it is
+  designed to shine. Late bloomers may sit below band at the early checkpoint but must
+  reach band when evolved; early performers must not also dominate the late checkpoint.
+  The early window has a floor regardless (the ada/Syntax-Wand pierce lesson: too weak
+  to survive to bloom is a bug, not a profile).
+
+| Weapon | Risk | Growth | Notes |
+|---|---|---|---|
+| syntaxWand | low | early | safe poke starter |
+| breakpointBow | low | early | long-range snipe |
+| regexGrimoire | low | steady | mid-range chain |
+| stackStaff | low | steady | placed columns |
+| forkBomb | low | steady | lobbed AoE from range |
+| sudoScroll | low | steady | **boss tool** — no horde clear by design; judged on boss TTK, exempt from survival bands |
+| daemonFamiliar | low | late | autonomous pets, count scales |
+| pingStorm | low | late | homing flood (DDoS) |
+| deployHammer | high | steady | self-centered shockwave |
+| garbageCollector | high | steady | short self-endangering sweep |
+| assertBlades | high | late | orbit reach, CDR-compounding |
+| firewall | high | late | positional walls → DMZ rings |
+
+**Measurement:** `node scripts/weaponSweep.cjs [n] [--scaled]` — every base weapon solo
+(`replaceWeapons` + `poolOnly`, mortal greedy, ada × greenfield) at two checkpoints:
+**early** (weapon lv 3, player lv 6, 3:00→9:00) and **late** (evolved, player lv 18,
+8:00→15:00 incl. finale + crunch). Identical card budgets per arm.
+
+**Bands (acceptance):** early checkpoint — survival ≥ 50% of samples for early/steady
+profiles, ≥ 25% floor for late bloomers. Late checkpoint — survival within 2 wins of
+the arm median; an early-growth weapon must not lead the late win table by more than
+1 win. High-risk weapons may exceed band ceilings on damage/kills at ONE checkpoint,
+not both. The per-weapon solo presets (`scripts/scenarios/solo-*.json`, mid checkpoint)
+stay as shipping acceptance tests.
