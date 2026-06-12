@@ -23,6 +23,9 @@ interface Column { x: number; y: number; radius: number; t: number; dur: number;
 
 export class Renderer {
   ctx: CanvasRenderingContext2D;
+  // Banners draw on a separate canvas stacked above the DOM UI layer, so
+  // screen overlays (level-up/pause blur) never make them unreadable.
+  bannerCtx: CanvasRenderingContext2D;
   w = 0; h = 0; dpr = 1;
   camX = 0; camY = 0;
   t = 0; // render clock for HUD pulses
@@ -52,8 +55,9 @@ export class Renderer {
   // Infinite Loop snapshot marker: where the player will be rewound to (≤1 active)
   rewindMark: { x: number; y: number; t: number; dur: number } | null = null;
 
-  constructor(public canvas: HTMLCanvasElement) {
+  constructor(public canvas: HTMLCanvasElement, public bannerCanvas: HTMLCanvasElement) {
     this.ctx = canvas.getContext('2d')!;
+    this.bannerCtx = bannerCanvas.getContext('2d')!;
     this.resize();
     window.addEventListener('resize', () => this.resize());
   }
@@ -62,10 +66,12 @@ export class Renderer {
     this.dpr = Math.min(2, window.devicePixelRatio || 1);
     this.w = window.innerWidth;
     this.h = window.innerHeight;
-    this.canvas.width = this.w * this.dpr;
-    this.canvas.height = this.h * this.dpr;
-    this.canvas.style.width = `${this.w}px`;
-    this.canvas.style.height = `${this.h}px`;
+    for (const c of [this.canvas, this.bannerCanvas]) {
+      c.width = this.w * this.dpr;
+      c.height = this.h * this.dpr;
+      c.style.width = `${this.w}px`;
+      c.style.height = `${this.h}px`;
+    }
   }
 
   proj(x: number, y: number): { x: number; y: number } {
@@ -1094,7 +1100,10 @@ export class Renderer {
   }
 
   private drawBanners(): void {
-    const ctx = this.ctx;
+    const ctx = this.bannerCtx;
+    ctx.save();
+    ctx.scale(this.dpr, this.dpr);
+    ctx.clearRect(0, 0, this.w, this.h);
     let y = this.h * 0.22;
     ctx.textAlign = 'center';
     for (const b of this.banners) {
@@ -1113,7 +1122,6 @@ export class Renderer {
       ctx.fillText(b.sub, this.w / 2, y + 30);
       y += 76;
     }
-    ctx.globalAlpha = 1;
-    ctx.textAlign = 'left';
+    ctx.restore();
   }
 }

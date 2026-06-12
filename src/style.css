@@ -54,6 +54,14 @@ html, body {
 }
 #touch-pause.show { display: block; }
 
+/* banner texts live on their own layer above #ui so screen overlays
+   (level-up, pause — blurred dark backdrops) never bury the flavor text */
+#banners {
+  position: fixed; inset: 0;
+  pointer-events: none;
+  z-index: 30;
+}
+
 #scanlines {
   position: fixed; inset: 0;
   pointer-events: none;

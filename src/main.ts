@@ -14,10 +14,11 @@ import { sound } from './audio/sound';
 type GameState = 'menu' | 'run' | 'levelup' | 'paused' | 'summary';
 
 const canvas = document.getElementById('game') as HTMLCanvasElement;
+const bannerCanvas = document.getElementById('banners') as HTMLCanvasElement;
 const uiRoot = document.getElementById('ui') as HTMLElement;
 
 const save = loadSave();
-const renderer = new Renderer(canvas);
+const renderer = new Renderer(canvas, bannerCanvas);
 const ui = new UI(uiRoot, save);
 
 let state: GameState = 'menu';

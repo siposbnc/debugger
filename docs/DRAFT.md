@@ -13,10 +13,23 @@ into [ROADMAP.md](../ROADMAP.md), and moves them to **Processed** below.
 
 ## Bugs
 
+*(empty)*
+
+---
+
+## Processed → ROADMAP.md (2026-06-12, batch 16)
+
+- Banner texts unreadable under the level-up blur → **fixed same day**: banners now draw on their own transparent canvas (`#banners`, z-index 30) stacked above the DOM UI layer (z 10) and below the scanlines (z 50), so level-up/pause/summary backdrops can't blur or dim them — the flavor text stays readable and finishes its fade in view
+
+<details>
+<summary>Batch 16 — original notes (kept for reference)</summary>
+
+### Bugs
+
 - banner texts should render above the blur layer
   - when a banner text is shown and a levelup screen appears. the text is not readable, the user doesn't get to see a lot of flavor text because of it
 
----
+</details>
 
 ## Processed → ROADMAP.md (2026-06-12, batch 15)
 
