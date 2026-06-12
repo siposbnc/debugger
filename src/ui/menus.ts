@@ -8,7 +8,8 @@ import { ENEMIES } from '../data/enemies';
 import { BOSSES } from '../data/bosses';
 import { OBJECTIVES } from '../data/objectives';
 import { CARD_BY_ID } from '../data/upgrades';
-import { RARITY_COLOR, RARITY_ORDER, type StatMods } from '../data/types';
+import { RARITY_COLOR, RARITY_ORDER, type StatMods, type EnemyDef, type BossDef } from '../data/types';
+import { bugSprite, bossSprite } from '../render/sprites';
 import { computeStats, type ComputedStats } from '../game/stats';
 import { formatTime } from '../core/util';
 import { sound } from '../audio/sound';
@@ -314,6 +315,22 @@ export class UI {
 
   // ---------- codex ----------
 
+  /** Entity sprite → data-URL thumbnail. The sprite canvases are baked once
+   *  (render/sprites.ts cache); this adds a one-time toDataURL on top. */
+  private static thumbCache = new Map<string, string>();
+  private static entityThumb(def: EnemyDef | BossDef, isBoss: boolean): string {
+    const key = `${isBoss ? 'boss' : 'bug'}:${def.id}`;
+    let url = UI.thumbCache.get(key);
+    if (!url) {
+      const sprite = isBoss
+        ? bossSprite(def.id, def.radius, (def as BossDef).color)
+        : bugSprite((def as EnemyDef).shape, def.radius, (def as EnemyDef).color, false);
+      url = sprite.toDataURL();
+      UI.thumbCache.set(key, url);
+    }
+    return url;
+  }
+
   showCodex(): void {
     const lt = this.save.lifetime;
     const stats = `
@@ -326,15 +343,21 @@ export class UI {
       <div class="codex-entry"><b>Total bits earned <span>${lt.bitsEarned}</span></b></div>`;
 
     const bugs = Object.values(ENEMIES).map((e) => `
-      <div class="codex-entry">
-        <b>${e.name}</b>
-        <span>${e.codexDesc}</span>
+      <div class="codex-entry with-thumb">
+        <img class="codex-thumb" src="${UI.entityThumb(e, false)}" alt="">
+        <div class="codex-body">
+          <b>${e.name}</b>
+          <span>${e.codexDesc}</span>
+        </div>
       </div>`).join('');
 
     const bosses = Object.values(BOSSES).map((b) => `
-      <div class="codex-entry">
-        <b>${b.name}</b>
-        <span>${b.codexDesc}<br>⚠ ${b.mechanicDesc}</span>
+      <div class="codex-entry with-thumb">
+        <img class="codex-thumb boss" src="${UI.entityThumb(b, true)}" alt="">
+        <div class="codex-body">
+          <b>${b.name}</b>
+          <span>${b.codexDesc}<br>⚠ ${b.mechanicDesc}</span>
+        </div>
       </div>`).join('');
 
     const objectives = OBJECTIVES.map((o) => {

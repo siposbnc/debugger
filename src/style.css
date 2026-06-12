@@ -342,6 +342,10 @@ html, body {
 .codex-entry span { font-size: 11.5px; color: var(--dim); line-height: 1.4; }
 .codex-entry .done { color: var(--green); }
 .codex-entry .undone { color: var(--dim); }
+.codex-entry.with-thumb { display: flex; gap: 12px; align-items: center; }
+.codex-entry .codex-body { flex: 1; min-width: 0; }
+.codex-thumb { width: 42px; height: 42px; object-fit: contain; flex-shrink: 0; }
+.codex-thumb.boss { width: 52px; height: 52px; }
 
 /* ---------- pause overview ---------- */
 
