@@ -11,7 +11,7 @@ import { CARD_BY_ID } from '../data/upgrades';
 import { RARITY_COLOR, RARITY_ORDER, type StatMods, type EnemyDef, type BossDef } from '../data/types';
 import { bugSprite, bossSprite } from '../render/sprites';
 import { computeStats, type ComputedStats } from '../game/stats';
-import { formatTime } from '../core/util';
+import { formatTime, formatDuration } from '../core/util';
 import { sound } from '../audio/sound';
 import { makeOffer, applyOffer, offerOdds, type OfferItem } from '../game/levelup';
 import type { Run, RunResults } from '../game/run';
@@ -333,14 +333,18 @@ export class UI {
 
   showCodex(): void {
     const lt = this.save.lifetime;
+    const fav = Object.entries(lt.weaponDamage).sort((a, b) => b[1] - a[1])[0];
+    const favWeapon = fav && WEAPONS[fav[0]] ? `${WEAPONS[fav[0]].icon} ${WEAPONS[fav[0]].name}` : '—';
     const stats = `
       <div class="codex-entry"><b>Runs compiled <span>${lt.runs}</span></b></div>
       <div class="codex-entry"><b>Bugs squashed <span>${lt.kills}</span></b></div>
       <div class="codex-entry"><b>Bosses resolved <span>${lt.bossKills}</span></b></div>
       <div class="codex-entry"><b>Stable releases <span>${lt.victories}</span></b></div>
+      <div class="codex-entry"><b>Accumulated uptime <span>${formatDuration(lt.uptimeSec)}</span></b></div>
       <div class="codex-entry"><b>Best uptime <span>${formatTime(lt.bestTimeSec)}</span></b></div>
       <div class="codex-entry"><b>Highest level <span>${lt.bestLevel}</span></b></div>
-      <div class="codex-entry"><b>Total bits earned <span>${lt.bitsEarned}</span></b></div>`;
+      <div class="codex-entry"><b>Total bits earned <span>${lt.bitsEarned}</span></b></div>
+      <div class="codex-entry"><b>Favorite weapon <span>${favWeapon}</span></b></div>`;
 
     const bugs = Object.values(ENEMIES).map((e) => `
       <div class="codex-entry with-thumb">

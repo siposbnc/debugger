@@ -109,8 +109,13 @@ function endRun(): void {
   lt.kills += results.kills;
   lt.bossKills += results.bossKills;
   lt.bitsEarned += results.bits;
+  lt.uptimeSec += Math.floor(results.timeSec);
   lt.bestTimeSec = Math.max(lt.bestTimeSec, Math.floor(results.timeSec));
   lt.bestLevel = Math.max(lt.bestLevel, results.level);
+  for (const w of run.weapons) {
+    // evolved weapons credit the evolution's id (totalDamage carries through)
+    if (w.totalDamage > 0) lt.weaponDamage[w.def.id] = (lt.weaponDamage[w.def.id] ?? 0) + Math.round(w.totalDamage);
+  }
   if (results.victory) lt.victories++;
   for (const id of results.newObjectives) {
     if (!save.completedObjectives.includes(id)) save.completedObjectives.push(id);

@@ -65,6 +65,14 @@ export function formatTime(seconds: number): string {
   return `${m}:${s.toString().padStart(2, '0')}`;
 }
 
+/** Long durations (lifetime uptime): "3h 24m" / "12m 5s" / "42s". */
+export function formatDuration(seconds: number): string {
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  const s = Math.floor(seconds % 60);
+  return h > 0 ? `${h}h ${m}m` : m > 0 ? `${m}m ${s}s` : `${s}s`;
+}
+
 /** Swap-remove: O(1) removal when order doesn't matter. */
 export function swapRemove<T>(arr: T[], i: number): void {
   arr[i] = arr[arr.length - 1];

@@ -10,6 +10,8 @@ export interface LifetimeStats {
   bestTimeSec: number;
   bestLevel: number;
   victories: number;
+  uptimeSec: number;                    // accumulated run time across all runs
+  weaponDamage: Record<string, number>; // lifetime damage by weapon id (favorite weapon)
 }
 
 export interface SaveData {
@@ -64,7 +66,7 @@ function defaults(): SaveData {
     completedObjectives: [],
     lastCharacter: 'ada',
     lastMap: 'greenfield',
-    lifetime: { runs: 0, kills: 0, bossKills: 0, bitsEarned: 0, bestTimeSec: 0, bestLevel: 0, victories: 0 },
+    lifetime: { runs: 0, kills: 0, bossKills: 0, bitsEarned: 0, bestTimeSec: 0, bestLevel: 0, victories: 0, uptimeSec: 0, weaponDamage: {} },
     settings: { sfx: 0.7, music: 0.5, shake: true, playerHpBar: true },
     suspendedRun: null,
   };
