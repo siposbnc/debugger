@@ -15,11 +15,24 @@ import type { Enemy, GroundZone, Run } from './run';
 // --- second-layer tuning ---
 const TETHER_WIDTH = 26;          // half-width of the merge-conflict diff beam
 const TETHER_DPS = 14;            // (scaled by tier)
-const ENRAGE_GAP_ON = 0.30;       // HP gap (fraction of half-max) that triggers force-push
-const ENRAGE_GAP_OFF = 0.15;      // gap at which the enrage releases (hysteresis)
+const SPLIT_HP = 0.55;            // each half's bar as a fraction of the original pool
+                                  // (0.35 made the halves die before enrage could ever
+                                  // matter — post-split is now the LONGER part of the fight)
+const ENRAGE_GAP_ON = 0.25;       // HP gap (fraction of half-max) that triggers force-push
+const ENRAGE_GAP_OFF = 0.12;      // gap at which the enrage releases (hysteresis)
 const ENRAGE_SPEED = 1.6;         // (the ×1.5 contact-damage half lives in run.ts updateEnemies)
+const HUNK_VOLLEY = 3.0;          // seconds between diff-hunk volleys (each half has its own
+                                  // clock post-split; an enraged half fires at ×0.55 period)
+const HUNK_SPEED = 200;
+const HUNK_DMG = 11;              // (scaled by tier)
 const POOL_PERIOD = 3.5;          // leak drip interval (was 4 with expiring pools)
 const POOL_CAP = 28;              // perf/readability cap; oldest pool gets paged out
+const GLOB_PERIOD = 4.0;          // heap-glob volley interval (bullet layer)
+const GLOB_SPEED = 150;           // slow, readable lobs — the dodge is easy, the
+                                  // area denial where you WERE standing is the point
+const GLOB_DMG = 10;              // direct hit (scaled by tier)
+const GLOB_SPLASH = 55;           // splash puddle radius
+const GLOB_SPLASH_LIFE = 4;       // splash puddles are short-lived (≠ permanent pools)
 const SNAP_PERIOD = 7;            // seconds between position snapshots
 const SNAP_DELAY = 2.5;           // marker shown this long before the rewind fires
 const POP_STUN = 2.5;             // stack-pop stun duration
@@ -61,7 +74,8 @@ export function spawnBoss(run: Run, def: BossDef, tier: number): void {
   const ang = Math.random() * Math.PI * 2;
   const x = run.px + Math.cos(ang) * 620;
   const y = run.py + Math.sin(ang) * 620;
-  const hp = def.hp * (1 + tier * BOSS_TIER_HP_MULT);
+  const scale = run.map.enemyScale ?? 1; // per-map meta-gating multiplier
+  const hp = def.hp * scale * (1 + tier * BOSS_TIER_HP_MULT);
   const boss: Enemy = {
     def, x, y,
     hp, maxHp: hp,
@@ -77,7 +91,7 @@ export function spawnBoss(run: Run, def: BossDef, tier: number): void {
     splitDone: false,
     facing: 0,
     scaledSpeed: def.speed,
-    scaledDamage: def.damage * (1 + tier * BOSS_TIER_DMG_MULT),
+    scaledDamage: def.damage * scale * (1 + tier * BOSS_TIER_DMG_MULT),
   };
   run.enemies.push(boss);
   run.emit({ type: 'bossSpawn', name: def.name });
@@ -89,16 +103,33 @@ export function updateBossMechanics(run: Run, e: Enemy, dt: number): void {
     case 'split':
       if (!e.splitDone && e.hp <= e.maxHp * 0.5) {
         e.splitDone = true;
-        // both halves start at a full bar (35% of the original pool each);
+        // both halves start at a full bar (SPLIT_HP of the original pool each);
         // equal maxHp also keeps the enrage-gap threshold symmetric
-        const half = e.maxHp * 0.35;
+        const half = e.maxHp * SPLIT_HP;
         const clone = run.makeEnemyFrom(e);
         clone.splitDone = true;
         clone.hp = half; clone.maxHp = half;
         e.hp = half; e.maxHp = half;
         clone.x += rand(60, 120); clone.y += rand(-60, 60);
+        // stagger the halves' volley clocks so the hunks arrive as a stream
+        e.mechT = HUNK_VOLLEY; clone.mechT = HUNK_VOLLEY * 0.5;
         run.enemies.push(clone);
         run.emit({ type: 'explosion', x: e.x, y: e.y, radius: 90, color: def.color });
+      }
+      // bullet layer: aimed diff-hunk fans — 3 shots whole, 4 per half once
+      // split (and faster while force-push enraged)
+      e.mechT -= dt;
+      if (e.mechT <= 0) {
+        e.mechT = HUNK_VOLLEY * (e.enraged ? 0.55 : 1);
+        const base = Math.atan2(run.py - e.y, run.px - e.x);
+        const spreads = e.splitDone ? [-0.33, -0.11, 0.11, 0.33] : [-0.25, 0, 0.25];
+        for (const spread of spreads) {
+          run.enemyShots.push({
+            x: e.x, y: e.y,
+            vx: Math.cos(base + spread) * HUNK_SPEED, vy: Math.sin(base + spread) * HUNK_SPEED,
+            damage: HUNK_DMG * (1 + e.bossTier * 0.25), radius: 8, life: 4.5, color: def.color,
+          });
+        }
       }
       if (e.splitDone) updateDiffTether(run, e, dt);
       break;
@@ -112,7 +143,9 @@ export function updateBossMechanics(run: Run, e: Enemy, dt: number): void {
         let count = 0;
         let oldest: GroundZone | null = null;
         for (const z of run.zones) {
-          if (z.kind !== 'leak') continue;
+          // finite-life zones are glob splashes — they expire on their own and
+          // must neither count toward nor page out the permanent pools
+          if (z.kind !== 'leak' || Number.isFinite(z.life)) continue;
           count++;
           if (!oldest || (z.age ?? 0) > (oldest.age ?? 0)) oldest = z;
         }
@@ -123,6 +156,26 @@ export function updateBossMechanics(run: Run, e: Enemy, dt: number): void {
           life: Infinity, maxLife: Infinity, age: 0,
           dps: 12 * (1 + e.bossTier * 0.3),
         });
+      }
+      // bullet layer: lob heap globs at (around) the player — slow projectiles
+      // that splash short-lived puddles where they land, denying the ground
+      // you're kiting across in addition to the permanent pools
+      e.mechT2 -= dt;
+      if (e.mechT2 <= 0) {
+        e.mechT2 = GLOB_PERIOD;
+        for (let i = 0; i < 3; i++) {
+          const tx = run.px + rand(-70, 70), ty = run.py + rand(-70, 70);
+          const a = Math.atan2(ty - e.y, tx - e.x);
+          run.enemyShots.push({
+            x: e.x, y: e.y,
+            vx: Math.cos(a) * GLOB_SPEED, vy: Math.sin(a) * GLOB_SPEED,
+            damage: GLOB_DMG * (1 + e.bossTier * 0.25), radius: 10,
+            // life = flight time to the target point: the glob "lands" there
+            life: clamp(dist(e.x, e.y, tx, ty) / GLOB_SPEED, 0.8, 3.2),
+            color: def.color,
+            splash: { radius: GLOB_SPLASH, dps: 10 * (1 + e.bossTier * 0.3), life: GLOB_SPLASH_LIFE },
+          });
+        }
       }
       break;
     }
@@ -176,7 +229,7 @@ export function updateBossMechanics(run: Run, e: Enemy, dt: number): void {
       if (e.mechT2 <= 0) {
         e.mechT2 = 3;
         const base = Math.atan2(run.py - e.y, run.px - e.x);
-        for (const spread of [-0.22, 0, 0.22]) {
+        for (const spread of [-0.44, -0.22, 0, 0.22, 0.44]) {
           run.enemyShots.push({
             x: e.x, y: e.y,
             vx: Math.cos(base + spread) * 230, vy: Math.sin(base + spread) * 230,

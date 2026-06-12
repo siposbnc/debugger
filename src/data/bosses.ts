@@ -9,15 +9,17 @@ export const BOSSES: Record<string, BossDef> = {
     codexDesc: 'Two incompatible truths wearing one body. At half health it stops pretending.',
     hp: 600, speed: 52, damage: 22, radius: 34, color: '#ff9430',
     mechanic: 'split',
-    mechanicDesc: 'Splits into <<< HEAD and >>> MAIN at 50% health, linked by a damaging diff. '
-      + 'Keep their health even — a large gap force-push enrages the stronger half.',
+    mechanicDesc: 'Sprays aimed diff-hunk volleys, and splits into <<< HEAD and >>> MAIN at 50% '
+      + 'health, linked by a damaging diff. Keep their health even — a large gap '
+      + 'force-push enrages the stronger half (faster, harder, denser volleys).',
   },
   memoryLeak: {
     id: 'memoryLeak', name: 'The Memory Leak',
     codexDesc: 'It does not attack you so much as it makes the world uninhabitable.',
     hp: 850, speed: 38, damage: 20, radius: 38, color: '#54e06b',
     mechanic: 'pools',
-    mechanicDesc: 'Drips pools of leaked memory that never expire while it lives. '
+    mechanicDesc: 'Drips pools of leaked memory that never expire while it lives, and lobs '
+      + 'globs of heap at your feet that splash into short-lived puddles. '
       + 'Kill it fast — or drown in your own arena. Death frees every allocation at once.',
   },
   infiniteLoop: {
