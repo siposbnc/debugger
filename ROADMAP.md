@@ -32,12 +32,7 @@ records in `src/data/` plus a behavior key in `src/game/` and a sprite in `src/r
 - [ ] [P1] (M) **The Race Condition** — teleports unpredictably, leaves a damaging afterimage copy
 - [ ] [P1] (M) **The Critical Exception** — huge telegraphed AoE slams (dodge-window boss)
 - [ ] [P1] (M) **The Production Incident** — 12:00+ finale boss combining two prior mechanics, only on ×1.5 maps
-- [ ] [P1] (M) **Boss mechanics pass** — *user: existing bosses feel like different attack patterns, not unique fights — and they should be a challenge without a proper build, not just dodge/kite checks.* Design first, then implement: give each of the 5 a second, rule-bending layer that tests the **build** (DPS checks, soft enrages, interrupt thresholds), not only movement. Starter proposals to riff on:
-  - Merge Conflict: halves linked by a damaging "diff" tether — positioning puzzle (or: HP gap between halves triggers a force-push enrage)
-  - Memory Leak: pools never expire and slowly flood the arena — soft enrage via shrinking safe space; death "frees" all memory at once
-  - Infinite Loop: snapshots the player's position, rewinds them to it 3s later (time-loop dodge planning)
-  - Stack Overflow: unkilled mites stack frames that buff it; clearing the stack "pops" it into a long stun
-  - Legacy Monolith: spawns "deprecated dependency" pillars that block shots; destroying one mid-armor exposes the core early
+- [x] [P1] (M) **Boss mechanics pass** — *user: existing bosses feel like different attack patterns, not unique fights — and they should be a challenge without a proper build, not just dodge/kite checks.* — *done: all 5 starter proposals implemented as second layers (design + numbers in DESIGN.md §13, tuning constants atop `bossLogic.ts`): Merge Conflict diff tether + force-push enrage on >30% HP gap (hysteresis 15%); Memory Leak permanent pools (cap 28, oldest paged out, death frees all); Infinite Loop position snapshot → 2.5s-later rewind (ground marker); Stack Overflow 50% resist while frames live + stack-pop 2.5s stun (10s cd); Legacy Monolith 3 Deprecated Dependency pillars (new stationary shot-soak enemy, NOT A BUG codex entry), breaking one exposes the core early. Unified `Enemy.armorMult` resist, 6 new RunEvents (banners/marker/SFX), suspend/resume-safe. Verified: build clean; sim 4 runs (ada+max+nia greenfield, ada marsh) all victories, no watchlist regression — first-boss TTK window remains the pre-existing Backlog issue (bosses now die slower, not faster); Bits 1948–2215 greenfield (~band ceiling), 2731 marsh (×1.25 map)*
 
 ### Weapons (target: +4 with evolutions, total 12)
 - [ ] [P1] (M) **Fork Bomb** — thrown bomb that splits into smaller bombs → evolves **Zip Bomb** (recursive splits)
@@ -185,6 +180,7 @@ Parking lot — promote into a milestone before working on these.
 > One line per meaningful session/merge: date — what changed. (Work-in-progress journal for the
 > current milestone — on release these lines inform the [CHANGELOG.md](CHANGELOG.md) entry and are pruned.)
 
+- 2026-06-12 — **Boss mechanics pass shipped** (v0.3 P1): every boss now two-layered — pattern (movement) + build test (DPS check / soft enrage / interrupt). Merge Conflict tether+enrage, Memory Leak permanent pools freed on death, Infinite Loop position rewind, Stack Overflow frame-guard+pop stun, Legacy Monolith breakable dependency pillars. DESIGN.md §13 rewritten; sim-verified on both maps ×3 chars, no watchlist regression
 - 2026-06-12 — **"What's new" screen shipped** (v0.3 P1): `src/data/patchNotes.ts` player-facing notes (v0.1/v0.2 authored), main-menu entry with `lastSeenVersion`-driven NEW dot, release checklist now includes authoring the entry pre-cut. Playwright-verified (12 checks)
 - 2026-06-12 — **v0.2 released** (`v0.2.67`, release/0.2 → main): see [CHANGELOG.md](CHANGELOG.md). dev bumped to 0.3.0-dev (`v0.3-base`); v0.2 P2 QoL rolled into v0.3, P3s demoted to Backlog
 - 2026-06-12 — Three QoL roll-overs shipped in one settings/render pass: master volume slider (multiplier over SFX/music gains), reduce-flash mode (full-screen flash 25% / shake 35% when on), FPS particle safeguard (spawn probability sheds at >20ms frame EMA, floor 15%, hard cap 900; enemy cap untouched). All pure save additions, game logic untouched (no sim re-run needed)
