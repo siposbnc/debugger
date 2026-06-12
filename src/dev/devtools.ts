@@ -34,7 +34,7 @@ const HELP: [call: string, what: string][] = [
   ['dbg.bits(n=1000)', 'add n Bits to the save (meta currency, persisted)'],
   ['dbg.xp(n=50)', 'grant n XP to the current run (xpMult applies)'],
   ['dbg.offer(...ids)', 'force the next level-up offer to these weapon/card ids (triggers a level-up; reroll falls back to a normal draw)'],
-  ['dbg.give(id)', 'grant a weapon (or apply a card) immediately'],
+  ['dbg.give(id, n=1)', 'grant a weapon at level n (or apply a card n times) immediately'],
   ['dbg.level(id, n)', `set an owned weapon's level (1–${MAX_WEAPON_LEVEL}; grants it if missing)`],
   ['dbg.god(on?)', 'toggle invincibility'],
   ['dbg.time(min)', 'jump the run clock to minute min (bosses/spawn phases follow)'],
@@ -99,16 +99,18 @@ function buildApi(ctx: DevContext) {
       return `[dbg] next offer forced: ${ids.join(', ')} (opens on the next sim frame; resume if paused)`;
     },
 
-    give(id: string): string {
+    give(id: string, n = 1): string {
       const run = needRun();
       if (!run) return '';
       if (!known(id)) return '';
+      n = Math.max(1, Math.round(n));
       if (WEAPONS[id]) {
         if (run.weapons.some((w) => w.def.id === id)) return `[dbg] ${id} already owned — dbg.level("${id}", n) to level it`;
+        if (n > 1) return dbg.level(id, n); // grant at level n in one call
         run.addWeapon(id);
         return `[dbg] weapon granted: ${WEAPONS[id].name}`;
       }
-      run.applyCard(CARD_BY_ID[id]);
+      for (let i = 0; i < n; i++) run.applyCard(CARD_BY_ID[id]);
       return `[dbg] card applied: ${CARD_BY_ID[id].name} (×${run.takenCards.get(id)})`;
     },
 

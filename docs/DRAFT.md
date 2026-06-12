@@ -9,13 +9,28 @@ into [ROADMAP.md](../ROADMAP.md), and moves them to **Processed** below.
 
 ## Dev env ideas
 
-- add docker support, so the game can be run in an isolated environment without interrupting Claude's work and to avoid vite's hot reload
+*(empty)*
 
 ## Bugs
 
 *(empty)*
 
 ---
+
+## Processed → ROADMAP.md (2026-06-12, batch 10)
+
+- Docker support for isolated play → **🛠️ Dev tooling, P2 (S) "Isolated play server"** with a counter-proposal: no Docker — `npm run play` building into a separate `dist-play/` + `vite preview` on its own port gives the same isolation for a static bundle (no hot reload, untouched by Claude's `dist/` rebuilds) without the Docker Desktop dependency; Docker stays on the table only if clean-environment *repro* ever becomes the need. The remote variant (`npm run deploy:test`) shipped the same day
+- `amount` param for `dbg.give()` → **shipped same day**: `dbg.give(id, n=1)` — cards apply n stacks (`give('coffeeBreak', 5)`), unowned weapons are granted at level n (delegates to `dbg.level`); devtoolsTest grew 2 checks
+
+<details>
+<summary>Batch 10 — original notes (kept for reference)</summary>
+
+### Dev env ideas
+
+- add docker support, so the game can be run in an isolated environment without interrupting Claude's work and to avoid vite's hot reload
+- `amount` param for dbg.give()
+
+</details>
 
 ## Processed → ROADMAP.md (2026-06-12, batch 9)
 

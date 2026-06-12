@@ -44,6 +44,8 @@ check('give() rejects unknown id', (await dbg(() => window.dbg.give('nonsense'))
 check('level() sets weapon level', (await dbg(() => window.dbg.level('breakpointBow', 8))).includes('level 8'));
 check('level() clamps to max', (await dbg(() => window.dbg.level('breakpointBow', 99))).includes('level 8'));
 check('give() applies a card', (await dbg(() => window.dbg.give('coffeeBreak'))).includes('Coffee Break'));
+check('give(id, n) stacks a card n times', (await dbg(() => window.dbg.give('coffeeBreak', 3))).includes('×4'));
+check('give(id, n) grants a weapon at level n', (await dbg(() => window.dbg.give('stackStaff', 4))).includes('level 4'));
 
 check('xp() reports gain', /level \d+, \d+ pending/.test(await dbg(() => window.dbg.xp(5))));
 check('time() moves the clock', (await dbg(() => window.dbg.time(5))).includes('5:00'));
