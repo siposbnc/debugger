@@ -15,6 +15,25 @@ export interface PatchNote {
 
 export const PATCH_NOTES: PatchNote[] = [
   {
+    version: '0.3',
+    name: 'Content Expansion',
+    date: '2026-06-12',
+    highlights: [
+      'Two new maps: Production Server (erupting floor vents, server-rack aisles, data-bus conveyors) and Cyber Glacier (latency fields that lag everything inside — you included)',
+      'Maps are no longer empty planes: racks, dead process trees and ice columns block movement and stop bullets — bosses just crush through them',
+      'Every map now ends in its own unique 12:00 finale boss, with the earlier slots drawn from a per-map pool — plus 4 new bosses, each a real mechanic, not just more HP',
+      'Crunch Time: bosses alive at 15:00 trigger 30 seconds of overtime — every bug goes critical, and an unresolved blocker fails the run with RELEASE SLIPPED',
+      'New weapons: Fork Bomb, Firewall, Ping Storm and Sudo Scroll, each with an evolution — the arsenal is 12 base weapons now',
+      '4 new developers: Rex Intern (random starter), Sec Hexa (thorns), Dana Tensor (XP-powered damage) and Greybeard Cobol (immune to slows)',
+      'Shields: a recharging layer over your HP that comes back if you avoid damage — with new cards and an Air Gap meta upgrade',
+      '11 new upgrade cards, 2 new late-game bugs (one shoots back, one blocks frontal damage), and a higher cooldown cap for dedicated attack-speed builds',
+      'Harder by design: pricier maps now genuinely require meta investment — a good build alone no longer clears them',
+      'The codex and meta shop reveal entries as you encounter them, weapon cards preview their exact level-up numbers, and the pause screen shows your full weapon stats',
+      'New WebGL renderer: the late game got denser, the frame rate did not',
+    ],
+    flavor: 'The roadmap said "more reasons to do one more run." The roadmap has been implemented.',
+  },
+  {
     version: '0.2',
     name: 'Polish & QoL',
     date: '2026-06-12',
