@@ -1,4 +1,5 @@
 import type { Run, RunEvent } from '../game/run';
+import { ENEMIES } from '../data/enemies';
 import type { BossDef, EnemyDef, MapDef } from '../data/types';
 import { bladePositions, petPositions } from '../game/combat';
 import { hash2, clamp, formatTime, lerp, rand } from '../core/util';
@@ -160,6 +161,43 @@ export class Renderer {
             vx: rand(-260, 260), vy: rand(-260, 260), vz: rand(80, 320),
             life: rand(0.5, 1.1), maxLife: 1.1,
             color: Math.random() < 0.5 ? '#ffc12e' : '#7df9ff', size: rand(3, 7),
+          });
+        }
+        break;
+      case 'mushiSpawn':
+        // precipitates out of solution: a soft teal fizz at the pop-in point
+        this.rings.push({ x: ev.x, y: ev.y, radius: 50, t: 0, dur: 0.6, color: '#9fe8dc' });
+        for (let i = 0; i < 10; i++) {
+          this.particles.push({
+            x: ev.x + rand(-14, 14), y: ev.y + rand(-14, 14), z: 4,
+            vx: rand(-20, 20), vy: rand(-20, 20), vz: rand(30, 80),
+            life: rand(0.5, 1.0), maxLife: 1.0, color: '#cfeee8', size: rand(1.5, 3),
+          });
+        }
+        break;
+      case 'mushiCaught':
+        this.banner('DEPENDENCY RESOLVED', 'field sample secured — a cabal of two', '#ffc12e', 4);
+        // crystallization burst: the sample comes out of solution all at once
+        this.rings.push({ x: ev.x, y: ev.y, radius: 90, t: 0, dur: 0.5, color: '#9fe8dc' });
+        for (let i = 0; i < 28; i++) {
+          this.particles.push({
+            x: ev.x, y: ev.y, z: 10,
+            vx: rand(-160, 160), vy: rand(-160, 160), vz: rand(60, 260),
+            life: rand(0.4, 0.9), maxLife: 0.9,
+            color: Math.random() < 0.5 ? '#ffc12e' : '#9fe8dc', size: rand(2, 5),
+          });
+        }
+        break;
+      case 'mushiGone':
+        // uncaught: one brief, inexplicably dramatic golden battle aura — then vapor
+        this.columns.push({ x: ev.x, y: ev.y, radius: 46, t: 0, dur: 0.8, color: '#ffc12e' });
+        this.rings.push({ x: ev.x, y: ev.y, radius: 70, t: 0, dur: 0.7, color: '#ffc12e' });
+        for (let i = 0; i < 16; i++) {
+          this.particles.push({
+            x: ev.x + rand(-10, 10), y: ev.y + rand(-10, 10), z: 6,
+            vx: rand(-25, 25), vy: rand(-25, 25), vz: rand(60, 140),
+            life: rand(0.6, 1.2), maxLife: 1.2,
+            color: Math.random() < 0.4 ? '#ffc12e' : 'rgba(228,245,242,0.9)', size: rand(2, 4),
           });
         }
         break;
@@ -449,6 +487,38 @@ export class Renderer {
       });
     }
 
+    // The Precipitate (easter egg): wanders obliviously among the bugs
+    if (run.mushi) {
+      const m = run.mushi;
+      const def = ENEMIES.mushi;
+      const s = this.proj(m.x, m.y);
+      drawables.push({
+        depth: m.x + m.y,
+        draw: () => {
+          ctx.fillStyle = 'rgba(0,0,0,0.3)';
+          ctx.beginPath();
+          ctx.ellipse(s.x, s.y, def.radius, def.radius / 2, 0, 0, 7);
+          ctx.fill();
+          const sprite = bugSprite(def.shape, def.radius, def.color, false);
+          const w = sprite.width / 2, h = sprite.height / 2;
+          ctx.save();
+          // fading in the last few seconds before it evaporates
+          if (m.t < 5) ctx.globalAlpha = 0.45 + 0.55 * (0.5 + 0.5 * Math.sin(this.t * 9));
+          const bob = Math.sin(this.t * 6 + m.x) * 1.5;
+          ctx.drawImage(sprite, s.x - w / 2, s.y - h + def.radius / 2 + bob, w, h);
+          ctx.restore();
+        },
+      });
+      // ambient bubble trail
+      if (Math.random() < 0.25) {
+        this.particles.push({
+          x: m.x + rand(-6, 6), y: m.y + rand(-6, 6), z: 6,
+          vx: rand(-8, 8), vy: rand(-8, 8), vz: rand(25, 55),
+          life: rand(0.4, 0.8), maxLife: 0.8, color: '#cfeee8', size: rand(1, 2.5),
+        });
+      }
+    }
+
     // player
     {
       const s = this.proj(run.px, run.py);
@@ -681,6 +751,45 @@ export class Renderer {
       ctx.closePath();
       ctx.fill();
       ctx.restore();
+    }
+
+    // The Precipitate: faint gold shimmer at the edge — curiosity, not threat
+    // (no ⚠; gold = reward in the color language).
+    if (run.mushi) {
+      const m = run.mushi;
+      const p = this.proj(m.x, m.y);
+      const sx = p.x - this.camX + this.w / 2;
+      const sy = p.y - this.camY + this.h / 2;
+      if (sx <= -slack || sx >= this.w + slack || sy <= -slack || sy >= this.h + slack) {
+        const ax = clamp(sx, margin, this.w - margin);
+        const ay = clamp(sy, margin + 44, this.h - margin);
+        const ang = Math.atan2(sy - ay, sx - ax);
+        const pulse = 0.35 + 0.25 * Math.sin(this.t * 4);
+        const urgency = m.t < 8 ? 1.4 : 1; // brightens as the window closes
+        ctx.save();
+        ctx.translate(ax, ay);
+        ctx.globalAlpha = Math.min(1, pulse * urgency);
+        ctx.fillStyle = 'rgba(8, 12, 18, 0.6)';
+        ctx.beginPath();
+        ctx.arc(0, 0, 13, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = '#ffc12e';
+        ctx.lineWidth = 1.2;
+        ctx.stroke();
+        ctx.font = '14px VT323, monospace';
+        ctx.textAlign = 'center';
+        ctx.fillStyle = '#ffc12e';
+        ctx.fillText('?', 0, 5);
+        ctx.rotate(ang);
+        ctx.fillStyle = '#ffc12e';
+        ctx.beginPath();
+        ctx.moveTo(22, 0);
+        ctx.lineTo(13, -5);
+        ctx.lineTo(13, 5);
+        ctx.closePath();
+        ctx.fill();
+        ctx.restore();
+      }
     }
     ctx.globalAlpha = 1;
   }

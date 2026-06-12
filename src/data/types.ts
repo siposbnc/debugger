@@ -93,7 +93,7 @@ export interface EnemyDef {
   xp: number;
   bits: number;
   color: string;
-  shape: 'mite' | 'tick' | 'wasp' | 'leech' | 'spider' | 'beetle' | 'scarab' | 'centipede';
+  shape: 'mite' | 'tick' | 'wasp' | 'leech' | 'spider' | 'beetle' | 'scarab' | 'centipede' | 'flask';
   behavior: EnemyBehavior;
   /** spawn in clusters of N (Cache Tick) */
   cluster?: number;
@@ -101,6 +101,9 @@ export interface EnemyDef {
   slowAura?: boolean;     // slows the player when near (Deadlock Scarab)
   drain?: boolean;        // extra close-range damage + heals itself (Memory Leech)
   duplicates?: boolean;   // occasionally spawns a short-lived copy (Race Condition Spider)
+  /** Not a software defect at all (The Precipitate): never in spawn plans or the
+   *  enemies array — run.ts drives it as its own entity; codex tags it NOT A BUG. */
+  notABug?: boolean;
 }
 
 export type BossMechanic = 'split' | 'pools' | 'burst' | 'summon' | 'phase';
@@ -179,6 +182,7 @@ export interface RunStatsView {
   victory: boolean;
   characterId: string;
   mapId: string;
+  mushiCaught: boolean;
 }
 
 export interface ObjectiveDef {

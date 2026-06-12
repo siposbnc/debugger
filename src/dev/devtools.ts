@@ -38,6 +38,7 @@ const HELP: [call: string, what: string][] = [
   ['dbg.level(id, n)', `set an owned weapon's level (1–${MAX_WEAPON_LEVEL}; grants it if missing)`],
   ['dbg.god(on?)', 'toggle invincibility'],
   ['dbg.time(min)', 'jump the run clock to minute min (bosses/spawn phases follow)'],
+  ['dbg.mushi()', 'precipitate the very rare visitor now (spawns on the next sim frame)'],
   ['dbg.help()', 'this text'],
 ];
 
@@ -137,6 +138,14 @@ function buildApi(ctx: DevContext) {
       if (!w) { run.addWeapon(id); w = run.weapons[run.weapons.length - 1]; }
       w.level = Math.max(1, Math.min(MAX_WEAPON_LEVEL, Math.round(v)));
       return `[dbg] ${w.def.name} → level ${w.level}`;
+    },
+
+    mushi(): string {
+      const run = needRun();
+      if (!run) return '';
+      if (run.mushi) return '[dbg] it is already here — look for the gold ? marker';
+      run.mushiAt = run.time;
+      return '[dbg] precipitating… (23s window; walk into it — weapons pass through)';
     },
 
     god(on?: boolean): string {

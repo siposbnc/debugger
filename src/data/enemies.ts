@@ -52,6 +52,19 @@ export const ENEMIES: Record<string, EnemyDef> = {
     hp: 160, speed: 46, damage: 16, radius: 20, xp: 8, bits: 5,
     color: '#cf4f86', shape: 'centipede', behavior: 'chase',
   },
+  // Easter egg — kept last so the codex lists it after every real bug.
+  // Not in any spawnPlan and never enters run.enemies: run.ts drives it as its
+  // own entity (untargetable, harmless, collected by touch). hp/damage/xp/bits
+  // are nominal; the reward is granted by the collection code.
+  mushi: {
+    id: 'mushi', name: 'The Precipitate',
+    codexDesc: 'Wrong phylum entirely. Wandered in from the wet lab; keeps trying to '
+      + 'titrate the memory pools. Purely functional — no side effects — so nothing '
+      + 'here can touch it. Known member of a cabal of exactly two; recruitment closed '
+      + 'years ago. Filed the littlest issue on record on its way out.',
+    hp: 1, speed: 60, damage: 0, radius: 8, xp: 0, bits: 0,
+    color: '#9fe8dc', shape: 'flask', behavior: 'jitter', notABug: true,
+  },
 };
 
 export const ELITE = {

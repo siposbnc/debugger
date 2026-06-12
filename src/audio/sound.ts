@@ -2,7 +2,8 @@
 
 type SfxName =
   | 'shoot' | 'hit' | 'kill' | 'levelup' | 'pickup' | 'hurt' | 'chest'
-  | 'bossWarn' | 'bossDie' | 'evolve' | 'click' | 'buy' | 'victory' | 'death' | 'objective';
+  | 'bossWarn' | 'bossDie' | 'evolve' | 'click' | 'buy' | 'victory' | 'death' | 'objective'
+  | 'fizz' | 'resolve';
 
 class Sound {
   private ctx: AudioContext | null = null;
@@ -135,6 +136,17 @@ class Sound {
       case 'death':
         this.tone(440, 0.9, 'sawtooth', 0.25, 55);
         this.noise(0.6, 0.2, 600);
+        break;
+      case 'fizz': // something bubbling quietly in glassware
+        this.noise(0.45, 0.1, 5200);
+        for (let i = 0; i < 4; i++) {
+          this.tone(1100 + Math.random() * 900, 0.05, 'sine', 0.07, 2400, 0.06 + i * 0.09);
+        }
+        break;
+      case 'resolve': // warm glass arpeggio — a dependency clicking into place
+        this.tone(660, 0.12, 'triangle', 0.18);
+        this.tone(990, 0.14, 'triangle', 0.18, undefined, 0.1);
+        this.tone(1320, 0.22, 'triangle', 0.18, undefined, 0.2);
         break;
     }
   }

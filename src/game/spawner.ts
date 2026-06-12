@@ -4,7 +4,7 @@ import { rand, weightedIndex } from '../core/util';
 import type { Enemy, Run } from './run';
 
 /** Distance from the player at which enemies pop in (just past screen edge). */
-const SPAWN_RADIUS = 760;
+export const SPAWN_RADIUS = 760;
 
 /** Past this distance an enemy has been outrun for good — teleport it back onto
  *  the spawn ring. Without this, running in one direction sheds the entire swarm

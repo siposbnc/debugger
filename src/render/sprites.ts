@@ -150,6 +150,49 @@ const BUG_DRAWERS: Record<string, BugDrawer> = {
     ctx.beginPath(); ctx.arc(0, -r * 0.12, r * 0.2, Math.PI, 0); ctx.stroke();
     eyes(ctx, 0, -r * 0.55, r * 0.28, r * 0.16);
   },
+  // The Precipitate: a little Erlenmeyer flask on stubby legs, safety goggles,
+  // teal liquid sloshing inside. Glass-white + gold glints — reward, not threat.
+  flask: (ctx, r, color) => {
+    legs(ctx, '#cfd8dc', r * 0.9, 2);
+    // conical glass body with a neck
+    withGlow(ctx, color, 7, () => {
+      ctx.fillStyle = 'rgba(228, 245, 242, 0.55)';
+      ctx.beginPath();
+      ctx.moveTo(-r * 0.32, -r * 1.25);
+      ctx.lineTo(-r * 0.32, -r * 0.35);
+      ctx.lineTo(-r * 1.0, r * 0.85);
+      ctx.lineTo(r * 1.0, r * 0.85);
+      ctx.lineTo(r * 0.32, -r * 0.35);
+      ctx.lineTo(r * 0.32, -r * 1.25);
+      ctx.closePath();
+      ctx.fill();
+    });
+    // liquid pooled in the cone
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.moveTo(-r * 0.62, r * 0.2);
+    ctx.lineTo(-r * 0.95, r * 0.8);
+    ctx.lineTo(r * 0.95, r * 0.8);
+    ctx.lineTo(r * 0.62, r * 0.2);
+    ctx.closePath();
+    ctx.fill();
+    // rising bubbles
+    ctx.fillStyle = 'rgba(255,255,255,0.75)';
+    ctx.beginPath(); ctx.arc(-r * 0.2, r * 0.05, r * 0.1, 0, 7); ctx.fill();
+    ctx.beginPath(); ctx.arc(r * 0.15, -r * 0.25, r * 0.08, 0, 7); ctx.fill();
+    ctx.beginPath(); ctx.arc(0, -r * 0.6, r * 0.07, 0, 7); ctx.fill();
+    // flask lip
+    ctx.strokeStyle = 'rgba(228, 245, 242, 0.9)';
+    ctx.lineWidth = Math.max(1.2, r * 0.12);
+    ctx.beginPath(); ctx.moveTo(-r * 0.42, -r * 1.25); ctx.lineTo(r * 0.42, -r * 1.25); ctx.stroke();
+    // oversized gold-rimmed safety goggles on the glass
+    ctx.strokeStyle = '#ffc12e';
+    ctx.lineWidth = Math.max(1.2, r * 0.13);
+    ctx.beginPath(); ctx.arc(-r * 0.34, r * 0.32, r * 0.3, 0, 7); ctx.stroke();
+    ctx.beginPath(); ctx.arc(r * 0.34, r * 0.32, r * 0.3, 0, 7); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(-r * 0.06, r * 0.32); ctx.lineTo(r * 0.06, r * 0.32); ctx.stroke();
+    eyes(ctx, 0, r * 0.32, r * 0.34, r * 0.18);
+  },
   centipede: (ctx, r, color) => {
     withGlow(ctx, color, 8, () => {
       ctx.fillStyle = color;

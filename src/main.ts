@@ -175,6 +175,9 @@ function drainEvents(): void {
       case 'bossWarning': sound.play('bossWarn'); break;
       case 'bossDie': sound.play('bossDie'); break;
       case 'chest': sound.play('chest'); break;
+      case 'mushiSpawn': sound.play('fizz'); break;
+      case 'mushiCaught': sound.play('resolve'); break;
+      case 'mushiGone': sound.play('fizz'); break;
       case 'evolve': sound.play('evolve'); break;
       case 'objective': sound.play('objective'); break;
       case 'victory': sound.play('victory'); break;

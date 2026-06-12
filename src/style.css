@@ -346,6 +346,7 @@ html, body {
 .codex-entry .codex-body { flex: 1; min-width: 0; }
 .codex-thumb { width: 42px; height: 42px; object-fit: contain; flex-shrink: 0; }
 .codex-thumb.boss { width: 52px; height: 52px; }
+.codex-tag { color: var(--gold); font-size: 9px; letter-spacing: 0.12em; border: 1px solid currentColor; padding: 1px 5px; border-radius: 3px; align-self: center; white-space: nowrap; }
 
 /* ---------- pause overview ---------- */
 

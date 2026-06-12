@@ -16,6 +16,7 @@ export const OBJECTIVES: ObjectiveDef[] = [
   { id: 'evolve', name: 'Major Version Bump', desc: 'Evolve a weapon', check: (s) => s.evolvedWeapons >= 1 },
   { id: 'xp500', name: 'Knowledge Base', desc: 'Collect 500 XP in one run', check: (s) => s.xpCollected >= 500 },
   { id: 'marshWin', name: 'Drained the Swamp', desc: 'Survive 10 minutes in Memory Marsh', check: (s) => s.mapId === 'memoryMarsh' && s.timeSec >= 600 },
+  { id: 'mushiCatch', name: 'Cabal of Two', desc: 'Walk into a very rare visitor before it evaporates', check: (s) => s.mushiCaught },
 ];
 
 export const OBJECTIVE_BITS = 100;

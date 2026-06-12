@@ -4,7 +4,7 @@ import { WEAPONS } from '../data/weapons';
 import { ENEMIES } from '../data/enemies';
 import { BOSSES } from '../data/bosses';
 import { CARD_BY_ID } from '../data/upgrades';
-import { Run, type Enemy, type Pickup, type GroundZone, type Ally } from './run';
+import { Run, type Enemy, type Pickup, type GroundZone, type Ally, type Mushi } from './run';
 
 // Suspend & resume: a full-fidelity snapshot of a live run, stored inside
 // SaveData (suspendedRun) so a run survives closing the browser. Projectiles
@@ -52,6 +52,11 @@ export interface SuspendedRun {
   pickups: Pickup[];
   zones: ZoneSnap[];
   allies: Ally[];
+  // The Precipitate (easter egg) — optional: snapshots from before it existed
+  // restore with the default "not this run" state. mushiAt Infinity → null (JSON).
+  mushi?: Mushi | null;
+  mushiAt?: number | null;
+  mushiCaught?: boolean;
 }
 
 function snapEnemy(e: Enemy): EnemySnap {
@@ -101,6 +106,9 @@ export function snapshotRun(run: Run): SuspendedRun {
       maxLife: Number.isFinite(z.maxLife) ? z.maxLife : null,
     })),
     allies: run.allies.map((a) => ({ ...a })),
+    mushi: run.mushi ? { ...run.mushi } : null,
+    mushiAt: Number.isFinite(run.mushiAt) ? run.mushiAt : null,
+    mushiCaught: run.mushiCaught,
   };
 }
 
@@ -151,6 +159,9 @@ export function restoreRun(snap: SuspendedRun, doneObjectives: Set<string>): Run
   run.pickups = snap.pickups.map((p) => ({ ...p }));
   run.zones = snap.zones.map((z) => ({ ...z, life: z.life ?? Infinity, maxLife: z.maxLife ?? Infinity }));
   run.allies = snap.allies.map((a) => ({ ...a }));
+  run.mushi = snap.mushi ? { ...snap.mushi } : null;
+  run.mushiAt = snap.mushiAt ?? Infinity; // pre-Precipitate snapshot: don't re-roll mid-run
+  run.mushiCaught = snap.mushiCaught ?? false;
 
   run.hp = Math.min(snap.hp, run.stats.maxHp);
   return run;

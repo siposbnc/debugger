@@ -355,7 +355,7 @@ export class UI {
       <div class="codex-entry with-thumb">
         <img class="codex-thumb" src="${UI.entityThumb(e, false)}" alt="">
         <div class="codex-body">
-          <b>${e.name}</b>
+          <b>${e.name}${e.notABug ? ' <span class="codex-tag">NOT A BUG</span>' : ''}</b>
           <span>${e.codexDesc}</span>
         </div>
       </div>`).join('');

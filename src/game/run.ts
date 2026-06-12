@@ -8,7 +8,7 @@ import { moveVector } from '../core/input';
 import { clamp, dist, mulberry32, rand } from '../core/util';
 import { computeStats, type ComputedStats } from './stats';
 import { updateWeapons } from './combat';
-import { updateSpawner } from './spawner';
+import { updateSpawner, SPAWN_RADIUS } from './spawner';
 import { updateBossSchedule, updateBossMechanics } from './bossLogic';
 
 // ---------- entities ----------
@@ -85,6 +85,26 @@ export interface Ally {
   shootT: number;
 }
 
+/** The Precipitate (easter egg): not an Enemy — it never enters run.enemies,
+ *  so weapons, the spatial hash, the enemy cap, straggler recycling and kill
+ *  stats all ignore it by construction. Purely functional: no side effects. */
+export interface Mushi {
+  x: number; y: number;
+  t: number;                       // seconds until it evaporates
+  jitterT: number; jitterAng: number; // Brownian-motion walk state
+}
+
+// Avogadro skeleton: ~25% of runs, precipitates around the 6:02 mark,
+// evaporates after 23 s; collecting it yields 602 XP (+ a chest + 23 Bits).
+export const MUSHI_CHANCE = 0.25;
+export const MUSHI_AT_SEC = 362;
+export const MUSHI_AT_JITTER = 60;
+export const MUSHI_LIFE = 23;
+export const MUSHI_XP = 602;       // dropped as 7 shards × 86
+export const MUSHI_BITS = 23;
+export const MUSHI_SPEED = 60;
+export const MUSHI_RADIUS = 8;
+
 export interface WeaponInstance {
   def: WeaponDef;
   level: number;             // 1-based
@@ -114,6 +134,9 @@ export type RunEvent =
   | { type: 'bossSpawn'; name: string }
   | { type: 'bossDie'; x: number; y: number; name: string }
   | { type: 'chest'; x: number; y: number }
+  | { type: 'mushiSpawn'; x: number; y: number }
+  | { type: 'mushiCaught'; x: number; y: number }
+  | { type: 'mushiGone'; x: number; y: number }
   | { type: 'evolve'; weaponName: string; evolvedName: string }
   | { type: 'bonusCard'; cardName: string }
   | { type: 'objective'; name: string }
@@ -191,6 +214,13 @@ export class Run {
   // character specials
   turretT = 6;
   helperT = 8;
+
+  // The Precipitate: scheduled (or not) at construction; Infinity = not this run.
+  mushi: Mushi | null = null;
+  mushiAt = Math.random() < MUSHI_CHANCE
+    ? MUSHI_AT_SEC + rand(-MUSHI_AT_JITTER, MUSHI_AT_JITTER)
+    : Infinity;
+  mushiCaught = false;
 
   objectiveCheckT = 0;
   rng = mulberry32(Date.now() & 0xffffffff);
@@ -320,6 +350,7 @@ export class Run {
       victory: this.victory,
       characterId: this.character.id,
       mapId: this.map.id,
+      mushiCaught: this.mushiCaught,
     };
   }
 
@@ -351,6 +382,7 @@ export class Run {
     this.updateAllies(dt);
     this.updateZones(dt);
     this.updatePickups(dt);
+    this.updateMushi(dt);
 
     // regen
     if (this.stats.regen > 0) this.healPlayer(this.stats.regen * dt);
@@ -638,6 +670,50 @@ export class Run {
     }
   }
 
+  private updateMushi(dt: number): void {
+    if (this.time >= this.mushiAt) {
+      // precipitates out of solution on the spawn ring, like any pop-in
+      this.mushiAt = Infinity;
+      const a = Math.random() * Math.PI * 2;
+      this.mushi = {
+        x: this.px + Math.cos(a) * SPAWN_RADIUS,
+        y: this.py + Math.sin(a) * SPAWN_RADIUS,
+        t: MUSHI_LIFE, jitterT: 0, jitterAng: a + Math.PI,
+      };
+      this.emit({ type: 'mushiSpawn', x: this.mushi.x, y: this.mushi.y });
+    }
+    const m = this.mushi;
+    if (!m) return;
+
+    m.t -= dt;
+    if (m.t <= 0) {
+      // evaporates uncaught — the renderer gives it its dramatic send-off
+      this.mushi = null;
+      this.emit({ type: 'mushiGone', x: m.x, y: m.y });
+      return;
+    }
+
+    // Brownian motion: frequent small random redirections, chases nothing
+    m.jitterT -= dt;
+    if (m.jitterT <= 0) {
+      m.jitterT = rand(0.15, 0.4);
+      m.jitterAng += rand(-1.6, 1.6);
+    }
+    m.x += Math.cos(m.jitterAng) * MUSHI_SPEED * dt;
+    m.y += Math.sin(m.jitterAng) * MUSHI_SPEED * dt;
+
+    // collected by touch (it can't be hit — it isn't a defect)
+    if (dist(m.x, m.y, this.px, this.py) < MUSHI_RADIUS + 14) {
+      this.mushi = null;
+      this.mushiCaught = true;
+      this.emit({ type: 'mushiCaught', x: m.x, y: m.y });
+      for (let i = 0; i < 7; i++) {
+        this.dropXp(m.x + rand(-40, 40), m.y + rand(-40, 40), MUSHI_XP / 7);
+      }
+      this.pickups.push({ kind: 'chest', x: m.x, y: m.y, value: 0, magnet: false, vx: 0, vy: 0 });
+    }
+  }
+
   private collectPickup(p: Pickup): void {
     if (p.kind === 'xp') {
       this.gainXp(p.value);
@@ -772,6 +848,7 @@ export class Run {
       { label: 'Level reached', value: this.level * 5 },
       { label: 'Objectives completed', value: this.objectivesThisRun.length * OBJECTIVE_BITS },
     ];
+    if (this.mushiCaught) breakdown.push({ label: 'Field sample resolved', value: MUSHI_BITS });
     const base = breakdown.reduce((a, b) => a + b.value, 0);
     const bits = Math.floor(base * this.map.bitsMult);
     return {
