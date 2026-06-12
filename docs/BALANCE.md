@@ -108,12 +108,17 @@ card-tuning + boss-buff + crunch-punishment passes which lowered all absolute ra
 | greenfield (1.0) | **38%** (careless onward: 6%) | **69%** (careless onward: 38%) | zero ~30–50%, meta ≥ 60% |
 | memoryMarsh (1.2) | **12.5%** | **56%** | zero ≤ 15%, meta ≥ 40% |
 | productionServer (1.35) | **0%** | **50%** | zero ~0%, meta ≥ 40% |
-| cyberGlacier (1.4) | **0%** (median death ~8:40) | **44%** | zero ~0%, meta ≥ 40% |
+| cyberGlacier (1.4) | **3%** (1/32) | **47%** (15/32) | zero ~0%, meta ≥ 40% |
 
-Cyber Glacier certified 2026-06-12 at map ship (same presets/n; maxed-meta failures split
-~half deaths, ~half release-slips — the latency fields slow the horde as much as the
-player, so the map's extra difficulty comes from `enemyScale` 1.4 + the tank skew, not
-the hazard kiting the bot into corners like marsh pools do).
+Cyber Glacier certified 2026-06-12 at map ship (same presets, n = 32/arm, **greedy**).
+Maxed-meta failures were 16 release-slips vs 1 death — the bot survives but the boss
+queue outlives crunch, so boss TTK is the check, exactly like production. The latency
+fields slow the horde as much as the player; the map's extra difficulty comes from
+`enemyScale` 1.4 + the tank skew, not from the hazard cornering the kiter like marsh
+pools do. **Methodology note:** the win rates in this table are greedy-bot numbers, but
+the `build-good*` presets set `bot.pick: "first"` — always pass `--pick=greedy`
+explicitly when re-certifying, or the rates come out ~3–4× lower (measured 12.5% vs 47%
+on the glacier maxed arm) and aren't comparable to this table.
 
 Reading the ladder: on the starter map, *either* meta or build/skill buys a fair shot and
 both together make it comfortable; each next map shifts the requirement one notch toward
@@ -121,7 +126,9 @@ both together make it comfortable; each next map shifts the requirement one notc
 so absolute numbers are pessimistic — the gap shape is the target, not the exact values.
 Dominant failure mode at high meta is now release-slip (bosses outliving crunch), not
 death — boss TTK, not survival, is the late-game check. Re-run with:
-`node scripts/matrix.cjs 16 --scenario=build-good[-meta] [--map=...] [--pick=greedy]`.
+`node scripts/matrix.cjs 16 --scenario=build-good[-meta] [--map=...] --pick=greedy`
+(`--pick=greedy` is **required** for numbers comparable to this table — see the
+methodology note below).
 
 **In-run build-quality separation** (first certified 2026-06-12 pre-difficulty-overhaul,
 n = 16/arm): the `build-good` / `build-scattered` / `build-none` scenario presets grant the
