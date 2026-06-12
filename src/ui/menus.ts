@@ -16,6 +16,7 @@ import { formatTime, formatDuration, mulberry32 } from '../core/util';
 import { DEFAULT_BINDINGS, type BindAction } from '../core/input';
 import { sound } from '../audio/sound';
 import { makeOffer, applyOffer, offerOdds, type OfferItem } from '../game/levelup';
+import { effective } from '../game/combat';
 import type { Run, RunResults } from '../game/run';
 import { KbNav } from './kbnav';
 
@@ -888,14 +889,27 @@ export class UI {
       row('Luck', `${st.luck}`),
     ].join('');
 
-    // weapons: total damage + DPS since acquired
+    // weapons inventory: desc + the resolved live stat sheet per weapon (the
+    // same effective() values combat fires with — global mults applied, unlike
+    // the raw-table weapon-card previews), plus total damage / DPS tallies
     const weaponRows = run.weapons.map((w) => {
       const dps = w.totalDamage / Math.max(1, run.time - w.acquiredAt);
       const lvl = w.def.isEvolution ? 'EVO' : `Lv ${w.level}`;
-      return row(
-        `<span style="color:${w.def.color}">${w.def.icon} ${w.def.name}</span> <span class="dim">${lvl}</span>`,
-        `${fmtDmg(w.totalDamage)} <span class="dim">(${fmtDmg(dps)}/s)</span>`,
-      );
+      const eff = effective(run, w);
+      const stats = WEAPON_FIELD_VIEW
+        .filter(([key]) => eff[key] !== 0)
+        .map(([key, label, fmt]) =>
+          `<span class="wstat"><span class="wl">${label}</span> ${fmt(eff[key])}</span>`)
+        .join('');
+      return `<div class="wpn">
+        <div class="wpn-head">
+          <span style="color:${w.def.color}">${w.def.icon} ${w.def.name}</span>
+          <span class="dim">${lvl}</span>
+          <span class="v">${fmtDmg(w.totalDamage)} <span class="dim">(${fmtDmg(dps)}/s)</span></span>
+        </div>
+        <div class="wpn-desc">${w.def.desc}</div>
+        <div class="wpn-stats">${stats}</div>
+      </div>`;
     }).join('') + (run.allyDamage > 0
       ? row(`<span class="dim">⚙ Allies</span>`, `${fmtDmg(run.allyDamage)}`)
       : '');

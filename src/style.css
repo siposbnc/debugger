@@ -454,6 +454,19 @@ html, body {
 .pause-panel .prow .v { font-family: var(--font-display); font-size: 17px; color: var(--cyan); white-space: nowrap; }
 .pause-panel .dim { color: var(--dim); font-size: 11px; }
 
+/* weapons inventory blocks (icon/name/level + tallies, desc, resolved stats) */
+.pause-panel .wpn { padding: 5px 0; border-bottom: 1px dashed var(--line); }
+.pause-panel .wpn:last-of-type { border-bottom: none; }
+.pause-panel .wpn-head { display: flex; align-items: baseline; gap: 8px; font-size: 12.5px; }
+.pause-panel .wpn-head .v {
+  margin-left: auto; font-family: var(--font-display); font-size: 15px;
+  color: var(--cyan); white-space: nowrap;
+}
+.pause-panel .wpn-desc { font-size: 11px; color: var(--dim); line-height: 1.4; margin: 2px 0 3px; }
+.pause-panel .wpn-stats { display: flex; flex-wrap: wrap; gap: 2px 10px; font-size: 11px; }
+.pause-panel .wpn-stats .wstat { color: var(--green); white-space: nowrap; }
+.pause-panel .wpn-stats .wl { color: var(--dim); }
+
 /* ---------- settings ---------- */
 
 .settings-box { display: flex; flex-direction: column; gap: 20px; min-width: 360px; }

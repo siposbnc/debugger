@@ -8,7 +8,10 @@ import { dist } from '../core/util';
 
 const TARGET_RANGE = 520; // max auto-aim distance
 
-function effective(run: Run, w: WeaponInstance): WeaponLevelStats & { count: number } {
+/** A weapon's live level stats with the player's global multipliers applied —
+ *  the single resolution every weapon kind fires with (the pause-screen
+ *  inventory reads it too, so shown numbers can't drift from real ones). */
+export function effective(run: Run, w: WeaponInstance): WeaponLevelStats & { count: number } {
   const lvl = w.def.levels[w.level - 1];
   return {
     ...lvl,
