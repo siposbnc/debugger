@@ -35,7 +35,9 @@ export const MAPS: Record<string, MapDef> = {
     hazardPools: true,
     // Terrain (v0.3): swap-space gravity wells — drag EVERYTHING toward their
     // centers; bait the horde through one to bunch it for AoE, at the cost of
-    // pools pairing nastily with the pull.
+    // pools pairing nastily with the pull. Dead process trees are the marsh's
+    // blockers: petrified parents of long-defunct children.
+    obstacles: { kind: 'stump', count: 10, rMin: 24, rMax: 36 },
     patches: { kind: 'swap', count: 6 },
     enemyScale: 1.2,  // meta-gating: a fresh save shouldn't clear this on build alone
     spawnPlan: [
@@ -61,11 +63,11 @@ export const MAPS: Record<string, MapDef> = {
       grid: '#4a3835', accent: '#ff9b3d', fog: '#120d0e',
     },
     hazardVents: true,
-    // Terrain (v0.3): server-rack blockers — aisles between them are the map's
-    // terrain identity; bosses crush past, bullets fly over. Data-bus conveyor
-    // lanes run between the aisles (ride to escape, fight upstream, lure the
-    // horde onto an away-flowing lane).
-    obstacles: { count: 14, rMin: 26, rMax: 40 },
+    // Terrain (v0.3): server-rack AISLES (rows of 2–4 racks forming corridor
+    // walls) — bosses crush past, bullets fly over. Data-bus conveyor lanes
+    // run between the aisles (ride to escape, fight upstream, lure the horde
+    // onto an away-flowing lane).
+    obstacles: { kind: 'rack', count: 14, rMin: 26, rMax: 40, layout: 'rows' },
     patches: { kind: 'bus', count: 5 },
     // meta-gating: near-impossible without serious meta investment. 1.35 → 1.4
     // after the v0.3 weapon equalization lifted the zero-meta ceiling here to
@@ -92,13 +94,16 @@ export const MAPS: Record<string, MapDef> = {
   },
   cyberGlacier: {
     id: 'cyberGlacier', name: 'Cyber Glacier',
-    desc: 'Processes frozen mid-execution, drifting in the permafrost. Latency fields lag everything caught inside — your inputs included. ×1.5 Bits.',
+    desc: 'Processes frozen mid-execution, drifting in the permafrost. Latency fields lag everything caught inside — your inputs included — and the ice columns hold what never got to exit. ×1.5 Bits.',
     icon: '🧊', bitsMult: 1.5, cost: 2000,
     palette: {
       ground1: '#1c2a3c', ground2: '#223349',
       grid: '#3a567a', accent: '#7adcff', fog: '#0a101c',
     },
     hazardLatency: true,
+    // Terrain (v0.3): frozen-process ice columns — processes that never got to
+    // exit, entombed standing. Static cover among the latency fields.
+    obstacles: { kind: 'ice', count: 12, rMin: 28, rMax: 42 },
     // meta-gating: deepest map. Was 1.4 at map ship (certified 47% maxed-meta);
     // the v0.3 card-pool growth diluted bot build quality just enough to sink
     // the cert below the 40% floor ONLY here (greenfield held exactly) — the

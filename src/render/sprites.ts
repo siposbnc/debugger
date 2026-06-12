@@ -652,7 +652,68 @@ export function helperSprite(): HTMLCanvasElement {
   });
 }
 
-export function propSprite(kind: 'terminal' | 'shard' | 'nest' | 'rack'): HTMLCanvasElement {
+export function propSprite(kind: 'terminal' | 'shard' | 'nest' | 'rack' | 'stump' | 'ice'): HTMLCanvasElement {
+  if (kind === 'stump') {
+    // dead process tree (marsh blocker): petrified trunk, flat-cut top with
+    // git-log growth rings, a moss glow at the base. Bottom edge ≈ +26.
+    return bake('prop:stump', 64, 72, (ctx) => {
+      // root flare + trunk
+      ctx.fillStyle = '#2b3328';
+      ctx.beginPath();
+      ctx.moveTo(-20, 26); ctx.lineTo(-13, -8); ctx.lineTo(-15, -20);
+      ctx.lineTo(15, -20); ctx.lineTo(13, -6); ctx.lineTo(21, 26);
+      ctx.closePath(); ctx.fill();
+      // bark grooves
+      ctx.strokeStyle = '#1c231b';
+      ctx.lineWidth = 1.5;
+      for (const gx of [-9, -2, 6]) {
+        ctx.beginPath(); ctx.moveTo(gx, -16); ctx.lineTo(gx + 2, 22); ctx.stroke();
+      }
+      // flat-cut top: pale ellipse with growth rings (a log of commits)
+      ctx.fillStyle = '#4a5340';
+      ctx.beginPath(); ctx.ellipse(0, -20, 15, 7, 0, 0, 7); ctx.fill();
+      ctx.strokeStyle = '#39412f';
+      ctx.lineWidth = 1;
+      for (const rr of [10, 6, 3]) {
+        ctx.beginPath(); ctx.ellipse(0, -20, rr, rr * 0.45, 0, 0, 7); ctx.stroke();
+      }
+      // dead branch
+      ctx.strokeStyle = '#2b3328';
+      ctx.lineWidth = 3.5;
+      ctx.lineCap = 'round';
+      ctx.beginPath(); ctx.moveTo(13, -12); ctx.lineTo(24, -22); ctx.stroke();
+      // moss glow at the base
+      withGlow(ctx, '#54e06b', 6, () => {
+        ctx.fillStyle = 'rgba(84,224,107,0.30)';
+        ctx.beginPath(); ctx.ellipse(-6, 23, 11, 4, 0, 0, 7); ctx.fill();
+      });
+    });
+  }
+  if (kind === 'ice') {
+    // frozen-process column (glacier blocker): translucent crystal slab with a
+    // dark process silhouette suspended inside. Bottom edge ≈ +30.
+    return bake('prop:ice', 64, 88, (ctx) => {
+      withGlow(ctx, '#7adcff', 8, () => {
+        ctx.fillStyle = 'rgba(140, 215, 245, 0.55)';
+        ctx.beginPath();
+        ctx.moveTo(-16, 30); ctx.lineTo(-19, -10); ctx.lineTo(-9, -32);
+        ctx.lineTo(8, -34); ctx.lineTo(18, -12); ctx.lineTo(15, 30);
+        ctx.closePath(); ctx.fill();
+      });
+      // the process that never exited — entombed standing
+      ctx.fillStyle = 'rgba(20, 32, 48, 0.65)';
+      ctx.beginPath(); ctx.ellipse(0, 0, 8, 11, 0.2, 0, 7); ctx.fill();
+      ctx.beginPath(); ctx.arc(2, -12, 4.5, 0, 7); ctx.fill();
+      // facet highlights
+      ctx.strokeStyle = 'rgba(225, 248, 255, 0.8)';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.moveTo(-10, 24); ctx.lineTo(-13, -8); ctx.lineTo(-6, -26); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(10, -28); ctx.lineTo(13, -12); ctx.stroke();
+      // grounded shading
+      ctx.fillStyle = 'rgba(10, 16, 28, 0.4)';
+      ctx.beginPath(); ctx.ellipse(0, 28, 15, 4, 0, 0, 7); ctx.fill();
+    });
+  }
   if (kind === 'rack') {
     // server rack (terrain blocker): pseudo-iso cabinet, bottom edge at y≈+28
     // so the renderer can anchor the footprint on the collision circle

@@ -444,20 +444,52 @@ export class Run {
       }
     }
     if (map.obstacles && !this.opts.noTerrain) {
-      // Scattered with rejection sampling: clear of the spawn point, of each
-      // other (aisles must stay walkable) and of zone centers (a vent grate
-      // under a rack would be invisible AND undodgeable).
-      const { count, rMin, rMax } = map.obstacles;
-      for (let i = 0; i < count; i++) {
-        for (let tries = 0; tries < 30; tries++) {
-          const a = this.rng() * Math.PI * 2;
-          const d = 280 + this.rng() * 1300;
+      // Rejection-sampled either way: clear of the spawn point and of zone
+      // centers (a vent grate under a rack would be invisible AND undodgeable).
+      const { count, rMin, rMax, layout } = map.obstacles;
+      const zoneClear = (x: number, y: number, r: number) =>
+        !this.zones.some((z) => dist(x, y, z.x, z.y) < z.radius + r + 20);
+      if (layout === 'rows') {
+        // Aisle walls: rows of 2–4 same-size bodies tight along a world axis
+        // (the two iso diagonals on screen — reads as a server room), with
+        // wide corridors (≥170) between separate rows. In-row gaps are
+        // deliberately impassable: the WALL is the terrain, aisles the play.
+        let placed = 0;
+        for (let guard = 0; guard < 80 && placed < count; guard++) {
+          const rowLen = Math.min(2 + Math.floor(this.rng() * 3), count - placed) || 1;
+          const horiz = this.rng() < 0.5;
+          const ux = horiz ? 1 : 0, uy = horiz ? 0 : 1;
           const r = rMin + this.rng() * (rMax - rMin);
-          const x = Math.cos(a) * d, y = Math.sin(a) * d;
-          if (this.obstacles.some((o) => dist(x, y, o.x, o.y) < o.r + r + 110)) continue;
-          if (this.zones.some((z) => dist(x, y, z.x, z.y) < z.radius + r + 20)) continue;
-          this.obstacles.push({ x, y, r });
-          break;
+          const a = this.rng() * Math.PI * 2;
+          const d = 320 + this.rng() * 1150;
+          const cx = Math.cos(a) * d, cy = Math.sin(a) * d;
+          const step = r * 2 + 12;
+          const row: Obstacle[] = [];
+          for (let i = 0; i < rowLen; i++) {
+            const off = (i - (rowLen - 1) / 2) * step;
+            row.push({ x: cx + ux * off, y: cy + uy * off, r });
+          }
+          const ok = row.every((p) =>
+            Math.hypot(p.x, p.y) > 280 &&
+            zoneClear(p.x, p.y, p.r) &&
+            this.obstacles.every((o) => dist(p.x, p.y, o.x, o.y) >= o.r + p.r + 170));
+          if (!ok) continue;
+          this.obstacles.push(...row);
+          placed += rowLen;
+        }
+      } else {
+        // uniform scatter, pairwise spacing ≥ 110 keeps the field walkable
+        for (let i = 0; i < count; i++) {
+          for (let tries = 0; tries < 30; tries++) {
+            const a = this.rng() * Math.PI * 2;
+            const d = 280 + this.rng() * 1300;
+            const r = rMin + this.rng() * (rMax - rMin);
+            const x = Math.cos(a) * d, y = Math.sin(a) * d;
+            if (this.obstacles.some((o) => dist(x, y, o.x, o.y) < o.r + r + 110)) continue;
+            if (!zoneClear(x, y, r)) continue;
+            this.obstacles.push({ x, y, r });
+            break;
+          }
         }
       }
     }
@@ -490,7 +522,10 @@ export class Run {
             const r = 110 + this.rng() * 40;
             // wells keep clear of pool centers (the pull + pool combo is the
             // point, but a well CENTERED on a pool would be a death funnel)
+            // and of blocker bodies (dragged-against-a-stump is fine at the
+            // rim, but the well's heart must be reachable)
             if (this.zones.some((z) => dist(x, y, z.x, z.y) < z.radius + r * 0.5)) continue;
+            if (this.obstacles.some((o) => dist(x, y, o.x, o.y) < o.r + 50)) continue;
             if (this.patches.some((q) => dist(x, y, q.x, q.y) < q.radius + r + 120)) continue;
             this.patches.push({
               kind: 'swap', x, y, ux: 0, uy: 0,
@@ -551,17 +586,24 @@ export class Run {
 
   /** Push a moving body of radius `br` out of every obstacle it penetrates.
    *  Removing only the penetration component is what makes entities slide
-   *  along racks instead of sticking to them. Hot loop: squared early-out,
+   *  along racks instead of sticking to them. Up to 3 passes: in a tight
+   *  row (aisle walls), pushing out of one body can land inside its
+   *  row-mate — iterate to convergence. Hot loop: squared early-out,
    *  no allocation. */
   resolveObstacles(b: { x: number; y: number }, br: number): void {
-    for (const o of this.obstacles) {
-      const dx = b.x - o.x, dy = b.y - o.y;
-      const min = o.r + br;
-      const d2 = dx * dx + dy * dy;
-      if (d2 >= min * min) continue;
-      const d = Math.sqrt(d2) || 0.001;
-      b.x = o.x + (dx / d) * min;
-      b.y = o.y + (dy / d) * min;
+    for (let pass = 0; pass < 4; pass++) {
+      let moved = false;
+      for (const o of this.obstacles) {
+        const dx = b.x - o.x, dy = b.y - o.y;
+        const min = o.r + br;
+        const d2 = dx * dx + dy * dy;
+        if (d2 >= min * min) continue;
+        const d = Math.sqrt(d2) || 0.001;
+        b.x = o.x + (dx / d) * min;
+        b.y = o.y + (dy / d) * min;
+        moved = true;
+      }
+      if (!moved) return;
     }
   }
 

@@ -48,5 +48,18 @@ await page.waitForFunction(() => typeof window.dbg === 'object');
 await page.evaluate(() => window.dbg.god(true));
 await page.waitForTimeout(3000);
 await page.screenshot({ path: 'scripts/terrain-check-3.png' });
+
+// glacier: frozen-process ice columns among the latency fields
+await page.addInitScript(() => {
+  localStorage.setItem('debugger-save-v1', JSON.stringify({
+    unlockedMaps: ['greenfield', 'cyberGlacier'],
+    lastMap: 'cyberGlacier',
+  }));
+});
+await page.goto(`${BASE}/?autostart`);
+await page.waitForFunction(() => typeof window.dbg === 'object');
+await page.evaluate(() => window.dbg.god(true));
+await page.waitForTimeout(3000);
+await page.screenshot({ path: 'scripts/terrain-check-4.png' });
 await browser.close();
-console.log('screenshots → scripts/terrain-check-{1,2,3}.png');
+console.log('screenshots → scripts/terrain-check-{1,2,3,4}.png');

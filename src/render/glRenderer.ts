@@ -351,8 +351,8 @@ export class GlRenderer extends RendererBase {
           b.color('#000', 0.35);
           b.ellipse(sx, sy, o.r * 1.15, o.r * 0.58);
           b.alpha(1);
-          const sprite = propSprite('rack');
-          // scale the one baked rack to the collision footprint (r 26–40)
+          const sprite = propSprite(run.map.obstacles?.kind ?? 'rack');
+          // scale the one baked body to the collision footprint (r ~24–42)
           const sc = o.r / 30;
           const w = (sprite.width / 2) * sc, h = (sprite.height / 2) * sc;
           // bottom edge of the cabinet sits at +28/42 of the half-scale bake —

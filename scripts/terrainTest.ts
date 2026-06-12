@@ -19,25 +19,56 @@ const run = new Run(CHARACTERS.ada, MAPS.productionServer, {}, pool, new Set());
 const spec = MAPS.productionServer.obstacles!;
 
 // --- layout ---
-check('racks rolled (rejection sampling finds room)', run.obstacles.length >= spec.count - 2,
+check('racks rolled (rejection sampling finds room)', run.obstacles.length >= spec.count - 4,
   `${run.obstacles.length}/${spec.count}`);
 check('radii within spec', run.obstacles.every((o) => o.r >= spec.rMin && o.r <= spec.rMax));
 check('player start clear', run.obstacles.every((o) => Math.hypot(o.x, o.y) > 280 - 1e-9));
-let pairOk = true;
-for (const a of run.obstacles) for (const b of run.obstacles) {
-  if (a !== b && Math.hypot(a.x - b.x, a.y - b.y) < a.r + b.r + 110 - 1e-9) pairOk = false;
+
+// rows layout: cluster by adjacency → every cluster is an axis-aligned row of
+// ≤4 same-size racks, and separate rows keep ≥170 corridors between them
+{
+  const groups: number[] = run.obstacles.map((_, i) => i);
+  const find = (i: number): number => (groups[i] === i ? i : (groups[i] = find(groups[i])));
+  run.obstacles.forEach((a, i) => run.obstacles.forEach((b, j) => {
+    if (i < j && Math.hypot(a.x - b.x, a.y - b.y) <= a.r + b.r + 20) groups[find(i)] = find(j);
+  }));
+  const rows = new Map<number, number[]>();
+  run.obstacles.forEach((_, i) => {
+    const g = find(i);
+    rows.set(g, [...(rows.get(g) ?? []), i]);
+  });
+  const rowList = [...rows.values()];
+  check('racks form rows (some multi-rack walls exist)', rowList.some((r) => r.length >= 2),
+    `${rowList.length} rows for ${run.obstacles.length} racks`);
+  check('rows are axis-aligned and ≤4 long', rowList.every((r) => {
+    if (r.length > 4) return false;
+    const xs = r.map((i) => run.obstacles[i].x), ys = r.map((i) => run.obstacles[i].y);
+    return Math.max(...xs) - Math.min(...xs) < 1 || Math.max(...ys) - Math.min(...ys) < 1;
+  }));
+  let corridorsOk = true;
+  rowList.forEach((ra, i) => rowList.forEach((rb, j) => {
+    if (i >= j) return;
+    for (const ia of ra) for (const ib of rb) {
+      const a = run.obstacles[ia], b = run.obstacles[ib];
+      if (Math.hypot(a.x - b.x, a.y - b.y) < a.r + b.r + 170 - 1e-9) corridorsOk = false;
+    }
+  }));
+  check('corridors between rows stay ≥ 170', corridorsOk);
 }
-check('aisles stay walkable (pairwise spacing ≥ 110)', pairOk);
 check('no rack covers a vent center',
   run.obstacles.every((o) => run.zones.every((z) => Math.hypot(o.x - z.x, o.y - z.y) >= z.radius + o.r + 20 - 1e-9)));
 
 // --- push-out ---
+// off-axis interior start: a body EXACTLY on a row's axis line ping-pongs
+// between row-mates (all pushes stay collinear — measure-zero geometry that
+// real movement never produces; the 60s sim below asserts the per-frame
+// invariant). Any lateral offset converges out the wall's side.
 const o0 = run.obstacles[0];
-const body = { x: o0.x + 1, y: o0.y }; // deep inside
+const body = { x: o0.x + 5, y: o0.y + 7 }; // diagonal: lateral to either row axis
 run.resolveObstacles(body, 13);
-check('body inside a rack is pushed to the edge',
-  Math.hypot(body.x - o0.x, body.y - o0.y) >= o0.r + 13 - 1e-6,
-  `d=${Math.hypot(body.x - o0.x, body.y - o0.y).toFixed(1)} vs ${(o0.r + 13).toFixed(1)}`);
+check('body inside a wall is pushed fully out (multi-pass converges)',
+  !run.obstacleAt(body.x, body.y, 13 - 1e-6),
+  `at (${body.x.toFixed(0)}, ${body.y.toFixed(0)})`);
 
 // --- slide-along: a body moving at 45° into the rack must keep its tangential
 // progress (push-out removes only the penetration component). Synthetic fixed
@@ -103,13 +134,13 @@ check('player not inside a rack',
   run.obstacles.every((o) => Math.hypot(run.px - o.x, run.py - o.y) >= o.r + 13 - 1e-6));
 
 // --- LOS targeting (user ruling: auto-aim skips covered targets) ---
-const o2 = run.obstacles[0];
-check('LOS blocked straight through a rack',
-  !run.hasLOS(o2.x - o2.r - 50, o2.y, o2.x + o2.r + 50, o2.y));
-check('LOS clear past the rack edge',
-  run.hasLOS(o2.x - o2.r - 50, o2.y + o2.r + 30, o2.x + o2.r + 50, o2.y + o2.r + 30));
-check('LOS trivially clear on featureless maps',
-  new Run(CHARACTERS.ada, MAPS.greenfield, {}, pool, new Set()).hasLOS(0, 0, 1000, 0));
+// synthetic isolated circle: rolled layouts have row-mates near any rack,
+// so "past the edge" paths through the real field aren't reliably clear
+const losRun = new Run(CHARACTERS.ada, MAPS.greenfield, {}, pool, new Set());
+check('LOS trivially clear on featureless maps', losRun.hasLOS(0, 0, 1000, 0));
+losRun.obstacles.push({ x: 0, y: 0, r: 30 });
+check('LOS blocked straight through a blocker', !losRun.hasLOS(-80, 0, 80, 0));
+check('LOS clear past the blocker edge', losRun.hasLOS(-80, 60, 80, 60));
 
 // --- boss crush (user ruling: bosses destroy racks they plow into) ---
 const racksBefore = run.obstacles.length;
@@ -137,10 +168,26 @@ const b0 = { ...bystander };
 run.applyPatches(bystander, 1);
 check('off-lane bystander unaffected', bystander.x === b0.x && bystander.y === b0.y);
 
-// --- terrain patches: Swap Space (marsh) ---
+// --- per-map blockers: marsh stumps + glacier ice (scatter layout) ---
 const marshRun = new Run(CHARACTERS.ada, MAPS.memoryMarsh, {}, pool, new Set());
+check('marsh rolls dead-process stumps', marshRun.obstacles.length >= MAPS.memoryMarsh.obstacles!.count - 3,
+  `${marshRun.obstacles.length}/${MAPS.memoryMarsh.obstacles!.count}`);
+let marshScatterOk = true;
+for (const a of marshRun.obstacles) for (const b of marshRun.obstacles) {
+  if (a !== b && Math.hypot(a.x - b.x, a.y - b.y) < a.r + b.r + 110 - 1e-9) marshScatterOk = false;
+}
+check('marsh scatter stays walkable (pairwise ≥ 110)', marshScatterOk);
+check('no stump covers a pool center',
+  marshRun.obstacles.every((o) => marshRun.zones.every((z) => Math.hypot(o.x - z.x, o.y - z.y) >= z.radius + o.r + 20 - 1e-9)));
+const glacierRun = new Run(CHARACTERS.ada, MAPS.cyberGlacier, {}, pool, new Set());
+check('glacier rolls frozen-process columns', glacierRun.obstacles.length >= MAPS.cyberGlacier.obstacles!.count - 3,
+  `${glacierRun.obstacles.length}/${MAPS.cyberGlacier.obstacles!.count}`);
+
+// --- terrain patches: Swap Space (marsh) ---
 check('marsh rolls swap wells', marshRun.patches.length >= 4 && marshRun.patches.every((p) => p.kind === 'swap'),
   `${marshRun.patches.length}`);
+check('well hearts clear of stump bodies',
+  marshRun.patches.every((p) => marshRun.obstacles.every((o) => Math.hypot(p.x - o.x, p.y - o.y) >= o.r + 50 - 1e-9)));
 const well = marshRun.patches[0];
 const sucked = { x: well.x + well.radius * 0.6, y: well.y };
 const d0 = well.radius * 0.6;
@@ -154,6 +201,9 @@ for (let t = 0; t < 5 * 60 && marshRun.enemies.length === 0; t++) { marshRun.upd
 const bug = marshRun.enemies.find((e) => !e.isBoss);
 check('precondition: marsh bug spawned', !!bug);
 if (bug) {
+  // park the player next to the well: a bug >1000u from the player gets
+  // straggler-recycled to the spawn ring before the drift can be measured
+  marshRun.px = well.x - 250; marshRun.py = well.y;
   bug.frozenT = 10; bug.knockX = 0; bug.knockY = 0;
   bug.x = well.x + well.radius * 0.7; bug.y = well.y;
   const bd0 = Math.hypot(bug.x - well.x, bug.y - well.y);

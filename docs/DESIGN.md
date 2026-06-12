@@ -289,3 +289,34 @@ must stay wide (BALANCE.md §5) — never tune it away.
 v0.1 (this build) → v0.2 polish: pause-menu stat sheet, minimap, gamepad →
 v0.3 content: 2 biomes, 4 weapons, 8 characters → v0.4 challenge/endless modes →
 v1.0: Steam wrap (Electron/Tauri), achievements, localization.
+
+## 30. Terrain & obstacles (v0.3)
+
+Maps stopped being featureless planes; the design rules (all user-ruled 2026-06-12):
+
+- **Blockers** are per-run collision circles (`Run.obstacles`) with a per-map sprite +
+  layout: Production = server racks in **aisle rows** (2–4 tight bodies forming walls,
+  ≥170u corridors between rows — the wall is the terrain, the aisle is the play),
+  Marsh = dead-process stumps (scatter), Glacier = frozen-process ice columns
+  (scatter). **Greenfield stays featureless by design** (tutorial plane + balance
+  anchor). Collision is push-out (slide-along falls out of removing only the
+  penetration component; multi-pass for wall rows). Bosses **crush** blockers they
+  plow into (`crush` event) — fights progressively clear the arena, and no boss can
+  be stranded. Blockers are permanent (destructibility is reserved for v0.4 in-run
+  event objects).
+- **Cover blocks projectiles only**: flat-flying shots die on blockers from BOTH
+  sides; lobbed arcs (Fork Bombs, heap globs) fly over; instant effects (chains,
+  smites, columns, sweeps, explosions) ignore cover. Projectile-weapon auto-aim is
+  **LOS-gated** (`Run.hasLOS`) so the player's weapons don't waste cycles on covered
+  targets; enemy tracers stay cover-blind — a dumb bug emptying its magazine into a
+  rack is the player's reward for using cover.
+- **Patches** are non-damaging floor terrain (`Run.patches`), symmetric by ruling —
+  regular bugs ride/sink exactly like the player (frozen ones included; drift is
+  physical), bosses/stationaries exempt: Production **Data Bus** conveyor lanes
+  (60 u/s carry), Marsh **Swap Space** gravity wells (16→40 u/s pull toward center).
+  Hazards deal damage; patches move you — the categories never blur.
+- **Balance sims never see terrain** (`noTerrain`, BALANCE.md sim-environment
+  policy): win-rate baselines are terrain-independent by construction, and terrain
+  correctness has its own instruments (`scripts/terrainTest.ts`, suspend round-trips,
+  visual checks). Seeded challenge runs (v0.4) will inherit deterministic layouts
+  automatically once `Run.rng` is seed-threaded.

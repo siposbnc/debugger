@@ -180,10 +180,16 @@ export interface MapDef {
   hazardPools?: boolean;                 // toxic slow pools scattered on the field
   hazardVents?: boolean;                 // overheating floor vents (periodic damage zones)
   hazardLatency?: boolean;               // latency fields (slow player AND enemies inside)
-  /** Impassable blockers (server racks &c.) scattered per run: count + body
-   *  radius range. Block player + regular enemy movement (bosses crush past);
-   *  projectiles fly over. See Run.obstacles. */
-  obstacles?: { count: number; rMin: number; rMax: number };
+  /** Impassable blockers scattered per run: count + body radius range. Block
+   *  player + regular enemy movement (bosses crush past) and flat projectiles;
+   *  `kind` picks the sprite (collision is always a circle), `layout` the
+   *  generator — 'scatter' (default) or 'rows' (aisle walls of 2–4 bodies
+   *  sharing an axis, server-room style). See Run.obstacles. */
+  obstacles?: {
+    kind: 'rack' | 'stump' | 'ice';
+    count: number; rMin: number; rMax: number;
+    layout?: 'scatter' | 'rows';
+  };
   /** Terrain patches (non-damaging floor terrain, affects player AND bugs —
    *  bosses/stationaries exempt; disabled in balance sims like obstacles):
    *  'bus' = directional conveyor lanes carrying riders along the strip;
