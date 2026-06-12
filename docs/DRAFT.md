@@ -17,6 +17,45 @@ into [ROADMAP.md](../ROADMAP.md), and moves them to **Processed** below.
 
 ---
 
+## Processed → ROADMAP.md (2026-06-13, batch 21)
+
+- Shop menu (weapon licenses + characters) → **v0.4 new "Progression & economy" section, P2 (S) "Shop sells characters"** — licenses already live in the shop since v0.3; the new part is a "# Characters" section, the UPGRADES button renamed SHOP, and purchases consolidated there (select screens keep locked silhouettes but stop selling — one buy path)
+- Weapon arsenal in the codex → **v0.4 P2 (S) "Codex: weapon arsenal tab"** — per-weapon entry with evolution chain, `levels[]` highlights, and the already-tracked lifetime damage; progressive reveal on first wield (locked = glitched "?", same as bugs)
+- Better pause menu inventory → **v0.4 P2 (M) "Pause inventory redesign"** — the v0.3 weapons panel stays but the inventory becomes the pause screen's primary pane (large weapon cards), run stats/cards demoted to secondary
+- Next map hidden until previous cleared → **v0.4 P2 (S) "Gated map progression"** — "???" silhouette card until the prior map's first win, then purchasable; introduces `mapVictories` per-map win counter in the save (shared with Endless + best-time stats)
+- Per-map infinite mode + exponential scaling → **folded into the existing v0.4 P1 "Endless mode"** — unlock per map on that map's first clear, toggle on its map-select card, 15:00 victory/payout banks before overtime, exponential overtime term in `difficulty()` so every endless run ends (best time per map = the leaderboard stat)
+- Prestige details → **v0.5 design-doc item enriched** (no new items — v0.5 stays design-first): trigger = last map first cleared, keep-playing-for-tokens with diminishing returns (√ proposal, formula is the doc's job), tree sells mechanics not just stats (starting level / keep-upgrade-through-prestige / evolutions flagged as a risky open question / new-mechanic nodes), map tier per prestige cross-linked with the P3 infinite map ladder. Name still open — "The Great Rewrite" theme kept, "SHIP IT" button proposed
+
+<details>
+<summary>Batch 21 — original notes (kept for reference)</summary>
+
+### Draft ideas
+
+- shop menu
+    - buy weapon licenses and characters here
+- weapon arsenal in the codex database
+- better pause menu inventory
+    - feels cramped together, inventory should be main visual focus for the player when they pause
+- next map unlocks for purchase when previous is cleared. hide them until unlocked
+- infinite mode unlocks per map when they are cleared. only for that map.
+    - exponential scaling after 15 minutes (in infinity mode)
+- "prestige" (name is not fixed, open to suggestions)
+    - prestiging resets the game but unlocks a new permanent upgrade tree (no details yet) that provides substantial bonuses to progress futther in the game (not only stat modifiers)
+    - some game mechanics (maybe some characters and weapons too?) are unlockable in this tree
+        - some example:
+            - starting level
+            - keep x upgrade upon a prestige (more levels to buy, max it out to keep max level upgrade)
+            - weapon evolutions ???
+            - entirely new mechanics (not thought out yet, open to suggestions)
+    - each prestige increases the map tier
+        - map tier significantly
+    - gain tokens (???) for prestige to spend in the tree
+        - how to calculate token gain???
+    - prestige is available when the last map is cleared
+        - they can decide to keep playing for more tokens (deminishing returns after a point, need a formula)
+
+</details>
+
 ## Processed → ROADMAP.md (2026-06-12, batch 20)
 
 - Objectives into their own menu → **shipped same day**: new OBJECTIVES main-menu entry (`cat TODO.md` heading, done-counter, NEW-badge support moved with it); the codex drops its objectives column (now stats / known_bugs / incidents)
