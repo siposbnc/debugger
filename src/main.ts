@@ -134,11 +134,17 @@ function endRun(): void {
 function pause(): void {
   if (state !== 'run' || !run) return;
   state = 'paused';
+  showPauseScreen();
+}
+
+function showPauseScreen(): void {
+  if (!run) return;
   ui.showPause(
     run,
     resume,
     () => { if (run) { run.over = true; run.victory = false; } endRun(); },
     suspendRun,
+    () => ui.showSettings(showPauseScreen), // settings sub-screen, BACK returns here
   );
 }
 
@@ -146,6 +152,13 @@ function resume(): void {
   if (state !== 'paused') return;
   ui.hide();
   state = 'run';
+}
+
+/** Esc/P/Start/B while paused: from the settings sub-screen back to the
+ *  pause overview; from the pause screen itself, resume the run. */
+function pauseBack(): void {
+  if (ui.screenKind === 'settings') showPauseScreen();
+  else resume();
 }
 
 function drainEvents(): void {
@@ -238,9 +251,9 @@ function frame(now: number): void {
   // Space-resume comes from kbnav: the pause screen's default highlight is CONTINUE.
   if (wasPressed('Escape') || wasPressed('KeyP') || padWasPressed(PAD.START)) {
     if (state === 'run') pause();
-    else if (state === 'paused') resume();
+    else if (state === 'paused') pauseBack();
   } else if (state === 'paused' && padWasPressed(PAD.B)) {
-    resume();
+    pauseBack();
   }
   consumePressed();
 

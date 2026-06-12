@@ -17,6 +17,19 @@ into [ROADMAP.md](../ROADMAP.md), and moves them to **Processed** below.
 
 ---
 
+## Processed → ROADMAP.md (2026-06-12, batch 12)
+
+- Settings from the pause screen → **v0.2 UX, shipped same day**: SETTINGS button on the pause overview; the settings screen gained a back-target param so BACK returns to the pause overview (not the main menu) and the run stays paused throughout. Esc/B route stepwise (settings → pause → resume); the save-wipe row is hidden mid-run (wiping under a live run is undefined behavior)
+
+<details>
+<summary>Batch 12 — original notes (kept for reference)</summary>
+
+### Draft ideas
+
+- access the settings menu from the pause screen
+
+</details>
+
 ## Processed → ROADMAP.md (2026-06-12, batch 11)
 
 - `dbg.time()` accepts invalid params and breaks time/audio → **fixed same day**: console callers bypass TypeScript, so `'6:00' * 60` put `NaN` into the run clock (breaking the music-intensity ramp and every timer). All numeric dbg params (`time`, `xp`, `bits`, `give`, `level`) now coerce via `Number()` — numeric strings like `'6'` still work — and reject non-finite values with a usage message before touching the run. devtoolsTest grew 4 checks (24/24)

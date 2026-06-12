@@ -76,6 +76,9 @@ export class UI {
   onStartRun: (charId: string, mapId: string) => void = () => {};
   onResumeRun: () => void = () => {};
   onSettingsChanged: () => void = () => {};
+  /** Which screen is up — the main loop consults this while paused to route
+   *  Esc/B: 'pause' resumes, 'settings' returns to the pause overview. */
+  screenKind = '';
 
   constructor(root: HTMLElement, save: SaveData) {
     this.root = root;
@@ -85,6 +88,7 @@ export class UI {
   hide(): void {
     this.nav.detach();
     this.root.innerHTML = '';
+    this.screenKind = '';
   }
 
   // Gamepad → menu navigation (the main loop polls the pad and drives these).
@@ -93,6 +97,7 @@ export class UI {
   navBack(): void { this.nav.back(); }
 
   private screen(html: string, onBack: (() => void) | null = null): HTMLElement {
+    this.screenKind = ''; // specific show* methods override after rendering
     this.root.innerHTML = `<div class="screen">${html}</div>`;
     const el = this.root.firstElementChild as HTMLElement;
     el.querySelectorAll('button').forEach((b) =>
@@ -390,8 +395,12 @@ export class UI {
 
   // ---------- settings ----------
 
-  showSettings(): void {
+  /** `onBack` set = opened from the pause screen: BACK returns there, Esc is
+   *  handled by the main loop (kbnav stays out of it — same rule as the pause
+   *  screen itself), and the save-wipe row is hidden (undefined mid-run). */
+  showSettings(onBack?: () => void): void {
     const st = this.save.settings;
+    const back = onBack ?? (() => this.showMainMenu());
     const s = this.screen(`
       <div class="screen-heading">~/.debuggerrc</div>
       <div class="settings-box">
@@ -411,13 +420,15 @@ export class UI {
           <label>Player health bar</label>
           <button class="toggle ${st.playerHpBar ? '' : 'off'}" id="hpbar">${st.playerHpBar ? 'ON' : 'OFF'}</button>
         </div>
+        ${onBack ? '' : `
         <div class="setting-row">
           <label>Save data</label>
           <button class="btn small danger" id="wipe">rm -rf save</button>
-        </div>
+        </div>`}
       </div>
       <button class="btn" data-act="back">BACK</button>
-    `, () => this.showMainMenu());
+    `, onBack ? null : back);
+    this.screenKind = 'settings';
     const sync = () => {
       st.sfx = Number((s.querySelector('#sfx') as HTMLInputElement).value) / 100;
       st.music = Number((s.querySelector('#music') as HTMLInputElement).value) / 100;
@@ -430,15 +441,15 @@ export class UI {
       st.shake = !st.shake;
       this.persist();
       this.onSettingsChanged();
-      this.showSettings();
+      this.showSettings(onBack);
     });
     s.querySelector('#hpbar')!.addEventListener('click', () => {
       st.playerHpBar = !st.playerHpBar;
       this.persist();
       this.onSettingsChanged();
-      this.showSettings();
+      this.showSettings(onBack);
     });
-    s.querySelector('#wipe')!.addEventListener('click', () => {
+    s.querySelector('#wipe')?.addEventListener('click', () => {
       if (confirm('Delete all progress? This cannot be undone.')) {
         const fresh = wipeSave();
         Object.assign(this.save, fresh);
@@ -446,7 +457,7 @@ export class UI {
       }
     });
     s.addEventListener('click', (e) => {
-      if ((e.target as HTMLElement).closest('button')?.dataset.act === 'back') this.showMainMenu();
+      if ((e.target as HTMLElement).closest('button')?.dataset.act === 'back') back();
     });
   }
 
@@ -543,7 +554,7 @@ export class UI {
 
   // ---------- pause (current-run overview) ----------
 
-  showPause(run: Run, onResume: () => void, onAbandon: () => void, onSuspend: () => void): void {
+  showPause(run: Run, onResume: () => void, onAbandon: () => void, onSuspend: () => void, onSettings: () => void): void {
     const st = run.stats;
     const row = (label: string, value: string) =>
       `<div class="prow"><span>${label}</span><span class="v">${value}</span></div>`;
@@ -607,6 +618,7 @@ export class UI {
       <div class="hint">breakpoint hit at ${formatTime(run.time)} — level ${run.level}, ${run.kills} bugs squashed</div>
       <div class="pause-actions">
         <button class="btn primary" data-act="resume">CONTINUE (ESC)</button>
+        <button class="btn" data-act="settings">SETTINGS</button>
         <button class="btn" data-act="suspend" title="save the run and exit — resume from the main menu">SUSPEND PROCESS</button>
         <button class="btn danger" data-act="abandon">KILL PROCESS</button>
       </div>
@@ -619,6 +631,7 @@ export class UI {
         </div>
       </div>
     `); // no kbnav onBack: the main loop owns Esc/P while paused (would double-toggle)
+    this.screenKind = 'pause';
 
     // KILL PROCESS is two-step: first activate arms, second confirms. Mouse,
     // keyboard and gamepad all funnel through the button's click event (kbnav
@@ -641,6 +654,7 @@ export class UI {
     s.addEventListener('click', (e) => {
       const act = (e.target as HTMLElement).closest('button')?.dataset.act;
       if (act === 'resume') onResume();
+      else if (act === 'settings') onSettings();
       else if (act === 'suspend') onSuspend();
       else if (act === 'abandon') {
         if (!armed) {
