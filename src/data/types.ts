@@ -31,6 +31,7 @@ export interface StatMods {
   rerolls?: number;        // +flat per-run
   banishes?: number;
   skips?: number;
+  shield?: number;         // flat max shield (absorbs damage before HP)
 }
 
 export interface UpgradeCard {
@@ -84,7 +85,8 @@ export interface WeaponDef {
   levels: WeaponLevelStats[];   // index 0 = level 1
 }
 
-export type EnemyBehavior = 'chase' | 'charge' | 'jitter';
+export type EnemyBehavior = 'chase' | 'charge' | 'jitter'
+  | 'ranged'; // holds mid distance and spits aimed shots (Tracer Bug)
 
 export interface EnemyDef {
   id: string;
@@ -97,7 +99,7 @@ export interface EnemyDef {
   xp: number;
   bits: number;
   color: string;
-  shape: 'mite' | 'tick' | 'wasp' | 'leech' | 'spider' | 'beetle' | 'scarab' | 'centipede' | 'flask' | 'pillar';
+  shape: 'mite' | 'tick' | 'wasp' | 'leech' | 'spider' | 'beetle' | 'scarab' | 'centipede' | 'flask' | 'pillar' | 'tracer' | 'crab';
   behavior: EnemyBehavior;
   /** spawn in clusters of N (Cache Tick) */
   cluster?: number;
@@ -108,6 +110,8 @@ export interface EnemyDef {
   slowAura?: boolean;     // slows the player when near (Deadlock Scarab)
   drain?: boolean;        // extra close-range damage + heals itself (Memory Leech)
   duplicates?: boolean;   // occasionally spawns a short-lived copy (Race Condition Spider)
+  /** blocks most damage arriving from its facing side — flank it (Checksum Crab) */
+  frontShield?: boolean;
   /** Not a software defect at all (The Precipitate): never in spawn plans or the
    *  enemies array — run.ts drives it as its own entity; codex tags it NOT A BUG. */
   notABug?: boolean;

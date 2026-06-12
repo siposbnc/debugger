@@ -192,6 +192,7 @@ export abstract class RendererBase {
         this.shake(3);
         break;
       case 'hurt': this.shake(2.5); break;
+      case 'shieldHit': this.shake(1); break; // absorbed: soft cue, no red flash
       case 'heal':
         // Rare (≤ ~1/s) so it bypasses the 40-number merge cap.
         this.damageNums.push({ x: ev.x, y: ev.y, value: ev.amount, life: 0.8, crit: false, heal: true });
@@ -620,9 +621,22 @@ export abstract class RendererBase {
     ctx.font = '17px VT323, monospace';
     ctx.fillText(`HP ${Math.ceil(run.hp)} / ${Math.round(run.stats.maxHp)}`, pad + 8, hpY + 17);
 
-    // weapons row above HP bar
+    // shield bar: thin cyan strip directly above the HP bar (only when built)
+    let shieldH = 0;
+    if (run.stats.shieldMax > 0) {
+      shieldH = 10;
+      const sy = hpY - shieldH - 2;
+      ctx.fillStyle = 'rgba(8, 12, 18, 0.8)';
+      ctx.fillRect(pad, sy, hpW, shieldH);
+      ctx.fillStyle = '#5fd7ff';
+      ctx.fillRect(pad, sy, hpW * clamp(run.shield / run.stats.shieldMax, 0, 1), shieldH);
+      ctx.strokeStyle = 'rgba(95, 215, 255, 0.5)';
+      ctx.strokeRect(pad + 0.5, sy + 0.5, hpW, shieldH);
+    }
+
+    // weapons row above HP bar (and the shield strip when present)
     let wx = pad;
-    const wy = hpY - 38;
+    const wy = hpY - 38 - (shieldH ? shieldH + 2 : 0);
     ctx.font = '13px VT323, monospace';
     for (const w of run.weapons) {
       ctx.fillStyle = 'rgba(8, 12, 18, 0.8)';

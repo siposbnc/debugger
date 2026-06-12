@@ -52,6 +52,20 @@ export const ENEMIES: Record<string, EnemyDef> = {
     hp: 160, speed: 46, damage: 16, radius: 20, xp: 8, bits: 5,
     color: '#cf4f86', shape: 'centipede', behavior: 'chase',
   },
+  tracerBug: {
+    id: 'tracerBug', name: 'Tracer Bug',
+    codexDesc: 'Logs your position from a polite distance, then posts the results '
+      + 'directly to you. Closing the distance closes the ticket.',
+    hp: 22, speed: 70, damage: 8, radius: 11, xp: 3, bits: 2,
+    color: '#ff8fd0', shape: 'tracer', behavior: 'ranged',
+  },
+  checksumCrab: {
+    id: 'checksumCrab', name: 'Checksum Crab',
+    codexDesc: 'Validates everything that approaches head-on and rejects it. '
+      + 'The hash function has a blind spot: behind it.',
+    hp: 60, speed: 44, damage: 11, radius: 15, xp: 4, bits: 3,
+    color: '#67e8c8', shape: 'crab', behavior: 'chase', frontShield: true,
+  },
   // Boss adjunct — spawned only by the Legacy Monolith's armored phase, never in
   // spawn plans. Inert (0 contact damage) shot-soak: auto-aim and projectiles hit
   // it like any enemy, which is exactly the mechanic. Destroying one mid-armor

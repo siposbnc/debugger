@@ -20,7 +20,7 @@ const browser = await chromium.launch();
   await page.click('button[data-act="back"]');
   await page.click('button[data-act="shop"]');
   const lockedMeta = await page.locator('.shop-row.locked').count();
-  check('fresh shop: all 13 meta rows are ???', lockedMeta === 13);
+  check('fresh shop: all 14 meta rows are ???', lockedMeta === 14);
   check('fresh shop hides upgrade names', !(await page.content()).includes('Sharper Semicolons'));
   await page.screenshot({ path: 'scripts/unlocks-shop-fresh.png' });
   await page.close();

@@ -215,12 +215,15 @@ export const WEAPONS: Record<string, WeaponDef> = {
     id: 'sudoScroll', name: 'Sudo Scroll', kind: 'smite', icon: '⌥', color: '#ffc12e',
     desc: 'Rarely, strikes the biggest bug in range with root privileges.',
     flavor: 'bug is not in the sudoers file. This incident will be reported.',
-    evolveTo: 'rootAccess',
-    // area = strike visual radius (and the root-access execute zone basis)
+    evolveTo: 'rootShell',
+    // area = strike visual radius (and the root-shell execute zone basis)
     levels: levels(L(85, 5.6, 1, 60), { damage: 32, cooldown: 0.34 }),
   },
-  rootAccess: {
-    id: 'rootAccess', name: 'Root Access', kind: 'smite', icon: '#', color: '#ffd75e',
+  // id/name deliberately NOT "rootAccess": that's a legendary CARD — sharing
+  // an id collides in banish sets / dbg.give, and two entities with one name
+  // confuses players.
+  rootShell: {
+    id: 'rootShell', name: 'Root Shell', kind: 'smite', icon: '#', color: '#ffd75e',
     desc: 'The strike also executes weakened lesser bugs around it (<15% HP).',
     flavor: 'uid=0(root). Everything is a file. Files can be deleted.',
     isEvolution: true,

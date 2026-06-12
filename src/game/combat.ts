@@ -262,7 +262,7 @@ function fireHoming(run: Run, w: WeaponInstance, s: ReturnType<typeof effective>
 function fireSmite(run: Run, w: WeaponInstance, s: ReturnType<typeof effective>): boolean {
   const candidates = nearestN(run, run.px, run.py, 40, 440);
   if (candidates.length === 0) return false;
-  const isRoot = w.def.id === 'rootAccess';
+  const isRoot = w.def.id === 'rootShell';
   for (let i = 0; i < s.count; i++) {
     let target: Enemy | null = null;
     for (const e of candidates) {

@@ -233,6 +233,7 @@ function drainEvents(): void {
       case 'pickupXp': sound.play('pickup'); break;
       case 'pickupHp': sound.play('chest'); break;
       case 'hurt': sound.play('hurt'); break;
+      case 'shieldHit': sound.play('hit'); break; // absorbed: dull tick, not the hurt sting
       case 'levelup': sound.play('levelup'); break;
       case 'bossWarning': sound.play('bossWarn'); break;
       case 'bossDie': sound.play('bossDie'); break;

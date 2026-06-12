@@ -46,6 +46,12 @@ export const META_UPGRADES: MetaUpgradeDef[] = [
     modsPerLevel: { armor: 1 },
   },
   {
+    id: 'shield', name: 'Air Gap', icon: '🔰',
+    desc: '+10 starting shield per level (absorbs damage before HP; recharges after 6s without damage).',
+    maxLevel: 3, baseCost: 110, costGrowth: 1.7,
+    modsPerLevel: { shield: 10 },
+  },
+  {
     id: 'luck', name: 'Lucky Commit Hash', icon: '🍀',
     desc: '+1 luck per level (better card rarities).',
     maxLevel: 3, baseCost: 120, costGrowth: 1.9,

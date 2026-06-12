@@ -23,6 +23,8 @@ export interface ComputedStats {
   skips: number;
   weaponSlots: number;
   bossRewardMult: number;
+  /** Max shield: a recharging layer that absorbs damage before HP (0 = none). */
+  shieldMax: number;
 }
 
 const BASE: ComputedStats = {
@@ -30,6 +32,7 @@ const BASE: ComputedStats = {
   damageMult: 1, cooldownFactor: 1, areaMult: 1, projectiles: 0,
   critChance: 0.05, critMult: 1.5, pickupRadius: 55, xpMult: 1, luck: 0,
   rerolls: 0, banishes: 0, skips: 0, weaponSlots: 4, bossRewardMult: 1,
+  shieldMax: 0,
 };
 
 export function computeStats(
@@ -50,7 +53,7 @@ export function computeStats(
 
   let hp = 0, regen = 0, armor = 0, speed = 0, dmg = 0, cdr = 0, area = 0;
   let proj = 0, crit = 0, critM = 0, pickup = 0, xp = 0, luck = 0;
-  let rerolls = 0, banishes = 0, skips = 0;
+  let rerolls = 0, banishes = 0, skips = 0, shield = 0;
 
   for (const m of all) {
     hp += m.maxHp ?? 0; regen += m.regen ?? 0; armor += m.armor ?? 0;
@@ -59,6 +62,7 @@ export function computeStats(
     crit += m.critChance ?? 0; critM += m.critMult ?? 0;
     pickup += m.pickupRadius ?? 0; xp += m.xpGain ?? 0; luck += m.luck ?? 0;
     rerolls += m.rerolls ?? 0; banishes += m.banishes ?? 0; skips += m.skips ?? 0;
+    shield += m.shield ?? 0;
   }
 
   return {
@@ -80,5 +84,6 @@ export function computeStats(
     skips: BASE.skips + skips,
     weaponSlots: BASE.weaponSlots + ((metaLevels['weaponSlot'] ?? 0) > 0 ? 1 : 0),
     bossRewardMult: BASE.bossRewardMult + 0.25 * (metaLevels['bossReward'] ?? 0),
+    shieldMax: Math.max(0, BASE.shieldMax + shield),
   };
 }

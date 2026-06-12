@@ -51,6 +51,54 @@ function legs(ctx: CanvasRenderingContext2D, color: string, r: number, pairs: nu
 type BugDrawer = (ctx: CanvasRenderingContext2D, r: number, color: string, elite: boolean) => void;
 
 const BUG_DRAWERS: Record<string, BugDrawer> = {
+  tracer: (ctx, r, color) => {
+    // long-lensed observer: slim body, big scope eye, antenna dish
+    legs(ctx, color, r * 0.9, 2);
+    withGlow(ctx, color, 6, () => {
+      ctx.fillStyle = color;
+      ctx.beginPath(); ctx.ellipse(0, r * 0.15, r * 0.7, r * 0.9, 0, 0, 7); ctx.fill();
+    });
+    // dish antenna
+    ctx.strokeStyle = color;
+    ctx.lineWidth = r * 0.12;
+    ctx.beginPath(); ctx.moveTo(0, -r * 0.6); ctx.lineTo(0, -r * 1.2); ctx.stroke();
+    ctx.beginPath(); ctx.arc(0, -r * 1.35, r * 0.3, 0.3, Math.PI - 0.3, true); ctx.stroke();
+    // single big scope lens
+    ctx.fillStyle = '#fff';
+    ctx.beginPath(); ctx.arc(0, -r * 0.05, r * 0.4, 0, 7); ctx.fill();
+    ctx.fillStyle = '#1a1d24';
+    ctx.beginPath(); ctx.arc(0, -r * 0.05, r * 0.18, 0, 7); ctx.fill();
+    // crosshair ticks on the lens
+    ctx.strokeStyle = 'rgba(26,29,36,0.7)';
+    ctx.lineWidth = r * 0.07;
+    ctx.beginPath();
+    ctx.moveTo(-r * 0.4, -r * 0.05); ctx.lineTo(-r * 0.55, -r * 0.05);
+    ctx.moveTo(r * 0.4, -r * 0.05); ctx.lineTo(r * 0.55, -r * 0.05);
+    ctx.stroke();
+  },
+  crab: (ctx, r, color) => {
+    // wide shell with a bright frontal plate (the checksum) + claws
+    legs(ctx, color, r, 3);
+    withGlow(ctx, color, 6, () => {
+      ctx.fillStyle = color;
+      ctx.beginPath(); ctx.ellipse(0, 0, r * 1.1, r * 0.8, 0, 0, 7); ctx.fill();
+    });
+    // frontal validation plate (lighter, ridged)
+    ctx.fillStyle = 'rgba(255,255,255,0.35)';
+    ctx.beginPath(); ctx.ellipse(0, -r * 0.35, r * 0.95, r * 0.35, 0, Math.PI, 0); ctx.fill();
+    ctx.strokeStyle = 'rgba(0,0,0,0.35)';
+    ctx.lineWidth = r * 0.08;
+    for (const sx of [-0.5, 0, 0.5]) {
+      ctx.beginPath();
+      ctx.moveTo(sx * r, -r * 0.6); ctx.lineTo(sx * r, -r * 0.2);
+      ctx.stroke();
+    }
+    // claws
+    ctx.fillStyle = color;
+    ctx.beginPath(); ctx.arc(-r * 1.15, -r * 0.35, r * 0.32, 0, 7); ctx.fill();
+    ctx.beginPath(); ctx.arc(r * 1.15, -r * 0.35, r * 0.32, 0, 7); ctx.fill();
+    eyes(ctx, 0, r * 0.15, r * 0.3, r * 0.2);
+  },
   mite: (ctx, r, color) => {
     legs(ctx, color, r, 3);
     withGlow(ctx, color, 6, () => {

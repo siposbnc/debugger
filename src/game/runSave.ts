@@ -49,6 +49,8 @@ export interface SuspendedRun {
   nextBossId?: string | null; lastBossId?: string | null;
   // boss-mechanic transients — optional: default to none active
   slams?: Slam[]; chillT?: number;
+  // shield — optional: pre-shield snapshots restore at full charge
+  shield?: number; shieldHitT?: number;
   // crunch time — optional: snapshots from before the mechanic existed restore inactive
   crunchStarted?: boolean; crunchT?: number;
   // character specials
@@ -91,6 +93,7 @@ export function snapshotRun(run: Run): SuspendedRun {
     time: run.time,
     px: run.px, py: run.py,
     hp: run.hp,
+    shield: run.shield, shieldHitT: run.shieldHitT,
     faceX: run.faceX, faceY: run.faceY,
     level: run.level, xp: run.xp, xpCollected: run.xpCollected, pendingLevelUps: run.pendingLevelUps,
     takenCards: [...run.takenCards.entries()],
@@ -182,5 +185,7 @@ export function restoreRun(snap: SuspendedRun, doneObjectives: Set<string>): Run
   run.mushiCaught = snap.mushiCaught ?? false;
 
   run.hp = Math.min(snap.hp, run.stats.maxHp);
+  run.shield = Math.min(snap.shield ?? run.stats.shieldMax, run.stats.shieldMax);
+  run.shieldHitT = snap.shieldHitT ?? 0;
   return run;
 }

@@ -25,6 +25,13 @@ export const UPGRADE_CARDS: UpgradeCard[] = [
     '+18 pickup radius', 'Everything is within reach if you cast wildly enough.', { pickupRadius: 18 }),
   C('inlineExpand', 'Inline Expansion', 'common', 'Area', '💠',
     '+8% effect area', 'Why call a function when you can BE the function?', { area: 0.08 }),
+  C('tryCatch', 'Try/Catch Block', 'common', 'Shield', '🔰',
+    '+12 shield (absorbs damage before HP; recharges after 6s without damage)',
+    'The exception still happens. It just happens to someone else.', { shield: 12 }),
+  C('codeReview', 'Code Review', 'common', 'Crit', '🔎',
+    '+4% crit chance', 'Someone WILL find the flaw. It will be you. Violently.', { critChance: 0.04 }),
+  C('wristRest', 'Ergonomic Wrist Rest', 'common', 'Health', '🪵',
+    '+0.5 HP/s regeneration', 'Ergonomics is a long game. So is survival.', { regen: 0.5 }),
 
   // ---- Uncommon ----
   C('refactor', 'Refactor', 'uncommon', 'Damage', '🔧',
@@ -43,6 +50,12 @@ export const UPGRADE_CARDS: UpgradeCard[] = [
     '+15% crit damage', 'Warning promoted to error. Error promoted to violence.', { critMult: 0.15 }),
   C('keyboardShortcuts', 'Keyboard Shortcuts', 'uncommon', 'Movement', '⌨',
     '+9% movement speed, +4% cooldown reduction', 'Never touch the mouse. Never touch the ground.', { speed: 0.09, cooldown: 0.04 }),
+  C('sandboxEnv', 'Sandbox Environment', 'uncommon', 'Shield', '🏖',
+    '+20 shield, +10 max HP', 'Whatever happens in staging stays in staging.', { shield: 20, maxHp: 10 }),
+  C('pairProgramming', 'Pair Programming', 'uncommon', 'Projectiles', '🧑‍🤝‍🧑',
+    '+1 projectile, -4% damage', 'Two keyboards. One bug tracker. Constant judgment.', { projectiles: 1, damage: -0.04 }),
+  C('scopeCreep', 'Scope Creep', 'uncommon', 'Area', '🐙',
+    '+14% effect area, -3% movement speed', 'The feature grew. The deadline did not move. Neither do you.', { area: 0.14, speed: -0.03 }),
 
   // ---- Rare ----
   // (rares stack ×3, epics ×2 — default-5 stacking on the high tiers was the
@@ -61,6 +74,10 @@ export const UPGRADE_CARDS: UpgradeCard[] = [
     '+8% crit chance, +25% crit damage', 'Found the hot path. It leads through their ribs.', { critChance: 0.08, critMult: 0.25 }, 3),
   C('observability', 'Observability Stack', 'rare', 'Pickup', '📡',
     '+45 pickup radius', 'You can now see — and yoink — everything.', { pickupRadius: 45 }, 3),
+  C('fuzzTester', 'Fuzz Tester', 'rare', 'Crit', '🎰',
+    '+7% crit chance, +20% crit damage', 'Random inputs. Predictable casualties.', { critChance: 0.07, critMult: 0.2 }, 3),
+  C('defenseInDepth', 'Defense in Depth', 'rare', 'Shield', '🧅',
+    '+25 shield, +2 armor', 'Layers. It is always layers.', { shield: 25, armor: 2 }, 3),
 
   // ---- Epic ----
   C('compilerBlessing', 'Compiler Blessing', 'epic', 'Damage', '✨',
@@ -75,6 +92,10 @@ export const UPGRADE_CARDS: UpgradeCard[] = [
     '+50 max HP, +1.5 HP/s regen', 'Five nines of you remain available.', { maxHp: 50, regen: 1.5 }, 2),
   C('grepMastery', 'Grep Mastery', 'epic', 'Luck', '🔍',
     '+2 luck', 'You always find what you are looking for. It cannot hide.', { luck: 2 }, 2),
+  C('microservices', 'Microservices', 'epic', 'Projectiles', '📦',
+    '+2 projectiles, -8% effect area', 'Split the monolith. Spray the pieces.', { projectiles: 2, area: -0.08 }, 2),
+  C('techDebt', 'Tech Debt', 'epic', 'XP', '💳',
+    '+30% XP gain, -8% damage', 'Borrow now. Pay later. Later is mid-boss.', { xpGain: 0.3, damage: -0.08 }, 2),
 
   // ---- Legendary ----
   C('rootAccess', 'Root Access', 'legendary', 'Damage', '👑',

@@ -9,7 +9,7 @@ import { BOSSES } from '../data/bosses';
 import { OBJECTIVES } from '../data/objectives';
 import { CARD_BY_ID } from '../data/upgrades';
 import { PATCH_NOTES } from '../data/patchNotes';
-import { RARITY_COLOR, RARITY_ORDER, type StatMods, type EnemyDef, type BossDef, type MetaUpgradeDef } from '../data/types';
+import { RARITY_COLOR, RARITY_ORDER, type StatMods, type EnemyDef, type BossDef, type MetaUpgradeDef, type WeaponLevelStats } from '../data/types';
 import { bugSprite, bossSprite } from '../render/sprites';
 import { computeStats, type ComputedStats } from '../game/stats';
 import { formatTime, formatDuration, mulberry32 } from '../core/util';
@@ -57,6 +57,7 @@ const STAT_VIEW: Partial<Record<keyof StatMods, {
   pickupRadius: { label: 'Pickup', get: (s) => s.pickupRadius, fmt: (v) => `${Math.round(v)}` },
   xpGain: { label: 'XP gain', get: (s) => s.xpMult, fmt: (v) => `×${v.toFixed(2)}` },
   luck: { label: 'Luck', get: (s) => s.luck, fmt: (v) => `${v}` },
+  shield: { label: 'Shield', get: (s) => s.shieldMax, fmt: (v) => `${Math.round(v)}` },
 };
 
 /** "dmg ×1.00 → ×1.08" rows for a stat card, with CAPPED marks on mods the
@@ -84,6 +85,50 @@ function cardStatPreview(run: Run, cardId: string): { html: string; fullyCapped:
     html: rows.length > 0 ? `<div class="stat-preview">${rows.join('')}</div>` : '',
     fullyCapped: rows.length > 0 && live === 0,
   };
+}
+
+// Weapon preview: which levels[] fields change going into the offered level.
+const WEAPON_FIELD_VIEW: [keyof WeaponLevelStats, string, (v: number) => string][] = [
+  ['damage', 'Damage', (v) => `${Math.round(v)}`],
+  ['cooldown', 'Cooldown', (v) => `${v.toFixed(2)}s`],
+  ['count', 'Count', (v) => `${v}`],
+  ['area', 'Area', (v) => `${Math.round(v)}`],
+  ['speed', 'Speed', (v) => `${Math.round(v)}`],
+  ['duration', 'Duration', (v) => `${+v.toFixed(1)}s`],
+  ['pierce', 'Pierce', (v) => `${v}`],
+  ['slow', 'Slow', (v) => `${Math.round(v * 100)}%`],
+];
+
+/** "Damage 22 → 30" rows for weapon offers: the concrete level delta for a
+ *  weapon-up (only the fields that change), or the level-1 sheet for a new
+ *  weapon (only its nonzero fields). Raw levels[] values — global multipliers
+ *  (damageMult/CDR/area) apply on top and belong to the stat cards' preview. */
+function weaponStatPreview(run: Run, item: OfferItem): string {
+  const def = WEAPONS[item.id];
+  if (!def) return '';
+  let cur: WeaponLevelStats | null = null;
+  let next: WeaponLevelStats;
+  if (item.kind === 'weaponUp') {
+    const w = run.weapons.find((x) => x.def.id === item.id);
+    if (!w || w.level >= def.levels.length) return '';
+    cur = def.levels[w.level - 1];
+    next = def.levels[w.level];
+  } else {
+    next = def.levels[0];
+  }
+  const rows: string[] = [];
+  for (const [key, label, fmt] of WEAPON_FIELD_VIEW) {
+    const b = next[key];
+    if (cur) {
+      const a = cur[key];
+      if (a === b) continue;
+      rows.push(`<div class="stat-line"><span>${label}</span>` +
+        `<span class="v"><span class="from">${fmt(a)} →</span> ${fmt(b)}</span></div>`);
+    } else if (b !== 0) {
+      rows.push(`<div class="stat-line"><span>${label}</span><span class="v">${fmt(b)}</span></div>`);
+    }
+  }
+  return rows.length > 0 ? `<div class="stat-preview">${rows.join('')}</div>` : '';
 }
 
 export class UI {
@@ -704,7 +749,7 @@ export class UI {
       const cards = offer.map((item, i) => {
         const preview = item.kind === 'card'
           ? cardStatPreview(run, item.id)
-          : { html: '', fullyCapped: false };
+          : { html: weaponStatPreview(run, item), fullyCapped: false };
         return `
         <div class="upgrade-card ${banishMode && item.banishable ? 'banish-mode' : ''} ${preview.fullyCapped ? 'capped-card' : ''}"
              data-i="${i}" style="--rarity:${item.color}">

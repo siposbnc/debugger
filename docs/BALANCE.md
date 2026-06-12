@@ -77,17 +77,17 @@ one-time, so no re-run inflation; the main growing faucet is boss kills, priced 
 | Strong 15:00 victory | 1500–2100 |
 | Weak-variance 15:00 victory (0 bosses) | ~750–900 observed — below the early-run ceiling is acceptable only because objectives carry it |
 
-Total shop cost: meta upgrades **9,425 ⌬** + characters 3,750 (v0.2's 1,400 + rex 350 /
-hexa 550 / dana 650 / cobol 800) + weapons 5,050 (v0.2's 1,550 + firewall 700 /
-forkBomb 800 / pingStorm 900 / sudoScroll 1,100) + maps 3,700 (500 + 1,200 + 2,000) =
-**21,925 ⌬**.
+Total shop cost: meta upgrades **10,040 ⌬** (9,425 + Air Gap 615) + characters 3,750
+(v0.2's 1,400 + rex 350 / hexa 550 / dana 650 / cobol 800) + weapons 5,050 (v0.2's
+1,550 + firewall 700 / forkBomb 800 / pingStorm 900 / sudoScroll 1,100) + maps 3,700
+(500 + 1,200 + 2,000) = **22,540 ⌬**.
 
 **Depth check (2026-06-12, v0.3 close-out):** the window holds. Staged model against
 the observed v0.3 bands (greenfield victory ~2,100; marsh ~2,400–2,800; production
 ~3,000; glacier ~3,100–3,700 with first-clear stacks; early deaths 300–900; ~2,400 ⌬
 of one-time objectives): phase 1 (greenfield learning, ~6 runs × ~700) ≈ 4,200; phase
 2 (greenfield wins + marsh attempts, ~8 runs × ~1,500) ≈ cum 16,000; phase 3
-(marsh/production wins × ~2,500) clears 21,925 around run 17–19 by raw sum — with a
+(marsh/production wins × ~2,500) clears ~22,500 around run 17–20 by raw sum — with a
 realistic loss mix, a full clear lands **~20–28 runs**, at the fast edge of the 25–35
 window but inside it: the +9,050 ⌬ of v0.3 content is earned at ×1.25–1.5-map bands
 that grew in step with it. **Headroom for pillar 5 is certified directly**: the 9,425 ⌬

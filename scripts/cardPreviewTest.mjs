@@ -49,20 +49,29 @@ check('shows current → resulting value', /Damage.*×\d.+→.+×\d/.test(info.l
 check('not marked capped', !info.capped && !info.warning);
 await pick();
 
-// --- weapon cards get no preview ---
-await openOffer('syntaxWand'); // ada's starter → weapon level-up card
+// --- weapon-up cards show the concrete level delta (changed fields only) ---
+await openOffer('syntaxWand'); // ada's starter at lv 1 → "Level 1 → 2" card
 info = await cardInfo();
-check('weapon card has no stat preview', info.lines.length === 0);
+check('weapon-up preview rendered', info.lines.length > 0, JSON.stringify(info.lines));
+check('weapon-up shows a damage delta', info.lines.some((l) => /Damage.*\d+ → \d+/.test(l.text)), JSON.stringify(info.lines));
+check('unchanged weapon fields omitted', !info.lines.some((l) => /Pierce/.test(l.text)), JSON.stringify(info.lines));
+await pick();
+
+// --- new-weapon cards show the level-1 sheet (nonzero fields) ---
+await openOffer('deployHammer'); // unowned → NEW WEAPON card
+info = await cardInfo();
+check('new-weapon preview shows lv-1 sheet', info.lines.some((l) => /Damage\s*\d+/.test(l.text)) && info.lines.some((l) => /Cooldown/.test(l.text)), JSON.stringify(info.lines));
 await pick();
 
 // --- partial truncation: result clamps at the 60% CDR cap ---
-await dbg(() => { window.dbg.give('breakpointTrap'); window.dbg.give('breakpointTrap'); window.dbg.give('breakpointTrap'); window.dbg.give('autoformat'); });
-// CDR now 16×3+6 = 54%; +16% would be 70% → preview must show the clamped −60%
+// (breakpointTrap is 12% since the v0.3 card tuning — 4× + autoformat = 54%)
+await dbg(() => { for (let i = 0; i < 4; i++) window.dbg.give('breakpointTrap'); window.dbg.give('autoformat'); });
+// CDR now 12×4+6 = 54%; +12% would be 66% → preview must show the clamped −60%
 await openOffer('breakpointTrap');
 info = await cardInfo();
 check('truncated result shows the cap', info.lines[0]?.text.includes('−60%'), info.lines[0]?.text);
 check('partial waste is not CAPPED', !info.lines[0]?.wasted && !info.capped, JSON.stringify(info));
-await pick(); // CDR raw 70% → resolved 60%
+await pick(); // CDR raw 66% → resolved 60%
 
 // --- fully wasted single-stat card: CAPPED badge + dimmed card ---
 await openOffer('autoformat'); // +6% CDR on a capped stat

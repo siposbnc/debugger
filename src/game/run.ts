@@ -203,6 +203,7 @@ export type RunEvent =
   | { type: 'explosion'; x: number; y: number; radius: number; color: string }
   | { type: 'shoot' }
   | { type: 'hurt' }
+  | { type: 'shieldHit' }  // damage fully absorbed by the shield (soft feedback)
   | { type: 'heal'; x: number; y: number; amount: number }
   | { type: 'pickupXp' }
   | { type: 'pickupHp' }
@@ -255,6 +256,13 @@ export const CRUNCH_DURATION = 30;
 export const CRUNCH_DMG_MULT = 1.5;
 export const CRUNCH_SPEED_MULT = 1.15;
 
+// Shield: a recharging layer over HP (0 unless built). Absorbs damage first;
+// absorbed hits don't count as "real" damage (future no-hit objectives).
+// Design ruling: Halo-style recharge — the identity vs HP is "comes back if
+// you play clean for a beat", where HP only returns via heals/regen.
+export const SHIELD_RECHARGE_DELAY = 6; // s without ANY damage before recharging
+export const SHIELD_RECHARGE_RATE = 0.18; // fraction of max shield per second
+
 export class Run {
   time = 0;
   over = false;
@@ -272,6 +280,8 @@ export class Run {
   px = 0; py = 0;
   prevPx = 0; prevPy = 0; // last frame's position — spawner reads it for recycle heading bias
   hp: number;
+  shield = 0;          // current shield (≤ stats.shieldMax; starts full)
+  shieldHitT = 0;      // seconds since the last damage taken (recharge gate)
   faceX = 1; faceY = 0;
   hurtFlash = 0;
   healAccum = 0; // sub-1HP heals (regen ticks) pool here until a whole point is shown
@@ -355,6 +365,7 @@ export class Run {
   ) {
     this.stats = computeStats(character, metaLevels, this.cardMods);
     this.hp = this.stats.maxHp;
+    this.shield = this.stats.shieldMax;
     this.rerollsLeft = this.stats.rerolls;
     this.banishesLeft = this.stats.banishes;
     this.skipsLeft = this.stats.skips;
@@ -416,7 +427,11 @@ export class Run {
 
   recompute(): void {
     const hpFrac = this.hp / this.stats.maxHp;
+    const oldShieldMax = this.stats.shieldMax;
     this.stats = computeStats(this.character, this.metaLevels, this.cardMods);
+    // new shield capacity arrives charged (a shield card should DO something
+    // the moment it's picked); losses just clamp
+    this.shield = clamp(this.shield + Math.max(0, this.stats.shieldMax - oldShieldMax), 0, this.stats.shieldMax);
     // xpPower (Dana): +1% damage per 100 XP collected — applied here so card
     // pickups don't wipe it; refreshed on the 1s objective tick (update()).
     if (this.character.special === 'xpPower') {
@@ -488,7 +503,19 @@ export class Run {
 
   hurtPlayer(amount: number): void {
     if (this.invincible || this.over) return;
-    const dmg = Math.max(0.5, amount - this.stats.armor);
+    let dmg = Math.max(0.5, amount - this.stats.armor);
+    this.shieldHitT = 0; // any damage (even fully absorbed) resets the recharge gate
+    // shield absorbs first — absorbed damage is not "real" damage (no hurt
+    // flash on full absorbs; future no-hit objectives ignore shield hits)
+    if (this.shield > 0) {
+      const absorbed = Math.min(this.shield, dmg);
+      this.shield -= absorbed;
+      dmg -= absorbed;
+      if (dmg <= 0) {
+        this.emit({ type: 'shieldHit' });
+        return;
+      }
+    }
     this.hp -= dmg;
     this.hurtFlash = 0.25;
     this.emit({ type: 'hurt' });
@@ -580,6 +607,11 @@ export class Run {
 
     // regen
     if (this.stats.regen > 0) this.healPlayer(this.stats.regen * dt);
+    // shield recharge: only after a clean stretch with no damage at all
+    this.shieldHitT += dt;
+    if (this.stats.shieldMax > 0 && this.shieldHitT >= SHIELD_RECHARGE_DELAY && this.shield < this.stats.shieldMax) {
+      this.shield = Math.min(this.stats.shieldMax, this.shield + this.stats.shieldMax * SHIELD_RECHARGE_RATE * dt);
+    }
     this.hurtFlash = Math.max(0, this.hurtFlash - dt);
 
     this.objectiveCheckT -= dt;
@@ -716,6 +748,32 @@ export class Run {
       e.x += Math.cos(e.jitterAng) * speed * dt;
       e.y += Math.sin(e.jitterAng) * speed * dt;
       e.facing = e.jitterAng;
+    } else if (behavior === 'ranged') {
+      // tracer bug: hold mid distance, strafe a little, spit aimed shots
+      const HOLD = 250, BACKOFF = 170;
+      if (d > HOLD) {
+        e.x += (dx / d) * speed * dt;
+        e.y += (dy / d) * speed * dt;
+      } else if (d < BACKOFF) {
+        e.x -= (dx / d) * speed * 0.8 * dt;
+        e.y -= (dy / d) * speed * 0.8 * dt;
+      } else {
+        // slow orbit strafe so it isn't a stationary target
+        e.x += (-dy / d) * speed * 0.35 * dt;
+        e.y += (dx / d) * speed * 0.35 * dt;
+      }
+      e.facing = Math.atan2(dy, dx);
+      e.mechT -= dt;
+      if (e.mechT <= 0 && d < 460 && e.frozenT <= 0) {
+        e.mechT = 2.8;
+        const a = Math.atan2(dy, dx);
+        this.enemyShots.push({
+          x: e.x, y: e.y,
+          vx: Math.cos(a) * 200, vy: Math.sin(a) * 200,
+          damage: e.scaledDamage ?? def.damage, radius: 7, life: 3,
+          color: def.color,
+        });
+      }
     } else if (behavior === 'charge') {
       e.chargeT -= dt;
       if (e.chargePhase === 0) {
@@ -1107,6 +1165,14 @@ export class Run {
     if (crit) dmg *= this.stats.critMult;
 
     if (e.matchMarkT > 0) dmg *= 1.25;
+    // checksum crab: damage arriving from its facing side is mostly rejected —
+    // flank it. Attacks with no origin (chains, orbits without knock) bypass.
+    if (!e.isBoss && (e.def as EnemyDef).frontShield && opts.knockFrom) {
+      const attackAng = Math.atan2(opts.knockFrom.y - e.y, opts.knockFrom.x - e.x);
+      let delta = Math.abs(attackAng - e.facing);
+      if (delta > Math.PI) delta = Math.PI * 2 - delta;
+      if (delta < 1.2) dmg *= 0.15; // ~±70° frontal arc
+    }
     // unified boss resist: bossLogic sets armorMult per frame (monolith armor 0.25,
     // stack overflow with live frames 0.5)
     if (e.isBoss && e.armorMult !== undefined) dmg *= e.armorMult;
