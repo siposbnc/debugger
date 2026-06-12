@@ -736,6 +736,21 @@ export class UI {
       .map((b) => `<div class="row"><span>${b.label}</span><span class="v">+${b.value}</span></div>`)
       .join('');
 
+    // per-weapon damage, biggest contributor first (same tracking the pause overview uses)
+    const fmtDmg = (v: number) => v >= 10000 ? `${(v / 1000).toFixed(1)}k` : `${Math.round(v)}`;
+    const dmgRows = [...results.weaponDamage]
+      .sort((a, b) => b.damage - a.damage)
+      .map((w) => `<div class="row wpn">
+          <span style="color:${w.color}">${w.icon} ${w.name} <span class="dim">${w.isEvolution ? 'EVO' : `Lv ${w.level}`}</span></span>
+          <span class="v">${fmtDmg(w.damage)} <span class="dim">(${fmtDmg(w.dps)}/s)</span></span>
+        </div>`)
+      .join('') + (results.allyDamage > 0
+        ? `<div class="row wpn"><span class="dim">⚙ Allies</span><span class="v">${fmtDmg(results.allyDamage)}</span></div>`
+        : '');
+    const dmgBlock = dmgRows
+      ? `<div class="summary-divider"><span>DAMAGE BY WEAPON</span></div>${dmgRows}`
+      : '';
+
     const s = this.screen(`
       <div class="result-heading ${results.victory ? 'win' : 'lose'}">
         ${results.victory ? 'SYSTEM STABILIZED' : 'SEGMENTATION FAULT'}
@@ -749,6 +764,7 @@ export class UI {
         <div class="row"><span>Bosses resolved</span><span class="v">${results.bossKills}</span></div>
         <div class="row"><span>Level reached</span><span class="v">${results.level}</span></div>
         ${objs}
+        ${dmgBlock}
         <div class="summary-divider"><span>BITS BREAKDOWN</span></div>
         ${breakdown}
         <div class="row total"><span>BITS EARNED</span><span class="v">⌬ ${results.bits}</span></div>

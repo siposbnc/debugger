@@ -352,6 +352,9 @@ html, body {
 }
 .summary-divider::before,
 .summary-divider::after { content: ''; flex: 1; border-top: 1px solid var(--line); }
+.summary-box .row.wpn { font-size: 13px; padding: 1px 0; }
+.summary-box .row.wpn .v { color: var(--text); font-size: 14px; font-family: var(--font-body, inherit); }
+.summary-box .row.wpn .dim { color: var(--dim); font-size: 11px; }
 
 /* ---------- codex ---------- */
 

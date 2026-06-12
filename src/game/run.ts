@@ -152,6 +152,8 @@ export interface RunResults {
   newObjectives: string[];
   bits: number;
   bitsBreakdown: { label: string; value: number }[];
+  weaponDamage: { icon: string; name: string; color: string; level: number; isEvolution: boolean; damage: number; dps: number }[];
+  allyDamage: number;
 }
 
 // ---------- the run ----------
@@ -860,6 +862,13 @@ export class Run {
       newObjectives: [...this.objectivesThisRun],
       bits,
       bitsBreakdown: breakdown.map((b) => ({ label: b.label, value: Math.floor(b.value) })),
+      weaponDamage: this.weapons.map((w) => ({
+        icon: w.def.icon, name: w.def.name, color: w.def.color,
+        level: w.level, isEvolution: !!w.def.isEvolution,
+        damage: Math.round(w.totalDamage),
+        dps: w.totalDamage / Math.max(1, this.time - w.acquiredAt),
+      })),
+      allyDamage: Math.round(this.allyDamage),
     };
   }
 }
