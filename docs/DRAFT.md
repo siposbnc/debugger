@@ -17,6 +17,19 @@ into [ROADMAP.md](../ROADMAP.md), and moves them to **Processed** below.
 
 ---
 
+## Processed → ROADMAP.md (2026-06-12, batch 15)
+
+- "What's new" menu → **v0.3 "Progression & discovery", P2 (S)** — main-menu screen with curated player-facing release notes as a `src/data/` record (one entry per release, written at release time — not bundled CHANGELOG.md, which is dev-tone); `lastSeenVersion` in the save drives a "NEW" badge on the menu button, cleared on open
+
+<details>
+<summary>Batch 15 — original notes (kept for reference)</summary>
+
+### Draft ideas
+
+- a "What's new" menu where users can learn about the game updates
+
+</details>
+
 ## Processed → ROADMAP.md (2026-06-12, batch 14)
 
 - Full mobile support → **new 📱 v0.6 milestone** (between v0.5 and v1.0, per the draft's "could be focusing on this entirely"): responsive UI pass (P1 L — card modal worst offender, tap targets, no-hover previews), viewport-vs-combat-range (P1 M — the "how to solve this??" left explicitly open as a design decision: zoom floor vs spawn-ring-to-viewport vs edge indicators), mobile footer hints (P2 S), PWA manifest (P3 S). Touch controls themselves already shipped in v0.2
