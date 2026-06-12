@@ -121,7 +121,7 @@ Theme proposal: prestige = **"The Great Rewrite"** — you ship v(N+1).0 of your
 - [ ] [P1] (M) Design doc: prestige currency, reset rules, what carries over, pacing targets
 - [ ] [P2] (L) Prestige reset: trade completed meta shop for a permanent multiplier + **Legacy Tokens**
 - [ ] [P2] (L) Skill tree spent with Legacy Tokens (this is where the "meta tree UI" from v0.4 pays off)
-- [ ] [P2] (M) Infinite meta-upgrade levels past current caps, exponential cost + diminishing returns
+- [ ] [P2] (M) Infinite meta-upgrade levels past current caps, exponential cost + diminishing returns — *this is the designed solve for the hard endgame (user ruling 2026-06-12): re-certify Cyber Glacier's maxed-meta band here (currently amended to 30–40%, BALANCE.md §5)*
 - [ ] [P3] (L) Procedural "infinite" map ladder: same biomes re-rolled with +difficulty / +Bits multiplier per rung
 - [ ] [P3] (S) Game-speed unlock (1.25× / 1.5× sim speed as a prestige QoL reward)
 - [ ] [P3] (M) New prestige-gated meta upgrade tier
@@ -158,7 +158,7 @@ Design questions are open — treat items as scoping placeholders until this mil
 
 > Add bugs here as they're found; fix P1 bugs before any feature work.
 
-- [ ] [P2] **Glacier maxed-meta sits ~4 pts under the 40% floor** (36%, n=64) after the v0.3 card-pool growth diluted bot build quality — full analysis in BALANCE.md §5. Already eased within Claude's authority (enemyScale 1.4→1.35, Kernel Panic 2400→2000, thaw ×1.8, crab weights trimmed) — flat within noise; the binding constraint is the map's *designed* tank wall starving boss DPS mid-run. **Needs a user ruling between:** (a) soften the late tank skew (identity cost), (b) lengthen crunch past the specced 30s (global, helps slips only), (c) accept ~35% as the deepest map's floor and amend the target (bot understates humans; zero-meta gate fully intact at 0/16)
+- [x] [P2] **Glacier maxed-meta sits ~4 pts under the 40% floor** (36%, n=64) after the v0.3 card-pool growth — *resolved by user ruling 2026-06-12: **accept ~35% as the deepest map's maxed-meta floor** (band 30–40%, only <30% is a regression); tank-wall identity and 30s crunch stay. The hard endgame is solved by design in v0.5 (infinite meta levels let investment climb past today's caps) — re-certify glacier there. BALANCE.md §5 target amended*
 
 *(other v0.2-era fixes are recorded in the [changelog](CHANGELOG.md))*
 
@@ -171,7 +171,7 @@ Full target numbers live in [docs/BALANCE.md](docs/BALANCE.md) — this is the s
 
 - Kill rate ≥ spawn rate before minute 6 for **every** starting weapon
 - First boss TTK in 60–100s window
-- **Meta gap** (BALANCE.md §5): harder maps stay near-unwinnable at zero meta on a good build (marsh ≤ 15%, production ~0%) while maxed meta keeps them winnable (≥ 40%) — never tune the gap away
+- **Meta gap** (BALANCE.md §5): harder maps stay near-unwinnable at zero meta on a good build (marsh ≤ 15%, production/glacier ~0%) while maxed meta keeps them winnable (≥ 40%; **glacier amended to 30–40%** by user ruling — v0.5 infinite meta levels are the endgame solve) — never tune the gap away
 - Assertion Blades + cooldown stacking (strongest known combo; `blades-cdr` scenario)
 - Bits/run drift: target ~300–700 early runs, ~1500–2100 strong victory; full shop ≈ 25–35 runs
 
