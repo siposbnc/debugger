@@ -34,6 +34,9 @@ export interface SaveData {
   /** Namespaced codex/shop entry ids already shown to the player (NEW badges).
    *  Objectives use `obj:<id>:done` once completed so finishing one re-badges it. */
   seenIds: string[];
+  /** Newest patch-notes entry version the player has opened ('' = never) —
+   *  drives the "What's new" menu badge. */
+  lastSeenVersion: string;
   /** Mid-run snapshot from "suspend & exit" — consumed on resume. */
   suspendedRun: SuspendedRun | null;
 }
@@ -77,6 +80,7 @@ function defaults(): SaveData {
     lifetime: { runs: 0, kills: 0, bossKills: 0, bitsEarned: 0, bestTimeSec: 0, bestLevel: 0, victories: 0, uptimeSec: 0, weaponDamage: {} },
     settings: { master: 1, sfx: 0.7, music: 0.5, shake: true, reduceFlash: false, playerHpBar: true, fpsCounter: false, keys: {} },
     seenIds: [],
+    lastSeenVersion: '',
     suspendedRun: null,
   };
 }

@@ -8,6 +8,7 @@ import { ENEMIES } from '../data/enemies';
 import { BOSSES } from '../data/bosses';
 import { OBJECTIVES } from '../data/objectives';
 import { CARD_BY_ID } from '../data/upgrades';
+import { PATCH_NOTES } from '../data/patchNotes';
 import { RARITY_COLOR, RARITY_ORDER, type StatMods, type EnemyDef, type BossDef } from '../data/types';
 import { bugSprite, bossSprite } from '../render/sprites';
 import { computeStats, type ComputedStats } from '../game/stats';
@@ -186,6 +187,7 @@ export class UI {
         <button class="btn" data-act="maps">MAPS</button>
         <button class="btn" data-act="shop">UPGRADES${this.anyUnseen(this.shopIds()) ? '<span class="new-dot">●</span>' : ''}</button>
         <button class="btn" data-act="codex">BUG DATABASE${this.anyUnseen(this.codexIds()) ? '<span class="new-dot">●</span>' : ''}</button>
+        <button class="btn" data-act="whatsnew">WHAT'S NEW${this.notesUnseen() ? '<span class="new-dot">●</span>' : ''}</button>
         <button class="btn" data-act="settings">SETTINGS</button>
       </div>
       <div class="controls-hint"><kbd>WASD</kbd> move/navigate &nbsp; <kbd>ENTER</kbd> select &nbsp; <kbd>ESC</kbd> back/pause &nbsp; <kbd>🎮</kbd> gamepad works too &nbsp; auto-attack: just survive</div>
@@ -201,7 +203,39 @@ export class UI {
       else if (act === 'maps') this.showMapSelect();
       else if (act === 'shop') this.showShop();
       else if (act === 'codex') this.showCodex();
+      else if (act === 'whatsnew') this.showWhatsNew();
       else if (act === 'settings') this.showSettings();
+    });
+  }
+
+  // ---------- what's new (patch notes) ----------
+
+  /** Newest notes entry not opened yet? ('' on fresh saves also badges —
+   *  every player discovers the screen once.) */
+  private notesUnseen(): boolean {
+    return PATCH_NOTES.length > 0 && this.save.lastSeenVersion !== PATCH_NOTES[0].version;
+  }
+
+  showWhatsNew(): void {
+    const unseen = this.notesUnseen();
+    if (unseen) {
+      this.save.lastSeenVersion = PATCH_NOTES[0].version;
+      this.persist(); // badge clears for next visit; stays up while reading
+    }
+    const panels = PATCH_NOTES.map((n, i) => `
+      <div class="codex-panel note-panel">
+        <h3>v${n.version} — ${n.name}${i === 0 && unseen ? ' <span class="new-badge">NEW</span>' : ''}</h3>
+        <div class="note-date">released ${n.date}</div>
+        <ul class="note-list">${n.highlights.map((h) => `<li>${h}</li>`).join('')}</ul>
+        ${n.flavor ? `<div class="note-flavor">${n.flavor}</div>` : ''}
+      </div>`).join('');
+    const s = this.screen(`
+      <div class="screen-heading">git log --since=last_visit</div>
+      <div class="notes-col">${panels}</div>
+      <button class="btn" data-act="back">BACK</button>
+    `, () => this.showMainMenu());
+    s.addEventListener('click', (e) => {
+      if ((e.target as HTMLElement).closest('button')?.dataset.act === 'back') this.showMainMenu();
     });
   }
 
