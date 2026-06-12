@@ -147,6 +147,10 @@ records in `src/data/` plus a behavior key in `src/game/` and a sprite in `src/r
 - [ ] [P2] (S) **Dana Tensor** — Data Scientist; starts Ping Storm; passive: pickups give +1% stacking damage per 100 XP (scaling late-game)
 - [ ] [P3] (S) **Greybeard Cobol** — Legacy Maintainer; starts Stack Staff; passive: immune to slows, −15% move speed (tank archetype)
 
+### Progression & discovery *(from draft 2026-06-12)*
+- [ ] [P2] (M) **Progressive meta-upgrade unlocks** — shop upgrades start hidden/locked; acquiring a stat-modifier card of that stat in any run unlocks the corresponding meta upgrade for purchase. Locked entries show as silhouetted "???" rows (cost hidden) so the shop has discovery pull. Cards whose stat has a still-locked upgrade get a small visual hint in the level-up modal ("unlocks a meta upgrade") — ties run picks to meta progression. Save: `unlockedMeta` id set, pure addition. Decide at implementation: weapons' meta upgrades (if any are weapon-keyed) unlock via owning the weapon once
+- [ ] [P2] (S) **Progressive codex unlocks** — bug/boss entries start locked and reveal when the entity is first encountered (spawned on screen / boss announced); locked entries render dimmed with a "?" thumbnail and glitched/unreadable text (procedural scramble of the real copy, stable per entry). Save: reuse the existing `seenIds` machinery (`bug:`/`boss:` keys already exist — encounter-time marking instead of codex-open marking for the reveal). The Precipitate stays unlisted until collected (it's already a secret)
+
 ### Cards & enemies
 - [ ] [P2] (M) **Shield system** — new defensive layer on top of HP (0 by default): absorbs damage first, and shield hits don't count as "real" damage (won't fail no-hit objectives). Includes new Shield stat cards + **"Starting Shield"** meta upgrade. Decide at design time: does shield regenerate (out-of-combat delay?) or only refill via pickups/cards?
 - [ ] [P2] (M) +8 stat cards (fill thin categories: status effects, chain, summons — see brief; Shield cards counted under the shield-system item)
@@ -185,6 +189,18 @@ Theme proposal: prestige = **"The Great Rewrite"** — you ship v(N+1).0 of your
 - [ ] [P3] (M) New prestige-gated meta upgrade tier
 
 *Note: "infinite run past 15:00" from the draft = **Endless mode**, already tracked in v0.4 — prestige can gate extra Endless scaling rewards instead of duplicating it.*
+
+---
+
+## 📱 v0.6 — Mobile *(from draft 2026-06-12: "full mobile support — v0.6 could be focusing on this entirely")*
+
+Goal: the touch-controls foundation (v0.2) becomes a genuinely playable phone experience.
+Design questions are open — treat items as scoping placeholders until this milestone is current.
+
+- [ ] [P1] (L) **Responsive UI pass** — all menus + the level-up card modal usable on phone portrait/landscape (cards are the worst offender today: fixed-width row, hover-dependent tooltips). Audit every screen at 360×640 / 390×844 / landscape; tap targets ≥ 44px; card stat previews must work without hover
+- [ ] [P1] (M) **Viewport vs combat range** — on small screens, spawning and most ranged combat happens off-screen (spawn ring + weapon reach exceed the visible area). Open design question (draft: "how to solve this??") — candidate directions to evaluate: dynamic zoom-out floor (render scale tied to viewport), spawn-ring radius tied to visible area (balance impact — sim must model it), or edge indicators for off-screen action. Needs a design decision before implementation
+- [ ] [P2] (S) **Mobile menu footer hints** — main-menu footer key hints are compressed and wrong on mobile (keyboard hints on a touch device); show touch-appropriate hints, or hide them when touch is the active input
+- [ ] [P3] (S) PWA manifest + icon (installable, fullscreen standalone) — cheap once the above land
 
 ---
 

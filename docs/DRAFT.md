@@ -5,11 +5,7 @@ into [ROADMAP.md](../ROADMAP.md), and moves them to **Processed** below.
 
 ## Draft ideas
 
-- full mobile support - v0.6 could be focusing on this entirely
-    - ui currently not fully compatible with mobile (especially in card selections in a run)
-    - spawning and combat for ranged characters and weapons happens mostly off-screen
-        - how to solve this??
-    - main menu footer hints are compressed and incorrect for mobile
+*(empty)*
 
 ## Dev env ideas
 
@@ -20,6 +16,31 @@ into [ROADMAP.md](../ROADMAP.md), and moves them to **Processed** below.
 *(empty)*
 
 ---
+
+## Processed → ROADMAP.md (2026-06-12, batch 14)
+
+- Full mobile support → **new 📱 v0.6 milestone** (between v0.5 and v1.0, per the draft's "could be focusing on this entirely"): responsive UI pass (P1 L — card modal worst offender, tap targets, no-hover previews), viewport-vs-combat-range (P1 M — the "how to solve this??" left explicitly open as a design decision: zoom floor vs spawn-ring-to-viewport vs edge indicators), mobile footer hints (P2 S), PWA manifest (P3 S). Touch controls themselves already shipped in v0.2
+- Progressive meta-upgrade unlocks → **v0.3 "Progression & discovery", P2 (M)** — acquiring a stat card unlocks that stat's shop upgrade; locked rows show as "???" silhouettes; cards hint when they'd unlock something. `unlockedMeta` save set, pure addition
+- Progressive codex unlocks → **v0.3 "Progression & discovery", P2 (S)** — entries reveal on first encounter; locked = dimmed, "?" thumbnail, glitched-scramble text. Reuses the v0.2 `seenIds` machinery with encounter-time marking
+
+<details>
+<summary>Batch 14 — original notes (kept for reference)</summary>
+
+### Draft ideas
+
+- full mobile support - v0.6 could be focusing on this entirely
+    - ui currently not fully compatible with mobile (especially in card selections in a run)
+    - spawning and combat for ranged characters and weapons happens mostly off-screen
+        - how to solve this??
+    - main menu footer hints are compressed and incorrect for mobile
+- upgrades unlock progressively (currently all available from the start)
+    - when the player acquires a stat modifier, the upgrade for that stat unlocks
+    - visual hint for the cards with unlockable stat upgrades
+- codex entries unlock progressively the same way
+    - when the player encounters an entity, the codex entry for it gets revealed
+    - locked codex entries are displayed with a question mark and unreadable, glitched text. also dimmed
+
+</details>
 
 ## Processed → ROADMAP.md (2026-06-12, batch 12)
 
