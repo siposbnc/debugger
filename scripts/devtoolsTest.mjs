@@ -50,6 +50,13 @@ check('give(id, n) grants a weapon at level n', (await dbg(() => window.dbg.give
 check('xp() reports gain', /level \d+, \d+ pending/.test(await dbg(() => window.dbg.xp(5))));
 check('time() moves the clock', (await dbg(() => window.dbg.time(5))).includes('5:00'));
 
+// Numeric params from the console aren't type-checked: a string like '6:00'
+// must be rejected, not NaN-poison the run clock (draft bug 2026-06-12).
+check('time() rejects a non-numeric arg', (await dbg(() => window.dbg.time('6:00'))).includes('usage'));
+check('clock not NaN-poisoned after bad arg', (await dbg(() => window.dbg.time(6))).includes('6:00'));
+check('xp() rejects a non-numeric arg', (await dbg(() => window.dbg.xp('lots'))).includes('usage'));
+check('time() coerces a numeric string', (await dbg(() => window.dbg.time('7'))).includes('7:00'));
+
 // Drain any naturally opened level-up modal so the forced offer is the one
 // on screen (the live run levels on its own while the checks above run).
 for (let i = 0; i < 8 && await page.$('.levelup-wrap'); i++) {

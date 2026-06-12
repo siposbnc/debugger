@@ -17,6 +17,20 @@ into [ROADMAP.md](../ROADMAP.md), and moves them to **Processed** below.
 
 ---
 
+## Processed → ROADMAP.md (2026-06-12, batch 11)
+
+- `dbg.time()` accepts invalid params and breaks time/audio → **fixed same day**: console callers bypass TypeScript, so `'6:00' * 60` put `NaN` into the run clock (breaking the music-intensity ramp and every timer). All numeric dbg params (`time`, `xp`, `bits`, `give`, `level`) now coerce via `Number()` — numeric strings like `'6'` still work — and reject non-finite values with a usage message before touching the run. devtoolsTest grew 4 checks (24/24)
+
+<details>
+<summary>Batch 11 — original notes (kept for reference)</summary>
+
+### Bugs
+
+- dev tool dbg.time()
+    - when an invalid param is given (for example: `dbg.time('6:00')`), the function accepts it and breaks the audio and time in the game
+
+</details>
+
 ## Processed → ROADMAP.md (2026-06-12, batch 10)
 
 - Docker support for isolated play → **🛠️ Dev tooling, P2 (S) "Isolated play server"** with a counter-proposal: no Docker — `npm run play` building into a separate `dist-play/` + `vite preview` on its own port gives the same isolation for a static bundle (no hot reload, untouched by Claude's `dist/` rebuilds) without the Docker Desktop dependency; Docker stays on the table only if clean-environment *repro* ever becomes the need. The remote variant (`npm run deploy:test`) shipped the same day

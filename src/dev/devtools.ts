@@ -52,6 +52,13 @@ function buildApi(ctx: DevContext) {
     console.warn(`[dbg] unknown id "${id}" — see dbg.list('weapons') / dbg.list('cards')`);
     return false;
   };
+  // Console callers aren't type-checked: dbg.time('6:00') would put NaN into
+  // the run clock and silently break time and audio. Coerce ('6' is fine) and
+  // reject anything non-finite before it touches the run.
+  const num = (v: unknown): number | null => {
+    const n = Number(v);
+    return Number.isFinite(n) ? n : null;
+  };
 
   const dbg = {
     // Prints (instead of returning) so the console renders real line breaks,
@@ -78,16 +85,20 @@ function buildApi(ctx: DevContext) {
     },
 
     bits(n = 1000): string {
-      ctx.save.bits += n;
+      const v = num(n);
+      if (v === null) return '[dbg] usage: dbg.bits(n) — n must be a number';
+      ctx.save.bits += v;
       persistSave(ctx.save);
-      return `[dbg] +${n} ⌬ → ${ctx.save.bits} (persisted)`;
+      return `[dbg] +${v} ⌬ → ${ctx.save.bits} (persisted)`;
     },
 
     xp(n = 50): string {
       const run = needRun();
       if (!run) return '';
-      run.gainXp(n);
-      return `[dbg] +${n} XP (×${run.stats.xpMult.toFixed(2)}) → level ${run.level}, ${run.pendingLevelUps} pending level-up(s)`;
+      const v = num(n);
+      if (v === null) return '[dbg] usage: dbg.xp(n) — n must be a number';
+      run.gainXp(v);
+      return `[dbg] +${v} XP (×${run.stats.xpMult.toFixed(2)}) → level ${run.level}, ${run.pendingLevelUps} pending level-up(s)`;
     },
 
     offer(...ids: string[]): string {
@@ -103,7 +114,9 @@ function buildApi(ctx: DevContext) {
       const run = needRun();
       if (!run) return '';
       if (!known(id)) return '';
-      n = Math.max(1, Math.round(n));
+      const v = num(n);
+      if (v === null) return '[dbg] usage: dbg.give(id, n) — n must be a number';
+      n = Math.max(1, Math.round(v));
       if (WEAPONS[id]) {
         if (run.weapons.some((w) => w.def.id === id)) return `[dbg] ${id} already owned — dbg.level("${id}", n) to level it`;
         if (n > 1) return dbg.level(id, n); // grant at level n in one call
@@ -118,9 +131,11 @@ function buildApi(ctx: DevContext) {
       const run = needRun();
       if (!run) return '';
       if (!WEAPONS[id]) return `[dbg] unknown weapon "${id}" — see dbg.list('weapons')`;
+      const v = num(n);
+      if (v === null) return '[dbg] usage: dbg.level(id, n) — n must be a number';
       let w = run.weapons.find((x) => x.def.id === id);
       if (!w) { run.addWeapon(id); w = run.weapons[run.weapons.length - 1]; }
-      w.level = Math.max(1, Math.min(MAX_WEAPON_LEVEL, Math.round(n)));
+      w.level = Math.max(1, Math.min(MAX_WEAPON_LEVEL, Math.round(v)));
       return `[dbg] ${w.def.name} → level ${w.level}`;
     },
 
@@ -134,8 +149,10 @@ function buildApi(ctx: DevContext) {
     time(min: number): string {
       const run = needRun();
       if (!run) return '';
-      run.time = Math.max(0, min * 60);
-      return `[dbg] run clock → ${min}:00 (boss timer + spawn phases follow on the next frame)`;
+      const m = num(min);
+      if (m === null) return `[dbg] usage: dbg.time(minutes) — a number, e.g. dbg.time(6) (got ${JSON.stringify(min)})`;
+      run.time = Math.max(0, m * 60);
+      return `[dbg] run clock → ${m}:00 (boss timer + spawn phases follow on the next frame)`;
     },
   };
 
