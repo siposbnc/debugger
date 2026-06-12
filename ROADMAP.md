@@ -75,9 +75,9 @@ records in `src/data/` plus a behavior key in `src/game/` and a sprite in `src/r
 ### QoL roll-over (unfinished v0.2 P2s)
 - [ ] [P2] (M) Minimap or edge-radar showing boss, elites, chests — *in-run events (v0.4) will want this too*
 - [ ] [P2] (S) Remappable keys in settings
-- [ ] [P2] (S) Volume sliders split: master / music / SFX (currently single toggle-ish)
-- [ ] [P2] (S) Reduce-flash mode (tone down screen flash + shake for photosensitivity)
-- [ ] [P2] (M) FPS safeguard: auto-lower particle density when frame time >20ms (the v0.2 FPS counter is the verification surface). *note: do not lower enemy cap as it changes with the difficulty balance*
+- [x] [P2] (S) Volume sliders split: master / music / SFX (currently single toggle-ish) — *done: SFX/music sliders already existed; added the missing `settings.master` (pure save addition, default 1.0) as a multiplier on both gain nodes + a Master slider row above them*
+- [x] [P2] (S) Reduce-flash mode (tone down screen flash + shake for photosensitivity) — *done: `settings.reduceFlash` toggle (default off) — full-screen overlays (level-up/evolve/victory cyan, hurt red) drop to 25% intensity and screen shake to 35% magnitude; per-sprite hit flashes untouched (small-area, not a photosensitivity risk)*
+- [x] [P2] (M) FPS safeguard: auto-lower particle density when frame time >20ms (the v0.2 FPS counter is the verification surface). *note: do not lower enemy cap as it changes with the difficulty balance* — *done: all particle spawns routed through `spawnParticle()` (probabilistic drop + 900 hard cap); density sheds fast (−0.5/s, floor 15%) while the frame-time EMA exceeds 20ms and recovers slowly (+0.08/s) under 15ms. Enemy cap untouched by construction. Effects other than particles (rings/beams/banners) unaffected*
 
 ---
 
@@ -185,3 +185,4 @@ Parking lot — promote into a milestone before working on these.
 > current milestone — on release these lines inform the [CHANGELOG.md](CHANGELOG.md) entry and are pruned.)
 
 - 2026-06-12 — **v0.2 released** (`v0.2.67`, release/0.2 → main): see [CHANGELOG.md](CHANGELOG.md). dev bumped to 0.3.0-dev (`v0.3-base`); v0.2 P2 QoL rolled into v0.3, P3s demoted to Backlog
+- 2026-06-12 — Three QoL roll-overs shipped in one settings/render pass: master volume slider (multiplier over SFX/music gains), reduce-flash mode (full-screen flash 25% / shake 35% when on), FPS particle safeguard (spawn probability sheds at >20ms frame EMA, floor 15%, hard cap 900; enemy cap untouched). All pure save additions, game logic untouched (no sim re-run needed)

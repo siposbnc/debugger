@@ -34,10 +34,12 @@ if (__DEV_TOOLS__) {
 }
 
 function applySettings(): void {
+  sound.masterVolume = save.settings.master;
   sound.sfxVolume = save.settings.sfx;
   sound.musicVolume = save.settings.music;
   sound.applyVolumes();
   renderer.shakeEnabled = save.settings.shake;
+  renderer.reduceFlashEnabled = save.settings.reduceFlash;
   renderer.playerHpBarEnabled = save.settings.playerHpBar;
   renderer.fpsCounterEnabled = save.settings.fpsCounter;
 }

@@ -450,6 +450,10 @@ export class UI {
       <div class="screen-heading">~/.debuggerrc</div>
       <div class="settings-box">
         <div class="setting-row">
+          <label>Master volume</label>
+          <input type="range" id="master" min="0" max="100" value="${Math.round(st.master * 100)}">
+        </div>
+        <div class="setting-row">
           <label>SFX volume</label>
           <input type="range" id="sfx" min="0" max="100" value="${Math.round(st.sfx * 100)}">
         </div>
@@ -460,6 +464,10 @@ export class UI {
         <div class="setting-row">
           <label>Screen shake</label>
           <button class="toggle ${st.shake ? '' : 'off'}" id="shake">${st.shake ? 'ON' : 'OFF'}</button>
+        </div>
+        <div class="setting-row">
+          <label>Reduce flashing</label>
+          <button class="toggle ${st.reduceFlash ? '' : 'off'}" id="reduceflash">${st.reduceFlash ? 'ON' : 'OFF'}</button>
         </div>
         <div class="setting-row">
           <label>Player health bar</label>
@@ -479,15 +487,23 @@ export class UI {
     `, onBack ? null : back);
     this.screenKind = 'settings';
     const sync = () => {
+      st.master = Number((s.querySelector('#master') as HTMLInputElement).value) / 100;
       st.sfx = Number((s.querySelector('#sfx') as HTMLInputElement).value) / 100;
       st.music = Number((s.querySelector('#music') as HTMLInputElement).value) / 100;
       this.persist();
       this.onSettingsChanged();
     };
+    s.querySelector('#master')!.addEventListener('input', sync);
     s.querySelector('#sfx')!.addEventListener('input', sync);
     s.querySelector('#music')!.addEventListener('input', sync);
     s.querySelector('#shake')!.addEventListener('click', () => {
       st.shake = !st.shake;
+      this.persist();
+      this.onSettingsChanged();
+      this.showSettings(onBack);
+    });
+    s.querySelector('#reduceflash')!.addEventListener('click', () => {
+      st.reduceFlash = !st.reduceFlash;
       this.persist();
       this.onSettingsChanged();
       this.showSettings(onBack);

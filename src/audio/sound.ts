@@ -9,6 +9,7 @@ class Sound {
   private ctx: AudioContext | null = null;
   private sfxGain!: GainNode;
   private musicGain!: GainNode;
+  masterVolume = 1;
   sfxVolume = 0.7;
   musicVolume = 0.5;
   private musicTimer: number | null = null;
@@ -39,8 +40,8 @@ class Sound {
 
   applyVolumes(): void {
     if (!this.ctx) return;
-    this.sfxGain.gain.value = this.sfxVolume * 0.5;
-    this.musicGain.gain.value = this.musicVolume * 0.22;
+    this.sfxGain.gain.value = this.masterVolume * this.sfxVolume * 0.5;
+    this.musicGain.gain.value = this.masterVolume * this.musicVolume * 0.22;
   }
 
   /** Resume/create on first user gesture (browser autoplay policy). */

@@ -25,7 +25,7 @@ export interface SaveData {
   lastCharacter: string;
   lastMap: string;
   lifetime: LifetimeStats;
-  settings: { sfx: number; music: number; shake: boolean; playerHpBar: boolean; fpsCounter: boolean };
+  settings: { master: number; sfx: number; music: number; shake: boolean; reduceFlash: boolean; playerHpBar: boolean; fpsCounter: boolean };
   /** Namespaced codex/shop entry ids already shown to the player (NEW badges).
    *  Objectives use `obj:<id>:done` once completed so finishing one re-badges it. */
   seenIds: string[];
@@ -70,7 +70,7 @@ function defaults(): SaveData {
     lastCharacter: 'ada',
     lastMap: 'greenfield',
     lifetime: { runs: 0, kills: 0, bossKills: 0, bitsEarned: 0, bestTimeSec: 0, bestLevel: 0, victories: 0, uptimeSec: 0, weaponDamage: {} },
-    settings: { sfx: 0.7, music: 0.5, shake: true, playerHpBar: true, fpsCounter: false },
+    settings: { master: 1, sfx: 0.7, music: 0.5, shake: true, reduceFlash: false, playerHpBar: true, fpsCounter: false },
     seenIds: [],
     suspendedRun: null,
   };

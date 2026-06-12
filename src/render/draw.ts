@@ -28,6 +28,7 @@ export class Renderer {
   t = 0; // render clock for HUD pulses
   shakeMag = 0;
   shakeEnabled = true;
+  reduceFlashEnabled = false; // photosensitivity: attenuates full-screen flashes + shake
   playerHpBarEnabled = true;
   fpsCounterEnabled = false;
   // FPS counter: EMA of the rAF delta, snapshotted to the display 4×/s so the
@@ -37,6 +38,9 @@ export class Renderer {
   private fpsDispT = 0;
   flash = 0; // screen flash on level up
   healGlow = 0; // green player glow while HP restores
+  // FPS safeguard: particle spawn probability, backed off while frame time
+  // exceeds the 20ms budget, recovered slowly once comfortably under it.
+  particleDensity = 1;
 
   particles: Particle[] = [];
   damageNums: DamageNum[] = [];
@@ -74,6 +78,15 @@ export class Renderer {
     if (this.shakeEnabled) this.shakeMag = Math.min(18, this.shakeMag + mag);
   }
 
+  /** FPS safeguard: all particle spawns route through here so density can
+   *  back off when the frame budget is blown (never the enemy cap — that's
+   *  difficulty balance, not rendering). */
+  private spawnParticle(p: Particle): void {
+    if (this.particles.length >= 900) return;
+    if (this.particleDensity < 1 && Math.random() > this.particleDensity) return;
+    this.particles.push(p);
+  }
+
   /** Jump the camera straight to a world position (resuming a suspended run). */
   snapCamera(wx: number, wy: number): void {
     const t = this.proj(wx, wy);
@@ -88,7 +101,7 @@ export class Renderer {
       case 'kill': {
         const n = ev.big ? 18 : 7;
         for (let i = 0; i < n; i++) {
-          this.particles.push({
+          this.spawnParticle({
             x: ev.x, y: ev.y, z: 10,
             vx: rand(-120, 120), vy: rand(-120, 120), vz: rand(40, 200),
             life: rand(0.3, 0.7), maxLife: 0.7,
@@ -138,7 +151,7 @@ export class Renderer {
       case 'explosion':
         this.rings.push({ x: ev.x, y: ev.y, radius: ev.radius, t: 0, dur: 0.45, color: ev.color });
         for (let i = 0; i < 14; i++) {
-          this.particles.push({
+          this.spawnParticle({
             x: ev.x, y: ev.y, z: 8,
             vx: rand(-180, 180), vy: rand(-180, 180), vz: rand(60, 240),
             life: rand(0.3, 0.6), maxLife: 0.6, color: ev.color, size: rand(2, 5),
@@ -163,7 +176,7 @@ export class Renderer {
         this.banner('BUG RESOLVED', `${ev.name} — closed as fixed`, '#41d97f', 3);
         this.shake(10);
         for (let i = 0; i < 40; i++) {
-          this.particles.push({
+          this.spawnParticle({
             x: ev.x, y: ev.y, z: 14,
             vx: rand(-260, 260), vy: rand(-260, 260), vz: rand(80, 320),
             life: rand(0.5, 1.1), maxLife: 1.1,
@@ -175,7 +188,7 @@ export class Renderer {
         // precipitates out of solution: a soft teal fizz at the pop-in point
         this.rings.push({ x: ev.x, y: ev.y, radius: 50, t: 0, dur: 0.6, color: '#9fe8dc' });
         for (let i = 0; i < 10; i++) {
-          this.particles.push({
+          this.spawnParticle({
             x: ev.x + rand(-14, 14), y: ev.y + rand(-14, 14), z: 4,
             vx: rand(-20, 20), vy: rand(-20, 20), vz: rand(30, 80),
             life: rand(0.5, 1.0), maxLife: 1.0, color: '#cfeee8', size: rand(1.5, 3),
@@ -187,7 +200,7 @@ export class Renderer {
         // crystallization burst: the sample comes out of solution all at once
         this.rings.push({ x: ev.x, y: ev.y, radius: 90, t: 0, dur: 0.5, color: '#9fe8dc' });
         for (let i = 0; i < 28; i++) {
-          this.particles.push({
+          this.spawnParticle({
             x: ev.x, y: ev.y, z: 10,
             vx: rand(-160, 160), vy: rand(-160, 160), vz: rand(60, 260),
             life: rand(0.4, 0.9), maxLife: 0.9,
@@ -200,7 +213,7 @@ export class Renderer {
         this.columns.push({ x: ev.x, y: ev.y, radius: 46, t: 0, dur: 0.8, color: '#ffc12e' });
         this.rings.push({ x: ev.x, y: ev.y, radius: 70, t: 0, dur: 0.7, color: '#ffc12e' });
         for (let i = 0; i < 16; i++) {
-          this.particles.push({
+          this.spawnParticle({
             x: ev.x + rand(-10, 10), y: ev.y + rand(-10, 10), z: 6,
             vx: rand(-25, 25), vy: rand(-25, 25), vz: rand(60, 140),
             life: rand(0.6, 1.2), maxLife: 1.2,
@@ -236,6 +249,9 @@ export class Renderer {
       this.fpsDispT = 0.25;
       this.fpsDispMs = this.frameMs;
     }
+    // FPS safeguard: shed particle density fast over budget, recover slowly.
+    if (this.frameMs > 20) this.particleDensity = Math.max(0.15, this.particleDensity - dt * 0.5);
+    else if (this.frameMs < 15) this.particleDensity = Math.min(1, this.particleDensity + dt * 0.08);
     this.shakeMag *= Math.pow(0.0001, dt);
     this.flash = Math.max(0, this.flash - dt * 1.6);
     this.healGlow = Math.max(0, this.healGlow - dt);
@@ -279,8 +295,9 @@ export class Renderer {
       this.camX += 0.3; this.camY += 0.15;
     }
 
-    const shX = this.shakeMag > 0.2 ? rand(-this.shakeMag, this.shakeMag) : 0;
-    const shY = this.shakeMag > 0.2 ? rand(-this.shakeMag, this.shakeMag) : 0;
+    const shMag = this.reduceFlashEnabled ? this.shakeMag * 0.35 : this.shakeMag;
+    const shX = shMag > 0.2 ? rand(-shMag, shMag) : 0;
+    const shY = shMag > 0.2 ? rand(-shMag, shMag) : 0;
     const ox = this.w / 2 - this.camX + shX;
     const oy = this.h / 2 - this.camY + shY;
 
@@ -301,12 +318,15 @@ export class Renderer {
     if (this.fpsCounterEnabled) this.drawFpsCounter();
     this.drawBanners();
 
+    // Full-screen overlays are the photosensitivity risk — reduce-flash cuts
+    // their intensity hard but keeps a faint cue so the feedback isn't lost.
+    const flashScale = this.reduceFlashEnabled ? 0.25 : 1;
     if (this.flash > 0) {
-      ctx.fillStyle = `rgba(125, 249, 255, ${this.flash * 0.35})`;
+      ctx.fillStyle = `rgba(125, 249, 255, ${this.flash * 0.35 * flashScale})`;
       ctx.fillRect(0, 0, this.w, this.h);
     }
     if (run && run.hurtFlash > 0) {
-      ctx.fillStyle = `rgba(255, 60, 60, ${run.hurtFlash * 0.6})`;
+      ctx.fillStyle = `rgba(255, 60, 60, ${run.hurtFlash * 0.6 * flashScale})`;
       ctx.fillRect(0, 0, this.w, this.h);
     }
 
@@ -526,7 +546,7 @@ export class Renderer {
       });
       // ambient bubble trail
       if (Math.random() < 0.25) {
-        this.particles.push({
+        this.spawnParticle({
           x: m.x + rand(-6, 6), y: m.y + rand(-6, 6), z: 6,
           vx: rand(-8, 8), vy: rand(-8, 8), vz: rand(25, 55),
           life: rand(0.4, 0.8), maxLife: 0.8, color: '#cfeee8', size: rand(1, 2.5),
