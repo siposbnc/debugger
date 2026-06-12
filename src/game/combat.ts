@@ -44,6 +44,10 @@ export function updateWeapons(run: Run, dt: number): void {
       case 'sweep': fireSweep(run, w, s); w.timer = s.cooldown; break;
       case 'chain': if (fireChain(run, w, s)) w.timer = s.cooldown; break;
       case 'column': if (fireColumn(run, w, s)) w.timer = s.cooldown; break;
+      case 'bomb': if (fireBomb(run, w, s)) w.timer = s.cooldown; break;
+      case 'wall': fireWall(run, w, s); w.timer = s.cooldown; break;
+      case 'homing': if (fireHoming(run, w, s)) w.timer = s.cooldown; break;
+      case 'smite': if (fireSmite(run, w, s)) w.timer = s.cooldown; break;
     }
   }
 }
@@ -170,6 +174,113 @@ function fireColumn(run: Run, w: WeaponInstance, s: ReturnType<typeof effective>
       run.emit({ type: 'column', x: cx, y: cy, radius: s.area, color: w.def.color });
     }
   }
+  return true;
+}
+
+/** Fork Bomb: lob bombs at random nearby bugs — they explode where they land
+ *  (no contact damage in flight) and fork into scattering children. The Zip
+ *  Bomb's children recurse one generation deeper. */
+function fireBomb(run: Run, w: WeaponInstance, s: ReturnType<typeof effective>): boolean {
+  const candidates = nearestN(run, run.px, run.py, s.count * 3, 360);
+  if (candidates.length === 0) return false;
+  const isZip = w.def.id === 'zipBomb';
+  for (let i = 0; i < s.count; i++) {
+    const t = candidates[Math.floor(Math.random() * candidates.length)];
+    const tx = t.x + (Math.random() - 0.5) * 40, ty = t.y + (Math.random() - 0.5) * 40;
+    const d = dist(run.px, run.py, tx, ty) || 1;
+    const life = d / s.speed;
+    run.projectiles.push({
+      x: run.px, y: run.py,
+      vx: ((tx - run.px) / d) * s.speed, vy: ((ty - run.py) / d) * s.speed,
+      damage: s.damage, radius: 8, pierce: 0, life,
+      slow: 0, slowDur: 0, freeze: 0,
+      color: w.def.color, kind: 'bomb', hit: new Set(), source: w,
+      bomb: { explodeRadius: s.area, split: isZip ? 4 : 3, gen: isZip ? 2 : 1, maxLife: life },
+    });
+  }
+  run.emit({ type: 'shoot' });
+  return true;
+}
+
+/** Firewall: a burning line dropped ahead of the player, perpendicular to the
+ *  movement direction (area = half-length). The DMZ evolution drops a burning
+ *  ring around the player instead (area = radius). Extra count (projectiles
+ *  stat) fans more walls / stacks wider rings. */
+function fireWall(run: Run, w: WeaponInstance, s: ReturnType<typeof effective>): void {
+  const isRing = w.def.id === 'dmz';
+  const facing = Math.atan2(run.faceY, run.faceX);
+  for (let i = 0; i < s.count; i++) {
+    if (isRing) {
+      run.walls.push({
+        x: run.px, y: run.py, ux: 0, uy: 0, halfLen: 0,
+        ring: s.area + i * 45,
+        life: s.duration, maxLife: s.duration, tickT: 0,
+        damage: s.damage, color: w.def.color, source: w,
+      });
+    } else {
+      // fan extra walls ±35° around the heading
+      const dir = facing + (i === 0 ? 0 : (Math.ceil(i / 2) * 0.61) * (i % 2 === 1 ? 1 : -1));
+      const cx = run.px + Math.cos(dir) * 80, cy = run.py + Math.sin(dir) * 80;
+      run.walls.push({
+        x: cx, y: cy,
+        ux: -Math.sin(dir), uy: Math.cos(dir), // perpendicular to the heading
+        halfLen: s.area, ring: 0,
+        life: s.duration, maxLife: s.duration, tickT: 0,
+        damage: s.damage, color: w.def.color, source: w,
+      });
+    }
+  }
+  run.emit({ type: 'shoot' });
+}
+
+/** Ping Storm: homing packets fired at RANDOM enemies in range (not nearest —
+ *  storm, not focus). The DDoS evolution is simply a flood of them. */
+function fireHoming(run: Run, w: WeaponInstance, s: ReturnType<typeof effective>): boolean {
+  const candidates = nearestN(run, run.px, run.py, 24, TARGET_RANGE);
+  if (candidates.length === 0) return false;
+  for (let i = 0; i < s.count; i++) {
+    const t = candidates[Math.floor(Math.random() * candidates.length)];
+    // launch in a random direction — the steering brings it around (the swerve
+    // is the weapon's look; a straight shot would just be a weaker bolt)
+    const a = Math.random() * Math.PI * 2;
+    run.projectiles.push({
+      x: run.px, y: run.py,
+      vx: Math.cos(a) * s.speed, vy: Math.sin(a) * s.speed,
+      damage: s.damage, radius: s.area, pierce: s.pierce, life: 2.2,
+      slow: 0, slowDur: 0, freeze: 0,
+      color: w.def.color, kind: 'petbolt', hit: new Set(), source: w,
+      homing: { target: t, turn: 6.5 },
+    });
+  }
+  run.emit({ type: 'shoot' });
+  return true;
+}
+
+/** Sudo Scroll: a rare, massive strike on the biggest thing in range (highest
+ *  max HP; bosses first by construction). Root Access also EXECUTES non-boss
+ *  enemies under 15% HP around the strike point. */
+function fireSmite(run: Run, w: WeaponInstance, s: ReturnType<typeof effective>): boolean {
+  const candidates = nearestN(run, run.px, run.py, 40, 440);
+  if (candidates.length === 0) return false;
+  const isRoot = w.def.id === 'rootAccess';
+  for (let i = 0; i < s.count; i++) {
+    let target: Enemy | null = null;
+    for (const e of candidates) {
+      if (e.hp <= 0) continue;
+      if (!target || e.maxHp > target.maxHp) target = e;
+    }
+    if (!target) break;
+    run.hitEnemy(target, s.damage, { source: w });
+    run.emit({ type: 'column', x: target.x, y: target.y, radius: s.area, color: w.def.color });
+    if (isRoot) {
+      run.grid.forEachInRadius(target.x, target.y, s.area * 1.6, (e) => {
+        if (e.isBoss || e.hp <= 0) return;
+        if (e.hp < e.maxHp * 0.15) run.hitEnemy(e, e.hp, { noCrit: true, source: w });
+      });
+    }
+    candidates.splice(candidates.indexOf(target), 1);
+  }
+  run.emit({ type: 'shoot' });
   return true;
 }
 

@@ -167,6 +167,43 @@ export class GlRenderer extends RendererBase {
       b.ring(sx, sy, z.radius, z.radius / 2, 1.5);
     }
 
+    // firewalls / DMZ rings: glowing burn shapes + rising flame particles
+    for (const wl of run.walls) {
+      const fade = Math.min(1, wl.life / 0.5); // burn out in the last half-second
+      if (wl.ring > 0) {
+        const sx = px(wl.x, wl.y), sy = py(wl.x, wl.y);
+        b.color(wl.color, 0.18 * fade);
+        b.ring(sx, sy, wl.ring, wl.ring / 2, 13);
+        b.color(wl.color, 0.85 * fade);
+        b.ring(sx, sy, wl.ring, wl.ring / 2, 2.5);
+        if (Math.random() < 0.6) {
+          const a = Math.random() * Math.PI * 2;
+          this.spawnParticle({
+            x: wl.x + Math.cos(a) * wl.ring, y: wl.y + Math.sin(a) * wl.ring, z: 2,
+            vx: rand(-15, 15), vy: rand(-15, 15), vz: rand(60, 150),
+            life: rand(0.25, 0.5), maxLife: 0.5,
+            color: Math.random() < 0.35 ? '#ffe6aa' : wl.color, size: rand(2, 4),
+          });
+        }
+      } else {
+        const x1 = wl.x - wl.ux * wl.halfLen, y1 = wl.y - wl.uy * wl.halfLen;
+        const x2 = wl.x + wl.ux * wl.halfLen, y2 = wl.y + wl.uy * wl.halfLen;
+        b.color(wl.color, 0.22 * fade);
+        b.line(px(x1, y1), py(x1, y1), px(x2, y2), py(x2, y2), 12);
+        b.color(wl.color, 0.9 * fade);
+        b.line(px(x1, y1), py(x1, y1), px(x2, y2), py(x2, y2), 3);
+        if (Math.random() < 0.6) {
+          const t = rand(-wl.halfLen, wl.halfLen);
+          this.spawnParticle({
+            x: wl.x + wl.ux * t, y: wl.y + wl.uy * t, z: 2,
+            vx: rand(-15, 15), vy: rand(-15, 15), vz: rand(60, 150),
+            life: rand(0.25, 0.5), maxLife: 0.5,
+            color: Math.random() < 0.35 ? '#ffe6aa' : wl.color, size: rand(2, 4),
+          });
+        }
+      }
+    }
+
     // critical-exception slam telegraphs: red circle filling inward as the
     // impact approaches — leave it before the fill completes
     for (const s of run.slams) {
@@ -312,7 +349,20 @@ export class GlRenderer extends RendererBase {
     // projectiles
     for (const p of run.projectiles) {
       const sx = px(p.x, p.y), sy = py(p.x, p.y);
-      if (p.kind === 'arrow') {
+      if (p.kind === 'bomb' && p.bomb) {
+        // lobbed: hop along a sine arc over the flight, shadow on the ground
+        const frac = clamp(1 - p.life / p.bomb.maxLife, 0, 1);
+        const hop = Math.sin(Math.PI * frac) * (26 + p.bomb.maxLife * 40);
+        b.color('#000', 0.25);
+        b.ellipse(sx, sy, 6, 3);
+        b.color('rgb(26, 29, 36)');
+        b.ellipse(sx, sy - 10 - hop, 7, 7);
+        b.color(p.color, 0.9);
+        b.ring(sx, sy - 10 - hop, 7, 7, 1.5);
+        // fuse spark
+        b.color('rgb(255, 230, 170)', 0.7 + 0.3 * Math.sin(this.t * 30));
+        b.ellipse(sx + 4, sy - 19 - hop, 2, 2);
+      } else if (p.kind === 'arrow') {
         const ang = Math.atan2((p.vx + p.vy) / 2, p.vx - p.vy); // screen-space angle
         const c = this.arrowSprite(p.color);
         b.alpha(1);

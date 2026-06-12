@@ -136,6 +136,27 @@ export class CanvasRenderer extends RendererBase {
       ctx.stroke();
     }
 
+    // firewalls / DMZ rings (gameplay-relevant: minimal line/ring rendering)
+    for (const wl of run.walls) {
+      const fade = Math.min(1, wl.life / 0.5);
+      ctx.strokeStyle = wl.color;
+      ctx.globalAlpha = 0.85 * fade;
+      ctx.lineWidth = 3;
+      if (wl.ring > 0) {
+        const s = this.proj(wl.x, wl.y);
+        ctx.beginPath();
+        ctx.ellipse(s.x, s.y, wl.ring, wl.ring / 2, 0, 0, 7);
+        ctx.stroke();
+      } else {
+        const a = this.proj(wl.x - wl.ux * wl.halfLen, wl.y - wl.uy * wl.halfLen);
+        const c = this.proj(wl.x + wl.ux * wl.halfLen, wl.y + wl.uy * wl.halfLen);
+        ctx.beginPath();
+        ctx.moveTo(a.x, a.y); ctx.lineTo(c.x, c.y);
+        ctx.stroke();
+      }
+      ctx.globalAlpha = 1;
+    }
+
     // critical-exception slam telegraphs (gameplay-critical: must be visible
     // on this backend too, minimal styling)
     for (const sl of run.slams) {

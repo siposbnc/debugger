@@ -64,9 +64,31 @@ export interface Projectile {
   damage: number; radius: number; pierce: number; life: number;
   slow: number; slowDur: number; freeze: number;
   color: string;
-  kind: 'bolt' | 'arrow' | 'petbolt';
+  kind: 'bolt' | 'arrow' | 'petbolt' | 'bomb';
   hit: Set<Enemy>;
   source?: WeaponInstance;   // damage credit; undefined = ally (turret)
+  /** Fork Bomb: no contact damage in flight — explodes when life runs out,
+   *  then forks into `split` children while gen > 0. maxLife drives the
+   *  renderer's lob arc. */
+  bomb?: { explodeRadius: number; split: number; gen: number; maxLife: number };
+  /** Ping Storm packet: steers toward its target (re-acquires when it dies). */
+  homing?: { target: Enemy | null; turn: number };
+}
+
+/** Firewall / DMZ: a persistent burning shape that damages enemies crossing
+ *  it. Transient like projectiles (deliberately not suspended). ring = 0 →
+ *  line segment of half-length `halfLen` along (ux, uy); ring > 0 → circular
+ *  band of that radius centered on (x, y). */
+export interface FireWall {
+  x: number; y: number;
+  ux: number; uy: number;    // line direction (unit); unused for rings
+  halfLen: number;
+  ring: number;
+  life: number; maxLife: number;
+  tickT: number;             // next damage tick countdown
+  damage: number;            // per tick
+  color: string;
+  source?: WeaponInstance;
 }
 
 export interface EnemyShot {
@@ -272,6 +294,7 @@ export class Run {
   weapons: WeaponInstance[] = [];
   enemies: Enemy[] = [];
   projectiles: Projectile[] = [];
+  walls: FireWall[] = [];
   enemyShots: EnemyShot[] = [];
   pickups: Pickup[] = [];
   zones: GroundZone[] = [];
@@ -537,6 +560,7 @@ export class Run {
     this.updateEnemies(dt);
     updateWeapons(this, dt);
     this.updateProjectiles(dt);
+    this.updateWalls(dt);
     this.updateEnemyShots(dt);
     this.updateSlams(dt);
     this.updateAllies(dt);
@@ -704,9 +728,28 @@ export class Run {
   private updateProjectiles(dt: number): void {
     for (let i = this.projectiles.length - 1; i >= 0; i--) {
       const p = this.projectiles[i];
+      // ping-storm packets steer toward their target, re-acquiring on a kill
+      if (p.homing) {
+        let t = p.homing.target;
+        if (!t || t.hp <= 0) t = p.homing.target = this.grid.nearest(p.x, p.y, 320, (e) => !p.hit.has(e));
+        if (t) {
+          const want = Math.atan2(t.y - p.y, t.x - p.x);
+          const cur = Math.atan2(p.vy, p.vx);
+          let delta = want - cur;
+          while (delta > Math.PI) delta -= Math.PI * 2;
+          while (delta < -Math.PI) delta += Math.PI * 2;
+          const ang = cur + clamp(delta, -p.homing.turn * dt, p.homing.turn * dt);
+          const sp = Math.hypot(p.vx, p.vy);
+          p.vx = Math.cos(ang) * sp; p.vy = Math.sin(ang) * sp;
+        }
+      }
       p.x += p.vx * dt; p.y += p.vy * dt;
       p.life -= dt;
-      if (p.life <= 0) { this.projectiles[i] = this.projectiles[this.projectiles.length - 1]; this.projectiles.pop(); continue; }
+      if (p.life <= 0) {
+        if (p.bomb) this.explodeBomb(p);
+        this.projectiles[i] = this.projectiles[this.projectiles.length - 1]; this.projectiles.pop(); continue;
+      }
+      if (p.bomb) continue; // bombs are lobbed OVER the field: no contact damage in flight
 
       let dead = false;
       this.grid.forEachInRadius(p.x, p.y, p.radius + 26, (e) => {
@@ -720,6 +763,60 @@ export class Run {
         else p.pierce--;
       });
       if (dead) { this.projectiles[i] = this.projectiles[this.projectiles.length - 1]; this.projectiles.pop(); }
+    }
+  }
+
+  /** Fork-Bomb detonation: AoE damage, then fork into child bombs scattering
+   *  outward while generations remain (Zip Bomb recurses one level deeper). */
+  private explodeBomb(p: Projectile): void {
+    const b = p.bomb!;
+    this.grid.forEachInRadius(p.x, p.y, b.explodeRadius, (e) => {
+      if (dist(p.x, p.y, e.x, e.y) > b.explodeRadius + e.def.radius) return;
+      this.hitEnemy(e, p.damage, { knockFrom: { x: p.x, y: p.y }, knock: 150, source: p.source });
+    });
+    this.emit({ type: 'explosion', x: p.x, y: p.y, radius: b.explodeRadius, color: p.color });
+    if (b.gen <= 0) return;
+    for (let i = 0; i < b.split; i++) {
+      const a = (Math.PI * 2 * i) / b.split + rand(-0.3, 0.3);
+      const throwDist = rand(80, 140);
+      const speed = 260;
+      const life = throwDist / speed;
+      this.projectiles.push({
+        x: p.x, y: p.y,
+        vx: Math.cos(a) * speed, vy: Math.sin(a) * speed,
+        damage: p.damage * 0.6, radius: p.radius * 0.8, pierce: 0, life,
+        slow: 0, slowDur: 0, freeze: 0,
+        color: p.color, kind: 'bomb', hit: new Set(), source: p.source,
+        bomb: { explodeRadius: b.explodeRadius * 0.7, split: b.split, gen: b.gen - 1, maxLife: life },
+      });
+    }
+  }
+
+  /** Firewall / DMZ: burning shapes tick damage into enemies crossing them. */
+  private updateWalls(dt: number): void {
+    for (let i = this.walls.length - 1; i >= 0; i--) {
+      const wl = this.walls[i];
+      wl.life -= dt;
+      if (wl.life <= 0) { this.walls[i] = this.walls[this.walls.length - 1]; this.walls.pop(); continue; }
+      wl.tickT -= dt;
+      if (wl.tickT > 0) continue;
+      wl.tickT = 0.45;
+      const THICK = 20; // burn band half-width
+      if (wl.ring > 0) {
+        this.grid.forEachInRadius(wl.x, wl.y, wl.ring + THICK + 26, (e) => {
+          if (Math.abs(dist(wl.x, wl.y, e.x, e.y) - wl.ring) > THICK + e.def.radius) return;
+          this.hitEnemy(e, wl.damage, { source: wl.source });
+        });
+      } else {
+        this.grid.forEachInRadius(wl.x, wl.y, wl.halfLen + THICK + 26, (e) => {
+          // distance from the enemy to the wall's line segment
+          const proj = (e.x - wl.x) * wl.ux + (e.y - wl.y) * wl.uy;
+          const t = clamp(proj, -wl.halfLen, wl.halfLen);
+          const cx = wl.x + wl.ux * t, cy = wl.y + wl.uy * t;
+          if (dist(cx, cy, e.x, e.y) > THICK + e.def.radius) return;
+          this.hitEnemy(e, wl.damage, { source: wl.source });
+        });
+      }
     }
   }
 

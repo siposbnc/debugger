@@ -54,7 +54,11 @@ export type WeaponKind =
   | 'chain'      // instant beam chaining between enemies
   | 'column'     // eruptions at random nearby enemies
   | 'pet'        // familiar that shoots
-  | 'snipe';     // piercing slowing shot
+  | 'snipe'      // piercing slowing shot
+  | 'bomb'       // lobbed bomb that explodes and splits into child bombs
+  | 'wall'       // persistent flame wall (line ahead / DMZ ring) burning crossers
+  | 'homing'     // packets steering toward random enemies
+  | 'smite';     // rare massive single-target strike
 
 export interface WeaponLevelStats {
   damage: number;

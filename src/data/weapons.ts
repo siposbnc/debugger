@@ -160,6 +160,68 @@ export const WEAPONS: Record<string, WeaponDef> = {
     isEvolution: true,
     levels: [L(70, 1.1, 3, 12, 760, 1.0, 999, 1.0)], // slow=1.0 → full freeze, duration = freeze time
   },
+  forkBomb: {
+    id: 'forkBomb', name: 'Fork Bomb', kind: 'bomb', icon: '⑂', color: '#ffaa4d',
+    desc: 'Lobs a bomb that explodes and forks into three smaller bombs.',
+    flavor: 'One process becomes three. Three become a problem.',
+    evolveTo: 'zipBomb',
+    // area = explosion radius; children deal 60% at 70% radius (combat.ts)
+    levels: levels(L(20, 2.7, 1, 68, 330), { damage: 6, cooldown: 0.16, count: [5], area: 4 }),
+  },
+  zipBomb: {
+    id: 'zipBomb', name: 'Zip Bomb', kind: 'bomb', icon: '⧉', color: '#ffc97a',
+    desc: 'Forks four ways, and the forks fork again. Recursion as a weapon.',
+    flavor: '42.zip — handle with care.',
+    isEvolution: true,
+    levels: [L(46, 2.0, 2, 84, 360)],
+  },
+
+  firewall: {
+    id: 'firewall', name: 'Firewall', kind: 'wall', icon: '𝍕', color: '#ff6b4d',
+    desc: 'Raises a burning wall across your heading. Bugs crossing it cook.',
+    flavor: 'DENY ALL. Especially them.',
+    evolveTo: 'dmz',
+    // area = wall half-length; damage is per 0.45s tick on crossers
+    levels: levels(L(9, 3.0, 1, 95, 0, 2.6), { damage: 3, cooldown: 0.13, area: 8, duration: 0.22 }),
+  },
+  dmz: {
+    id: 'dmz', name: 'DMZ', kind: 'wall', icon: '◍', color: '#ff9b6b',
+    desc: 'A full burning perimeter. Nothing enters the demilitarized zone.',
+    flavor: 'Trust nothing. Toast everything.',
+    isEvolution: true,
+    levels: [L(22, 2.5, 1, 135, 0, 4.0)],
+  },
+
+  pingStorm: {
+    id: 'pingStorm', name: 'Ping Storm', kind: 'homing', icon: '⇝', color: '#5fd7ff',
+    desc: 'Fires homing packets at random bugs. They always find a route.',
+    flavor: '64 bytes from bug: icmp_seq=1 ttl=0',
+    evolveTo: 'ddos',
+    levels: levels(L(8, 1.5, 2, 6, 340), { damage: 3, cooldown: 0.09, count: [3, 5, 7], speed: 12 }),
+  },
+  ddos: {
+    id: 'ddos', name: 'DDoS', kind: 'homing', icon: '⇶', color: '#9be6ff',
+    desc: 'A distributed flood of packets. The swarm gets denied service.',
+    flavor: 'Your traffic is important to us.',
+    isEvolution: true,
+    levels: [L(12, 0.55, 6, 6, 430)],
+  },
+
+  sudoScroll: {
+    id: 'sudoScroll', name: 'Sudo Scroll', kind: 'smite', icon: '⌥', color: '#ffc12e',
+    desc: 'Rarely, strikes the biggest bug in range with root privileges.',
+    flavor: 'bug is not in the sudoers file. This incident will be reported.',
+    evolveTo: 'rootAccess',
+    // area = strike visual radius (and the root-access execute zone basis)
+    levels: levels(L(85, 5.6, 1, 60), { damage: 32, cooldown: 0.34 }),
+  },
+  rootAccess: {
+    id: 'rootAccess', name: 'Root Access', kind: 'smite', icon: '#', color: '#ffd75e',
+    desc: 'The strike also executes weakened lesser bugs around it (<15% HP).',
+    flavor: 'uid=0(root). Everything is a file. Files can be deleted.',
+    isEvolution: true,
+    levels: [L(360, 3.4, 1, 100)],
+  },
 };
 
 /** Base (non-evolution) weapons, in display order. */
@@ -174,6 +236,10 @@ export const SHOP_WEAPONS: { id: string; cost: number }[] = [
   { id: 'stackStaff', cost: 300 },
   { id: 'daemonFamiliar', cost: 450 },
   { id: 'breakpointBow', cost: 600 },
+  { id: 'firewall', cost: 700 },
+  { id: 'forkBomb', cost: 800 },
+  { id: 'pingStorm', cost: 900 },
+  { id: 'sudoScroll', cost: 1100 },
 ];
 
 export const MAX_WEAPON_LEVEL = 8;
