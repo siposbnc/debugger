@@ -191,6 +191,7 @@ export class UI {
     return [
       ...META_UPGRADES.filter((m) => this.metaUnlocked(m)).map((m) => `meta:${m.id}`),
       ...SHOP_WEAPONS.map((w) => `wpn:${w.id}`),
+      ...CHARACTER_LIST.map((c) => `chr:${c.id}`),
     ];
   }
 
@@ -274,7 +275,7 @@ export class UI {
         <button class="btn ${susp ? '' : 'primary'}" data-act="start">START RUN</button>
         <button class="btn" data-act="chars">CHARACTERS</button>
         <button class="btn" data-act="maps">MAPS</button>
-        <button class="btn" data-act="shop">UPGRADES${this.anyUnseen(this.shopIds()) ? '<span class="new-dot">●</span>' : ''}</button>
+        <button class="btn" data-act="shop">SHOP${this.anyUnseen(this.shopIds()) ? '<span class="new-dot">●</span>' : ''}</button>
         <button class="btn" data-act="codex">BUG DATABASE${this.anyUnseen(this.codexIds()) ? '<span class="new-dot">●</span>' : ''}</button>
         <button class="btn" data-act="objectives">OBJECTIVES${this.anyUnseen(this.objectiveIds()) ? '<span class="new-dot">●</span>' : ''}</button>
         <button class="btn" data-act="whatsnew">WHAT'S NEW${this.notesUnseen() ? '<span class="new-dot">●</span>' : ''}</button>
@@ -346,7 +347,7 @@ export class UI {
           <div class="arch">${c.archetype}</div>
           <p>${c.desc}</p>
           <div class="passive">⌁ ${weaponName}<br>★ ${c.passiveDesc}</div>
-          ${unlocked ? '' : `<div class="cost">🔒 ${c.cost} bits</div>`}
+          ${unlocked ? '' : `<div class="cost">🔒 ${c.cost} ⌬</div><div class="arch">unlock in shop</div>`}
         </div>`;
     }).join('');
     const s = this.screen(`
@@ -361,20 +362,13 @@ export class UI {
       const card = t.closest<HTMLElement>('.select-card');
       if (!card) return;
       const id = card.dataset.id!;
-      const def = CHARACTERS[id];
       if (this.save.unlockedCharacters.includes(id)) {
         this.save.lastCharacter = id;
         this.persist();
         sound.play('click');
         this.showCharSelect();
-      } else if (this.save.bits >= def.cost) {
-        this.save.bits -= def.cost;
-        this.save.unlockedCharacters.push(id);
-        this.save.lastCharacter = id;
-        this.persist();
-        sound.play('buy');
-        this.showCharSelect();
       } else {
+        // purchases consolidated in the SHOP (one buy path; draft 2026-06-13)
         sound.play('hurt');
       }
     });
@@ -488,6 +482,18 @@ export class UI {
         </div>`;
     }).join('');
 
+    const charRows = CHARACTER_LIST.map((c) => {
+      const owned = this.save.unlockedCharacters.includes(c.id);
+      return `
+        <div class="shop-row">
+          <div class="icon">${c.icon}</div>
+          <div class="info"><h4>${c.name}${UI.newBadge(fresh!, `chr:${c.id}`)}</h4><p>${c.archetype} — ${c.passiveDesc}</p></div>
+          <button class="btn small" data-char="${c.id}" ${owned || this.save.bits < c.cost ? 'disabled' : ''}>
+            ${owned ? 'OWNED' : `${c.cost} ⌬`}
+          </button>
+        </div>`;
+    }).join('');
+
     const s = this.screen(`
       <div class="screen-heading">npm install --save permanent-upgrades</div>
       <div class="bits-display">⌬ ${this.save.bits} bits</div>
@@ -496,6 +502,8 @@ export class UI {
         ${metaRows}
         <div class="shop-section"># Weapon licenses (adds to in-run card pool)</div>
         ${weaponRows}
+        <div class="shop-section"># Characters (adds to the character select)</div>
+        ${charRows}
       </div>
       <button class="btn" data-act="back">BACK</button>
     `, () => this.showMainMenu());
@@ -520,6 +528,16 @@ export class UI {
         if (!this.save.unlockedWeapons.includes(entry.id) && this.save.bits >= entry.cost) {
           this.save.bits -= entry.cost;
           this.save.unlockedWeapons.push(entry.id);
+          this.persist();
+          sound.play('buy');
+          this.showShop(fresh);
+        }
+      }
+      if (btn.dataset.char) {
+        const c = CHARACTERS[btn.dataset.char];
+        if (!this.save.unlockedCharacters.includes(c.id) && this.save.bits >= c.cost) {
+          this.save.bits -= c.cost;
+          this.save.unlockedCharacters.push(c.id);
           this.persist();
           sound.play('buy');
           this.showShop(fresh);
