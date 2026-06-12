@@ -42,7 +42,7 @@ npx esbuild scripts/simulate.ts --bundle --platform=node --outfile=scripts/simul
 npx esbuild scripts/offerTest.ts --bundle --platform=node --outfile=scripts/offerTest.cjs && node scripts/offerTest.cjs
 ```
 
-In-browser dev flags: `?autostart` skips the menu into a run; `?autostart&turbo` = 6× speed, invincible, auto-picked cards (for watching balance live). On dev builds, `window.dbg` (browser console) manipulates the live run — `dbg.help()` lists the API (`bits`, `offer`, `give`, `level`, `xp`, `god`, `time`, `list`); verified by `scripts/devtoolsTest.mjs` (Playwright, needs a served `build:dev` output).
+In-browser dev flags: `?autostart` skips the menu into a run; `?autostart&turbo` = 6× speed, invincible, auto-picked cards (for watching balance live). On dev builds, `window.dbg` (browser console) manipulates the live run — `dbg.help()` lists the API (`bits`, `offer`, `give`, `level`, `xp`, `god`, `stat`, `time`, `speed`, `list`); verified by `scripts/devtoolsTest.mjs` (Playwright, needs a served `build:dev` output).
 
 After any gameplay/content/balance change, run the simulator and check against the "Balance watchlist" in ROADMAP.md (kill rate ≥ spawn rate before min 6, first-boss TTK 60–100s, Bits/run bands).
 

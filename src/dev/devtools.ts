@@ -12,12 +12,16 @@ import { CHARACTERS } from '../data/characters';
 import { MAPS } from '../data/maps';
 import { persistSave, type SaveData } from '../save/save';
 import type { Run } from '../game/run';
+import type { ComputedStats } from '../game/stats';
 
 const BANNER = 'Debugger dev console';
 
 export interface DevContext {
   getRun(): Run | null;
   save: SaveData;
+  /** main-loop sim-speed multiplier (tick rate) */
+  getSpeed(): number;
+  setSpeed(mult: number): void;
 }
 
 const CATALOGS: Record<string, Record<string, { name: string }>> = {
@@ -37,7 +41,9 @@ const HELP: [call: string, what: string][] = [
   ['dbg.give(id, n=1)', 'grant a weapon at level n (or apply a card n times) immediately'],
   ['dbg.level(id, n)', `set an owned weapon's level (1–${MAX_WEAPON_LEVEL}; grants it if missing)`],
   ['dbg.god(on?)', 'toggle invincibility'],
+  ['dbg.stat(id?, value?)', 'no args: table of current stats · (id): read one · (id, n): override it (survives card pickups) · (id, null): clear the override'],
   ['dbg.time(min)', 'jump the run clock to minute min (bosses/spawn phases follow)'],
+  ['dbg.speed(mult?)', 'sim speed / tick rate: 6 = turbo, 0.5 = slow-mo, 1 = normal; no args reads it'],
   ['dbg.mushi()', 'precipitate the very rare visitor now (spawns on the next sim frame)'],
   ['dbg.help()', 'this text'],
 ];
@@ -155,6 +161,34 @@ function buildApi(ctx: DevContext) {
       return `[dbg] invincible: ${run.invincible}`;
     },
 
+    stat(id?: string, value?: number | null): string {
+      const run = needRun();
+      if (!run) return '';
+      if (id === undefined) {
+        console.table(Object.fromEntries(
+          (Object.keys(run.stats) as (keyof ComputedStats)[]).map((k) => [
+            k, { value: run.stats[k], overridden: run.statOverrides?.[k] !== undefined ? '←' : '' },
+          ]),
+        ));
+        return '[dbg] current stats above — dbg.stat(id, n) to override';
+      }
+      if (!(id in run.stats)) {
+        return `[dbg] unknown stat "${id}" — one of: ${Object.keys(run.stats).join(', ')}`;
+      }
+      const key = id as keyof ComputedStats;
+      if (value === undefined) return `[dbg] ${key} = ${run.stats[key]}`;
+      if (value === null) {
+        if (run.statOverrides) delete run.statOverrides[key];
+        run.recompute();
+        return `[dbg] ${key} override cleared → ${run.stats[key]}`;
+      }
+      const v = num(value);
+      if (v === null) return '[dbg] usage: dbg.stat(id, n) — n must be a number (null clears)';
+      (run.statOverrides ??= {})[key] = v;
+      run.recompute();
+      return `[dbg] ${key} → ${run.stats[key]} (override; dbg.stat("${key}", null) to clear)`;
+    },
+
     time(min: number): string {
       const run = needRun();
       if (!run) return '';
@@ -162,6 +196,15 @@ function buildApi(ctx: DevContext) {
       if (m === null) return `[dbg] usage: dbg.time(minutes) — a number, e.g. dbg.time(6) (got ${JSON.stringify(min)})`;
       run.time = Math.max(0, m * 60);
       return `[dbg] run clock → ${m}:00 (boss timer + spawn phases follow on the next frame)`;
+    },
+
+    speed(mult?: number): string {
+      if (mult === undefined) return `[dbg] sim speed: ${ctx.getSpeed()}×`;
+      const v = num(mult);
+      if (v === null || v <= 0) return '[dbg] usage: dbg.speed(mult) — a positive number, e.g. 0.5 / 1 / 6';
+      const clamped = Math.min(20, Math.max(0.1, v));
+      ctx.setSpeed(clamped);
+      return `[dbg] sim speed → ${clamped}×${clamped !== v ? ' (clamped to 0.1–20)' : ''}${clamped > 6 ? ' — heavy: many sim steps per frame' : ''}`;
     },
   };
 

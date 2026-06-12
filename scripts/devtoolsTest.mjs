@@ -50,6 +50,24 @@ check('give(id, n) grants a weapon at level n', (await dbg(() => window.dbg.give
 check('xp() reports gain', /level \d+, \d+ pending/.test(await dbg(() => window.dbg.xp(5))));
 check('time() moves the clock', (await dbg(() => window.dbg.time(5))).includes('5:00'));
 
+// stat(): read, override (survives a card pickup = recompute), clear
+check('stat(id) reads a stat', (await dbg(() => window.dbg.stat('moveSpeed'))).includes('moveSpeed ='));
+check('stat() lists all stats', (await dbg(() => window.dbg.stat())).includes('current stats above'));
+check('stat() rejects unknown id', (await dbg(() => window.dbg.stat('swagger'))).includes('unknown stat'));
+check('stat(id, n) overrides', (await dbg(() => window.dbg.stat('damageMult', 9))).includes('damageMult → 9'));
+await dbg(() => window.dbg.give('coffeeBreak')); // triggers recompute — override must survive
+check('stat override survives recompute', (await dbg(() => window.dbg.stat('damageMult'))).includes('= 9'));
+check('stat(id, null) clears override', !(await dbg(() => window.dbg.stat('damageMult', null))).includes('= 9'));
+check('stat(id, junk) rejected', (await dbg(() => window.dbg.stat('damageMult', 'lots'))).includes('usage'));
+
+// speed(): read, set, clamp, reject
+check('speed() reads multiplier', /sim speed: [\d.]+×/.test(await dbg(() => window.dbg.speed())));
+check('speed(3) sets multiplier', (await dbg(() => window.dbg.speed(3))).includes('3×'));
+check('speed(999) clamps to 20', (await dbg(() => window.dbg.speed(999))).includes('20×'));
+check('speed(0) rejected', (await dbg(() => window.dbg.speed(0))).includes('usage'));
+check('speed("fast") rejected', (await dbg(() => window.dbg.speed('fast'))).includes('usage'));
+await dbg(() => window.dbg.speed(1)); // back to normal for the offer checks below
+
 // Numeric params from the console aren't type-checked: a string like '6:00'
 // must be rejected, not NaN-poison the run clock (draft bug 2026-06-12).
 check('time() rejects a non-numeric arg', (await dbg(() => window.dbg.time('6:00'))).includes('usage'));

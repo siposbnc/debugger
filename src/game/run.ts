@@ -203,6 +203,9 @@ export class Run {
   // State-injection hook (dev console, future sim scenarios): weapon/card ids
   // that makeOffer() returns verbatim — instead of drawing — then clears.
   forcedOffer: string[] | null = null;
+  // State-injection hook (dev console): values merged over computeStats()'s
+  // output on every recompute, so they survive card pickups. null = none.
+  statOverrides: Partial<ComputedStats> | null = null;
 
   stats: ComputedStats;
   cardMods: StatMods[] = [];
@@ -291,6 +294,7 @@ export class Run {
   recompute(): void {
     const hpFrac = this.hp / this.stats.maxHp;
     this.stats = computeStats(this.character, this.metaLevels, this.cardMods);
+    if (this.statOverrides) Object.assign(this.stats, this.statOverrides);
     this.hp = clamp(hpFrac * this.stats.maxHp, 1, this.stats.maxHp);
   }
 

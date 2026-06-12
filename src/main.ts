@@ -25,12 +25,21 @@ let run: Run | null = null;
 
 // dev/balance verification mode: ?turbo → 6x speed, invincible, auto-pick cards
 const TURBO = new URLSearchParams(location.search).has('turbo');
+// Sim-speed multiplier (tick rate): scales accumulated real time in the main
+// loop, so fractional slow-mo works too (0.5 → a step every other frame).
+// Turbo = 6×; dbg.speed() adjusts it live on dev builds.
+let simSpeed = TURBO ? 6 : 1;
 
 // Dev console (window.dbg): dev server + `npm run build:dev` only. __DEV_TOOLS__
 // is a compile-time define — prod builds turn this into `if (false)` and the
 // dynamic import (with the whole src/dev/ chunk) is eliminated from dist/.
 if (__DEV_TOOLS__) {
-  import('./dev/devtools').then((m) => m.installDevTools({ getRun: () => run, save }));
+  import('./dev/devtools').then((m) => m.installDevTools({
+    getRun: () => run,
+    save,
+    getSpeed: () => simSpeed,
+    setSpeed: (mult) => { simSpeed = mult; },
+  }));
 }
 
 function applySettings(): void {
@@ -229,6 +238,9 @@ function drainEvents(): void {
 const STEP = 1 / 60;
 let last = performance.now();
 let acc = 0;
+// Lag guard: never queue more than this much sim time for one frame — a huge
+// speed multiplier on a slow frame must back off, not spiral.
+const MAX_FRAME_SIM = 0.5;
 
 function frame(now: number): void {
   requestAnimationFrame(frame);
@@ -238,11 +250,10 @@ function frame(now: number): void {
   pollGamepad(elapsed);
 
   if (state === 'run' && run) {
-    acc += elapsed;
-    const speedMult = TURBO ? 6 : 1;
+    acc = Math.min(MAX_FRAME_SIM, acc + elapsed * simSpeed);
     while (acc >= STEP) {
       acc -= STEP;
-      for (let i = 0; i < speedMult && !run.over; i++) run.update(STEP);
+      if (!run.over) run.update(STEP);
       if (run.pendingLevelUps > 0 && !run.over) {
         if (TURBO) {
           // auto-pick to keep the balance run unattended
