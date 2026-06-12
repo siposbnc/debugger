@@ -114,6 +114,18 @@ export class CanvasRenderer extends RendererBase {
         this.drawVent(z, s.x, s.y);
         continue;
       }
+      if (z.kind === 'latency') {
+        // minimal: the field must be visible/readable; the GL stutter-ring
+        // effect stays GL-only (this backend is frozen)
+        ctx.fillStyle = 'rgba(110, 200, 255, 0.12)';
+        ctx.beginPath();
+        ctx.ellipse(s.x, s.y, z.radius, z.radius / 2, 0, 0, 7);
+        ctx.fill();
+        ctx.strokeStyle = 'rgba(150, 225, 255, 0.45)';
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+        continue;
+      }
       const alpha = z.kind === 'marsh' ? 0.3 : 0.4 * clamp(z.life / 2, 0.3, 1);
       ctx.fillStyle = z.kind === 'marsh' ? `rgba(60, 140, 90, ${alpha})` : `rgba(84, 224, 107, ${alpha})`;
       ctx.beginPath();

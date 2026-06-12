@@ -81,13 +81,18 @@ export interface Pickup {
 }
 
 export interface GroundZone {
-  kind: 'leak' | 'marsh' | 'vent';
+  kind: 'leak' | 'marsh' | 'vent' | 'latency';
   x: number; y: number;
   radius: number; maxRadius: number;
-  life: number; maxLife: number;   // marsh + boss leak zones + vents: life = Infinity
-  dps: number;                     // vents: applied only while erupting
+  life: number; maxLife: number;   // marsh/vent/latency zones: life = Infinity
+  dps: number;                     // vents: applied only while erupting; latency: 0
   age?: number;                    // leak zones grow with age; vents: cycle clock
 }
+
+// Latency fields (Cyber Glacier hazard): static zones that lag everything
+// inside — player and enemies alike. No damage; the hazard is positional:
+// crossing one while the horde flanks at full speed outside is the danger.
+export const LATENCY_SLOW = 0.6;
 
 // Overheating floor vents (Production Server hazard): fixed grates cycling
 // idle → warning glow → eruption. Damage only lands during the eruption window,
@@ -323,6 +328,29 @@ export class Run {
         });
       }
     }
+    if (map.hazardLatency) {
+      for (let i = 0; i < 22; i++) {
+        const a = this.rng() * Math.PI * 2;
+        const d = 220 + this.rng() * 1500;
+        const r = 90 + this.rng() * 70;
+        this.zones.push({
+          kind: 'latency', x: Math.cos(a) * d, y: Math.sin(a) * d,
+          radius: r, maxRadius: r, life: Infinity, maxLife: Infinity, dps: 0,
+        });
+      }
+    }
+  }
+
+  /** Latency-field slow factor at a point (1 = unaffected). Cheap enough for
+   *  the per-enemy hot loop: only runs on hazardLatency maps, squared distance,
+   *  no allocation. */
+  latencySlowAt(x: number, y: number): number {
+    for (const z of this.zones) {
+      if (z.kind !== 'latency') continue;
+      const dx = x - z.x, dy = y - z.y;
+      if (dx * dx + dy * dy < z.radius * z.radius) return LATENCY_SLOW;
+    }
+    return 1;
   }
 
   emit(e: RunEvent): void { this.events.push(e); }
@@ -502,7 +530,7 @@ export class Run {
     let wx = (mv.x + mv.y) * inv;
     let wy = (mv.y - mv.x) * inv;
 
-    // slow factors: deadlock scarab aura + marsh pools
+    // slow factors: deadlock scarab aura + marsh pools + latency fields
     this.playerSlow = 1;
     this.grid.forEachInRadius(this.px, this.py, 150, (e) => {
       if (!e.isBoss && (e.def as EnemyDef).slowAura && e.frozenT <= 0) this.playerSlow = 0.55;
@@ -510,6 +538,8 @@ export class Run {
     for (const z of this.zones) {
       if (z.kind === 'marsh' && dist(this.px, this.py, z.x, z.y) < z.radius) {
         this.playerSlow = Math.min(this.playerSlow, 0.6);
+      } else if (z.kind === 'latency' && dist(this.px, this.py, z.x, z.y) < z.radius) {
+        this.playerSlow = Math.min(this.playerSlow, LATENCY_SLOW);
       }
     }
 
@@ -581,7 +611,8 @@ export class Run {
   private moveEnemy(e: Enemy, dt: number): void {
     const def = e.def;
     const slow = 1 - e.slowAmt;
-    const speed = (e.scaledSpeed ?? def.speed) * slow;
+    const lag = this.map.hazardLatency ? this.latencySlowAt(e.x, e.y) : 1;
+    const speed = (e.scaledSpeed ?? def.speed) * slow * lag;
     const dx = this.px - e.x, dy = this.py - e.y;
     const d = Math.sqrt(dx * dx + dy * dy) || 1;
 
@@ -771,6 +802,7 @@ export class Run {
         }
         continue; // idle/warn phases never damage
       }
+      if (z.kind === 'latency') continue; // pure slow — hurtPlayer(0) still chips 0.5
       if (dist(this.px, this.py, z.x, z.y) < z.radius) {
         this.hurtPlayer(z.dps * dt);
       }

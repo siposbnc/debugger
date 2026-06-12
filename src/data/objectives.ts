@@ -18,6 +18,8 @@ export const OBJECTIVES: ObjectiveDef[] = [
   { id: 'marshWin', name: 'Drained the Swamp', desc: 'Survive 10 minutes in Memory Marsh', check: (s) => s.mapId === 'memoryMarsh' && s.timeSec >= 600 },
   { id: 'prodSoak', name: 'Change Ticket Approved', desc: 'Survive 10 minutes in Production Server', check: (s) => s.mapId === 'productionServer' && s.timeSec >= 600 },
   { id: 'prodWin', name: 'Five Nines', desc: 'Survive the full 15 minutes in Production Server', check: (s) => s.mapId === 'productionServer' && s.victory },
+  { id: 'glacierSoak', name: 'Cold Start', desc: 'Survive 10 minutes in Cyber Glacier', check: (s) => s.mapId === 'cyberGlacier' && s.timeSec >= 600 },
+  { id: 'glacierWin', name: 'Code Freeze', desc: 'Survive the full 15 minutes in Cyber Glacier', check: (s) => s.mapId === 'cyberGlacier' && s.victory },
   { id: 'mushiCatch', name: 'Cabal of Two', desc: 'Walk into a very rare visitor before it evaporates', check: (s) => s.mushiCaught },
 ];
 

@@ -69,6 +69,31 @@ export const MAPS: Record<string, MapDef> = {
     ],
     bossOrder: ['infiniteLoop', 'mergeConflict', 'stackOverflowBoss', 'memoryLeak', 'legacyMonolith'],
   },
+  cyberGlacier: {
+    id: 'cyberGlacier', name: 'Cyber Glacier',
+    desc: 'Processes frozen mid-execution, drifting in the permafrost. Latency fields lag everything caught inside — your inputs included. ×1.5 Bits.',
+    icon: '🧊', bitsMult: 1.5, cost: 2000,
+    palette: {
+      ground1: '#1c2a3c', ground2: '#223349',
+      grid: '#3a567a', accent: '#7adcff', fog: '#0a101c',
+    },
+    hazardLatency: true,
+    enemyScale: 1.4, // meta-gating: the deepest map — maxed meta is the entry ticket
+    // Skew: tanks — leeches from minute 0, scarabs early (slow aura on top of
+    // latency lag), centipedes from min 5 and heavy late. Beetle weight stays
+    // ≤4 (explosion-stacking Backlog concern); wasps keep charge pressure so
+    // lagged dodges actually cost something.
+    spawnPlan: [
+      { fromMin: 0, interval: 1.25, weights: { syntaxMite: 8, memoryLeech: 3 } },
+      { fromMin: 1, interval: 1.05, weights: { syntaxMite: 7, memoryLeech: 5, deadlockScarab: 2 } },
+      { fromMin: 3, interval: 0.8, weights: { syntaxMite: 5, memoryLeech: 6, deadlockScarab: 4, cacheTick: 4 } },
+      { fromMin: 5, interval: 0.7, weights: { memoryLeech: 6, deadlockScarab: 5, cacheTick: 4, nullWasp: 4, stackCentipede: 2 } },
+      { fromMin: 7, interval: 0.6, weights: { memoryLeech: 5, deadlockScarab: 6, nullWasp: 5, stackCentipede: 3, exceptionBeetle: 3 } },
+      { fromMin: 9, interval: 0.52, weights: { memoryLeech: 5, deadlockScarab: 6, nullWasp: 5, stackCentipede: 4, exceptionBeetle: 4, raceSpider: 4 } },
+      { fromMin: 11, interval: 0.46, weights: { deadlockScarab: 6, nullWasp: 5, stackCentipede: 6, exceptionBeetle: 4, raceSpider: 5 } },
+    ],
+    bossOrder: ['stackOverflowBoss', 'memoryLeak', 'infiniteLoop', 'mergeConflict', 'legacyMonolith'],
+  },
 };
 
 export const MAP_LIST = Object.values(MAPS);

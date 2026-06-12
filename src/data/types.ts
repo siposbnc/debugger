@@ -160,6 +160,7 @@ export interface MapDef {
   };
   hazardPools?: boolean;                 // toxic slow pools scattered on the field
   hazardVents?: boolean;                 // overheating floor vents (periodic damage zones)
+  hazardLatency?: boolean;               // latency fields (slow player AND enemies inside)
   /** Enemy + boss HP/damage multiplier (default 1). The meta-gating lever:
    *  pricier maps are tuned to be unwinnable without meta-shop investment,
    *  even on a good in-run build — see BALANCE.md §5. */

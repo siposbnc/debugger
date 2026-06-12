@@ -156,6 +156,10 @@ export class GlRenderer extends RendererBase {
         this.drawVent(z, sx, sy);
         continue;
       }
+      if (z.kind === 'latency') {
+        this.drawLatency(z, sx, sy);
+        continue;
+      }
       const alpha = z.kind === 'marsh' ? 0.3 : 0.4 * clamp(z.life / 2, 0.3, 1);
       b.color(z.kind === 'marsh' ? 'rgb(60, 140, 90)' : 'rgb(84, 224, 107)', alpha);
       b.ellipse(sx, sy, z.radius, z.radius / 2);
@@ -546,6 +550,34 @@ export class GlRenderer extends RendererBase {
         });
       }
     }
+  }
+
+  /** Latency field: pale ice sheet with embedded crystal shards and a ping
+   *  ring that expands in stutter-steps — lag made visible. Boundary stays
+   *  crisp so the player can read exactly where the slow starts. */
+  private drawLatency(z: GroundZone, sx: number, sy: number): void {
+    const b = this.batch;
+    b.color('rgb(110, 200, 255)', 0.10);
+    b.ellipse(sx, sy, z.radius, z.radius / 2);
+    b.color('rgb(150, 225, 255)', 0.18);
+    b.ellipse(sx, sy, z.radius * 0.6, z.radius * 0.3);
+    b.color('rgb(150, 225, 255)', 0.45);
+    b.ring(sx, sy, z.radius, z.radius / 2, 1.5);
+    // ice crystals — deterministic per field (position-seeded), so they don't shimmer
+    for (let i = 0; i < 4; i++) {
+      const seed = Math.sin(z.x * 12.9898 + z.y * 78.233 + i * 37.719) * 43758.5453;
+      const fr = seed - Math.floor(seed);
+      const a = fr * Math.PI * 2;
+      const d = (0.25 + 0.55 * ((fr * 7919) % 1)) * z.radius;
+      const cs = 3 + ((fr * 104729) % 1) * 4;
+      b.color('rgb(190, 235, 255)', 0.35);
+      b.diamond(sx + Math.cos(a) * d, sy + Math.sin(a) * d * 0.5, cs, cs * 1.6);
+    }
+    // ping ring: progress quantized to 8 steps — it visibly stutters outward
+    const t = ((this.t * 0.35 + z.x * 0.013 + z.y * 0.007) % 1 + 1) % 1;
+    const q = Math.floor(t * 8) / 8;
+    b.color('rgb(160, 230, 255)', 0.3 * (1 - q));
+    b.ring(sx, sy, z.radius * (0.15 + 0.85 * q), z.radius * (0.15 + 0.85 * q) / 2, 1.2);
   }
 
   /** Arrow projectile baked per color (glow included), pointing +x. */
