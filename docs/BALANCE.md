@@ -170,7 +170,8 @@ the §8 dominance fix removed). Accepted trade: **greenfield zero band amended t
 ~20–35%** — the meta gap on the starter map sharpens (23 → 69), consistent with
 pillar 5, and greenfield zero remains by far the most winnable zero arm (others are
 ≤ 6%). Keeping the 4th bolt anywhere re-opens the §8 dominance violation. Only a drop
-below ~20% zero / 60% meta is a regression from here.
+below ~20% zero / 60% meta is a regression from here. **Trade accepted by user
+2026-06-12** — the 20–35% band is the ruling target, not a provisional note.
 
 Reading the ladder: on the starter map, *either* meta or build/skill buys a fair shot and
 both together make it comfortable; each next map shifts the requirement one notch toward
