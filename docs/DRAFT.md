@@ -17,6 +17,19 @@ into [ROADMAP.md](../ROADMAP.md), and moves them to **Processed** below.
 
 ---
 
+## Processed → ROADMAP.md (2026-06-12, batch 18)
+
+- Display weapon changes on card selection → **v0.3 QoL, P2 (S) "Weapon-change previews on level-up cards"** — weapon-up/new-weapon/evolution cards list the concrete `levels[]` delta (damage/cooldown/count/area/pierce) the way stat cards already show "dmg 34 → 38"; reuses the v0.2 preview/CAPPED machinery and extends `cardPreviewTest.mjs`
+
+<details>
+<summary>Batch 18 — original notes (kept for reference)</summary>
+
+### Draft ideas
+
+- display weapon changes on card selection (same as stat changes)
+
+</details>
+
 ## Processed → ROADMAP.md (2026-06-12, batch 17)
 
 - Enemy variants + per-map enemy pools → **merged into one v0.4 P1 (L) "Per-map enemy pools via variants"** (new "Map identity" section — same direction as the v0.3 boss pools): every map gets ≥5 enemy types, no two maps share an exact type, overlap only as variants. Variants are the mechanism that makes 4 distinct rosters affordable: `variantOf` data records reusing a base archetype's sprite/behavior with palette + stat shifts (+ at most one flag tweak). Spawn plans rewritten per map; full sim re-cert flagged (kill-rate + meta-gap are sensitive to enemy stats). The v0.3 "+2 enemy types" P2 cross-referenced as pool feed
