@@ -10,6 +10,7 @@ import { ENEMIES } from '../data/enemies';
 import { BOSSES } from '../data/bosses';
 import { CHARACTERS } from '../data/characters';
 import { MAPS } from '../data/maps';
+import { META_UPGRADES } from '../data/meta';
 import { persistSave, type SaveData } from '../save/save';
 import type { Run } from '../game/run';
 import type { ComputedStats } from '../game/stats';
@@ -45,6 +46,7 @@ const HELP: [call: string, what: string][] = [
   ['dbg.time(min)', 'jump the run clock to minute min (bosses/spawn phases follow)'],
   ['dbg.speed(mult?)', 'sim speed / tick rate: 6 = turbo, 0.5 = slow-mo, 1 = normal; no args reads it'],
   ['dbg.mushi()', 'precipitate the very rare visitor now (spawns on the next sim frame)'],
+  ["dbg.unlock(what='all')", "reveal progressive unlocks: 'codex' (all bug/boss entries), 'meta' (all ??? shop rows), or 'all' (persisted)"],
   ['dbg.help()', 'this text'],
 ];
 
@@ -97,6 +99,28 @@ function buildApi(ctx: DevContext) {
       ctx.save.bits += v;
       persistSave(ctx.save);
       return `[dbg] +${v} ⌬ → ${ctx.save.bits} (persisted)`;
+    },
+
+    unlock(what: 'codex' | 'meta' | 'all' = 'all'): string {
+      if (what !== 'codex' && what !== 'meta' && what !== 'all') {
+        return "[dbg] usage: dbg.unlock('codex' | 'meta' | 'all')";
+      }
+      const done: string[] = [];
+      if (what !== 'meta') {
+        const enc = new Set(ctx.save.encountered);
+        for (const id of Object.keys(ENEMIES)) enc.add(`bug:${id}`);
+        for (const id of Object.keys(BOSSES)) enc.add(`boss:${id}`);
+        ctx.save.encountered = [...enc];
+        done.push(`codex (${enc.size} entries)`);
+      }
+      if (what !== 'codex') {
+        const meta = new Set(ctx.save.unlockedMeta);
+        for (const m of META_UPGRADES) meta.add(m.id);
+        ctx.save.unlockedMeta = [...meta];
+        done.push(`meta shop (${meta.size} upgrades)`);
+      }
+      persistSave(ctx.save);
+      return `[dbg] unlocked: ${done.join(' + ')} (persisted)`;
     },
 
     xp(n = 50): string {

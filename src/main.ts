@@ -178,6 +178,16 @@ function endRun(): void {
   });
 }
 
+/** Manual termination (KILL PROCESS): the run is discarded wholesale — no
+ *  Bits, no lifetime stats, no objective credit, no codex/meta unlocks (user
+ *  ruling: termination grants nothing; SIGKILL means SIGKILL). */
+function abandonRun(): void {
+  run = null;
+  sound.stopMusic();
+  state = 'menu';
+  ui.showMainMenu();
+}
+
 function pause(): void {
   if (state !== 'run' || !run) return;
   state = 'paused';
@@ -189,7 +199,7 @@ function showPauseScreen(): void {
   ui.showPause(
     run,
     resume,
-    () => { if (run) { run.over = true; run.victory = false; } endRun(); },
+    abandonRun,
     suspendRun,
     () => ui.showSettings(showPauseScreen), // settings sub-screen, BACK returns here
   );

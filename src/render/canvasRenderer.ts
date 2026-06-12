@@ -418,6 +418,12 @@ export class CanvasRenderer extends RendererBase {
             ctx.fillRect(s.x - bw / 2, by, bw, 5);
             ctx.fillStyle = frac > 0.35 ? '#41d97f' : '#ff5e5e';
             ctx.fillRect(s.x - bw / 2, by, bw * frac, 5);
+            if (run.stats.shieldMax > 0) {
+              ctx.fillStyle = 'rgba(0,0,0,0.6)';
+              ctx.fillRect(s.x - bw / 2, by - 5, bw, 3);
+              ctx.fillStyle = '#5fd7ff';
+              ctx.fillRect(s.x - bw / 2, by - 5, bw * clamp(run.shield / run.stats.shieldMax, 0, 1), 3);
+            }
           }
         },
       });

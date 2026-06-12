@@ -735,13 +735,23 @@ export class UI {
     if (offer.length === 0) { onDone(); return; }
 
     // progressive meta unlocks: cards whose stat still hides a "???" shop row
-    // get a small hint — the pick is also a discovery
+    // get a small hint — the pick is also a discovery. Stats already picked
+    // THIS run count as pending unlocks (they reveal at run end), so the hint
+    // only ever shows on the first opportunity — repeating it was wrong
+    // (sole inaccuracy left: a manually terminated run records nothing, by
+    // design — no rewards, no unlocks on termination).
     const unlockHint = (item: OfferItem): string => {
       if (item.kind !== 'card') return '';
       const mods = CARD_BY_ID[item.id]?.mods ?? {};
-      const reveals = META_UPGRADES.some((m) =>
-        !this.metaUnlocked(m) &&
-        Object.keys(m.modsPerLevel ?? {}).some((k) => k in mods));
+      const pending = new Set<string>();
+      for (const [cardId] of run.takenCards) {
+        for (const k of Object.keys(CARD_BY_ID[cardId]?.mods ?? {})) pending.add(k);
+      }
+      const reveals = META_UPGRADES.some((m) => {
+        if (this.metaUnlocked(m)) return false;
+        const keys = Object.keys(m.modsPerLevel ?? {});
+        return keys.some((k) => k in mods) && !keys.some((k) => pending.has(k));
+      });
       return reveals ? '<div class="unlock-hint">🔓 unlocks a meta upgrade</div>' : '';
     };
 

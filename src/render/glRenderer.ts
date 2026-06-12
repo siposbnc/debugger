@@ -512,6 +512,13 @@ export class GlRenderer extends RendererBase {
       b.rect(sx - bw / 2, by, bw, 5);
       b.color(frac > 0.35 ? '#41d97f' : '#ff5e5e');
       b.rect(sx - bw / 2, by, bw * frac, 5);
+      // shield strip above the HP bar (only when the build has shield)
+      if (run.stats.shieldMax > 0) {
+        b.color('#000', 0.6);
+        b.rect(sx - bw / 2, by - 5, bw, 3);
+        b.color('#5fd7ff');
+        b.rect(sx - bw / 2, by - 5, bw * clamp(run.shield / run.stats.shieldMax, 0, 1), 3);
+      }
     }
   }
 

@@ -17,6 +17,36 @@ into [ROADMAP.md](../ROADMAP.md), and moves them to **Processed** below.
 
 ---
 
+## Processed → ROADMAP.md (2026-06-12, batch 19)
+
+- Shield above the player character → **shipped same day**: a thin cyan strip stacks above the in-world player HP bar (both render backends) whenever the build has shield, gated by the same health-bar setting
+- Pause-screen inventory → **v0.3 QoL, P2 (S)** — weapons panel on the pause stat sheet: icon/name/level, description, full resolved stat row (levels[] × global mults, same numbers as the card previews) next to the existing damage/DPS columns
+- Stat caps too easy to reach → **v0.3 Cards & enemies, P2 (M) "Stat-cap headroom pass"** — raise the 60% CDR cap toward an endgame asymptote and retrim per-card CDR; flagged balance-sensitive (blades-cdr scenario + §5 meta-gap arms re-run required; previews inherit caps automatically)
+- Dev tool to unlock upgrades/codex → **shipped same day**: `dbg.unlock('codex'|'meta'|'all')` reveals progressive unlocks and persists; devtoolsTest +3 checks
+- Repeated "unlocks a meta upgrade" hint → **fixed same day**: stats already picked this run count as pending unlocks, so the hint shows only at the first opportunity. The user's stated termination semantics were also implemented: **KILL PROCESS now discards the run wholesale** (no Bits, no lifetime stats, no objectives, no unlocks — previously it paid out like a death, contradicting the SIGKILL framing)
+
+<details>
+<summary>Batch 19 — original notes (kept for reference)</summary>
+
+### Draft ideas
+
+- shield should also be shown above the player character if health bar is turned on
+- show inventory on pause screen
+    - detailed weapon info with all of its stats and descriptionss
+- stat caps are too easy to reach (increase caps and adjust stats on cards, especially cooldown reduction)
+
+### Dev env ideas
+
+- dev tool to unlock upgrades/codex
+
+### Bugs
+
+- "unlocks a new meta upgrade" is displayed at the next card selection again even if a card for that stat was already picked in the run
+    - display at first pick only, should be unlocked already at the next occurance so info is wrong
+    - only exception is if the run was terminated manually by the user (no rewards and no unlocks on termination)
+
+</details>
+
 ## Processed → ROADMAP.md (2026-06-12, batch 18)
 
 - Display weapon changes on card selection → **v0.3 QoL, P2 (S) "Weapon-change previews on level-up cards"** — weapon-up/new-weapon/evolution cards list the concrete `levels[]` delta (damage/cooldown/count/area/pierce) the way stat cards already show "dmg 34 → 38"; reuses the v0.2 preview/CAPPED machinery and extends `cardPreviewTest.mjs`

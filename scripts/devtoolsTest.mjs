@@ -75,6 +75,14 @@ check('clock not NaN-poisoned after bad arg', (await dbg(() => window.dbg.time(6
 check('xp() rejects a non-numeric arg', (await dbg(() => window.dbg.xp('lots'))).includes('usage'));
 check('time() coerces a numeric string', (await dbg(() => window.dbg.time('7'))).includes('7:00'));
 
+// unlock(): progressive-unlock reveal (codex/meta/all), bad arg rejected
+check('unlock() reveals codex + meta', /codex \(\d+ entries\) \+ meta shop \(\d+ upgrades\)/.test(await dbg(() => window.dbg.unlock())));
+check('unlock persists to the save', await page.evaluate(() => {
+  const s = JSON.parse(localStorage.getItem('debugger-save-v1') ?? '{}');
+  return (s.encountered ?? []).includes('boss:kernelPanic') && (s.unlockedMeta ?? []).includes('shield');
+}));
+check('unlock(junk) rejected', (await dbg(() => window.dbg.unlock('everything'))).includes('usage'));
+
 // Drain any naturally opened level-up modal so the forced offer is the one
 // on screen (the live run levels on its own while the checks above run).
 for (let i = 0; i < 8 && await page.$('.levelup-wrap'); i++) {
