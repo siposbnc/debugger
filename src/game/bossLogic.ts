@@ -95,7 +95,11 @@ const FREEZE_T = 4;               // locked up: heavy armor, blizzard volleys
 const FREEZE_ARMOR = 0.15;
 const FREEZE_RING_MULT = 0.45;    // ring period multiplier while frozen
 const THAW_T = 4;                 // vulnerable window after the freeze
-const THAW_ARMOR = 1.5;           // damage-taken multiplier — strike the thaw
+const THAW_ARMOR = 1.8;           // damage-taken multiplier — strike the thaw.
+                                  // 1.8 makes a freeze+thaw pair roughly DPS-
+                                  // neutral for sustained fire and a clear win
+                                  // for burst builds (at 1.5 every pair net-
+                                  // drained the crunch slip margin, sim-caught)
 
 const UNIQUE_SLOT = 5;            // 2:00 + 5×120s = 12:00 — the finale slot
 const LIGHT_SLOT_MAX_HP = 800;    // the 2:00 opener (no build yet) AND every

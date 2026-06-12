@@ -97,8 +97,11 @@ export const BOSSES: Record<string, BossDef> = {
     codexDesc: 'The whole system halts to print one final complaint. Everything it touches '
       + 'freezes with it.',
     // freeze phases add ~2×4s of near-immunity on top of enemyScale 1.4 —
-    // 3200 base put the glacier maxed-meta cert under the 40% floor
-    hp: 2400, speed: 42, damage: 28, radius: 44, color: '#7adcff',
+    // 3200 base put the glacier maxed-meta cert under the 40% floor, and the
+    // v0.3 card-pool growth (diluted offense density) cost another ~10 points
+    // at 2400; failures are overwhelmingly Kernel-Panic-outlives-crunch slips,
+    // so the finale's own pool is the targeted lever
+    hp: 2000, speed: 42, damage: 28, radius: 44, color: '#7adcff',
     mechanic: 'panic',
     mechanicDesc: 'Fires expanding rings of chill shards that lag your movement. At health '
       + 'thresholds it hard-freezes — heavily armored while the blizzard intensifies — '

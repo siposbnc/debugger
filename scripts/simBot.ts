@@ -36,12 +36,13 @@ const STAT_VALUE: Record<keyof StatMods, number> = {
   maxHp: 0.18, regen: 5, armor: 4,
   pickupRadius: 0.02, xpGain: 30, luck: 5,
   rerolls: 1, banishes: 1, skips: 1,
+  shield: 0.2, // every StatMods key MUST appear here — a missing key scores NaN
 };
 
 /** Mortal bots buy survivability too — a build that never lives to minute 12
  *  isn't a good build no matter its DPS. */
 const MORTAL_STAT_VALUE: Partial<Record<keyof StatMods, number>> = {
-  maxHp: 0.6, regen: 18, armor: 22, speed: 60,
+  maxHp: 0.6, regen: 18, armor: 22, speed: 60, shield: 0.5,
 };
 
 function scoreOffer(run: Run, item: OfferItem, mortal: boolean): number {

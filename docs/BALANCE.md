@@ -121,8 +121,20 @@ Overflow resummon 5s → 6s, fragile race afterimages) back to:
 |---|---|---|---|
 | greenfield (1.0) | **44%** (7/16) | **62.5%** (10/16) | zero ~30–50%, meta ≥ 60% |
 | memoryMarsh (1.2) | **0%** (0/32) | **44%** (14/32) | zero ≤ 15%, meta ≥ 40% |
-| productionServer (1.35) | **~0%** (0/16 pre-rework, not re-run — bosses only got harder at zero meta) | **47%** (15/32) | zero ~0%, meta ≥ 40% |
-| cyberGlacier (1.4) | **0%** (0/16) | **47%** (15/32) | zero ~0%, meta ≥ 40% |
+| productionServer (1.35) | **~0%** (0/16 pre-rework) | **41%** (13/32) | zero ~0%, meta ≥ 40% |
+| cyberGlacier (1.35, was 1.4) | **0%** (0/16) | **36%** (23/64) — ⚠ below floor, see note | zero ~0%, meta ≥ 40% |
+
+**Post-card-pool-growth re-measurement (2026-06-12, v0.3 promoted-P1 batch):** the +11
+cards diluted the greedy bot's offense density per offer. Greenfield (62.5%) and marsh
+(44%) held exactly; production dropped 47% → 41% (floor holds); **cyberGlacier dropped
+47% → ~36% (n=64 pooled) and sits ~4 points under the 40% floor.** Five n=32 arms across
+progressively easier configs (enemyScale 1.4→1.35, Kernel Panic 2400→2000, thaw ×1.5→
+×1.8, crab weights 3/4→2/2 — all now shipped) were flat within noise: the binding
+constraint is glacier's *designed* tank wall starving auto-aim DPS away from the mid-run
+boss queue (samples slip with 3–4 of 7 bosses killed, not at the finale). Remaining
+levers all touch owned design decisions — the tank-skew identity, the 30s crunch
+duration, or the 40% floor itself — **flagged for a user ruling rather than tuned away.**
+Zero-meta gate fully intact at 1.35 (0/16).
 
 Maxed-meta failures are overwhelmingly release-slips, not deaths (production: 28 slips
 vs 4 deaths across the tuning runs) — the bot survives but the boss queue outlives

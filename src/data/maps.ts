@@ -86,7 +86,13 @@ export const MAPS: Record<string, MapDef> = {
       grid: '#3a567a', accent: '#7adcff', fog: '#0a101c',
     },
     hazardLatency: true,
-    enemyScale: 1.4, // meta-gating: the deepest map — maxed meta is the entry ticket
+    // meta-gating: deepest map. Was 1.4 at map ship (certified 47% maxed-meta);
+    // the v0.3 card-pool growth diluted bot build quality just enough to sink
+    // the cert below the 40% floor ONLY here (greenfield held exactly) — the
+    // map sits closest to the finale DPS cliff. 1.35 = production parity;
+    // glacier's extra difficulty stays in the latency fields, tank skew and
+    // the heaviest finale (Kernel Panic 2200 + freeze phases).
+    enemyScale: 1.35,
     // Skew: tanks — leeches from minute 0, scarabs early (slow aura on top of
     // latency lag), centipedes from min 5 and heavy late. Beetle weight stays
     // ≤4 (explosion-stacking Backlog concern); wasps keep charge pressure so
@@ -97,8 +103,12 @@ export const MAPS: Record<string, MapDef> = {
       { fromMin: 3, interval: 0.8, weights: { syntaxMite: 5, memoryLeech: 6, deadlockScarab: 4, cacheTick: 4 } },
       { fromMin: 5, interval: 0.7, weights: { memoryLeech: 6, deadlockScarab: 5, cacheTick: 4, nullWasp: 4, stackCentipede: 2 } },
       { fromMin: 7, interval: 0.6, weights: { memoryLeech: 5, deadlockScarab: 6, nullWasp: 5, stackCentipede: 3, exceptionBeetle: 3 } },
-      { fromMin: 9, interval: 0.52, weights: { memoryLeech: 5, deadlockScarab: 6, nullWasp: 5, stackCentipede: 4, exceptionBeetle: 4, raceSpider: 4, checksumCrab: 3 } },
-      { fromMin: 11, interval: 0.46, weights: { deadlockScarab: 6, nullWasp: 5, stackCentipede: 6, exceptionBeetle: 4, raceSpider: 5, checksumCrab: 4 } },
+      // crab weight stays LOW here: glacier is already the tank map, and a
+      // frontal-blocking shot-soak arriving in the finale's DPS window dropped
+      // the maxed-meta cert below the 40% floor at weight 3/4 (sim-caught —
+      // the Monolith-pillar lesson again: durable bodies eat the boss budget)
+      { fromMin: 9, interval: 0.52, weights: { memoryLeech: 5, deadlockScarab: 6, nullWasp: 5, stackCentipede: 4, exceptionBeetle: 4, raceSpider: 4, checksumCrab: 2 } },
+      { fromMin: 11, interval: 0.46, weights: { deadlockScarab: 6, nullWasp: 5, stackCentipede: 6, exceptionBeetle: 4, raceSpider: 5, checksumCrab: 2 } },
     ],
     // frozen processes: the slow heavyweights rule the glacier
     bossPool: { stackOverflowBoss: 3, infiniteLoop: 3, memoryLeak: 2, mergeConflict: 2, raceCondition: 2 },

@@ -57,13 +57,13 @@ a shared, per-map-filtered random pool; each map gets exactly one **unique** fin
 
 ### Weapon balance patch (sim-driven; run *after* the +4 weapons land so the pass covers the full 12-weapon arsenal once)
 *(from draft 2026-06-12: weapons should be **near** equally balanced — true equality is impossible and not the goal, since weapons differ by design in how they're used)*
-- [ ] [P2] (M) **Single-weapon scenarios** — one checked-in scenario per weapon (scenario `replaceWeapons` + the solo weapon at an equal level/clock budget) + a sweep that runs them all and compares kill rate, first-boss TTK and mortal win rate under identical conditions — **measured at (at least) two weapon-level checkpoints per weapon** (early, ~lv 2–3, and late, lv 8/evolved) so each weapon's growth curve is visible, not just one point on it. The tooling exists (`matrix.cjs --scenario=`, `replaceWeapons`); this is authoring the presets + a comparison harness/report. New v0.3 weapons get a preset as part of shipping (cheap acceptance test per weapon)
-- [ ] [P2] (M) **Risk-adjusted equalization** — define two per-weapon design axes in BALANCE.md first, then tune outliers against them (a weapon is only an outlier relative to its declared profile, not the raw average):
+- [ ] [P1] (M) **Single-weapon scenarios** — one checked-in scenario per weapon (scenario `replaceWeapons` + the solo weapon at an equal level/clock budget) + a sweep that runs them all and compares kill rate, first-boss TTK and mortal win rate under identical conditions — **measured at (at least) two weapon-level checkpoints per weapon** (early, ~lv 2–3, and late, lv 8/evolved) so each weapon's growth curve is visible, not just one point on it. The tooling exists (`matrix.cjs --scenario=`, `replaceWeapons`); this is authoring the presets + a comparison harness/report. New v0.3 weapons get a preset as part of shipping (cheap acceptance test per weapon)
+- [ ] [P1] (M) **Risk-adjusted equalization** — define two per-weapon design axes in BALANCE.md first, then tune outliers against them (a weapon is only an outlier relative to its declared profile, not the raw average):
   - **Risk tier** — how the weapon is meant to be used (`garbageCollector`'s self-endangering short reach vs `syntaxWand`'s safe poke); higher risk earns a higher reward ceiling — **but verify with scaled scenarios** (high level + offense cards + meta) that risk premiums don't compound with scaling upgrades into late-game dominance
   - **Growth profile** — some weapons are *designed* weak at low weapon levels and shine at high levels (user 2026-06-12): late bloomers may sit below the band at the early checkpoint but must reach it when leveled/evolved, and early performers must not also dominate the late checkpoint. The early window still has a floor — a late bloomer can't be so weak it never survives to bloom (the ada/Syntax-Wand pierce lesson)
 
   Acceptance: solo-weapon win rates within an agreed band per (risk tier × growth profile) at both the early and late weapon-level checkpoints, at low- and high-player-scaling alike
-- [ ] [P2] (S) Tune Assertion Blades + cooldown-build scaling (flagged as outlier) — *moved here from v0.2 per user 2026-06-12; the checked-in `blades-cdr` scenario is the measurement instrument, and the risk-tier framing above decides how much of its edge is legitimate (short reach = high risk) vs outlier*
+- [ ] [P1] (S) Tune Assertion Blades + cooldown-build scaling (flagged as outlier) — *moved here from v0.2 per user 2026-06-12; the checked-in `blades-cdr` scenario is the measurement instrument, and the risk-tier framing above decides how much of its edge is legitimate (short reach = high risk) vs outlier*
 
 ### Characters (target: +4, total 8)
 - [x] [P1] (S) **Rex Intern** — Intern; starts with random weapon; passive: +30% XP, −20% max HP (high risk beginner-luck char) — *done: `special: 'randomWeapon'` (new CharacterDef special) — starter drawn in the Run constructor from the run's offerable pool (base weapons only), so it grows with shop unlocks and stays DOM-free; char select shows "Random weapon"; suspend/resume safe (restore replaces constructor weapons). Cost 350 ⌬ (between max 250 / nia 450). Verified: build clean; sim-verifier 3×rex+1×ada 15-min victories, all watchlist items at baseline (Bits 2157–2183, ~XP-passive-driven, ruled fine); 10-draw starter distribution covered all 4 pool weapons*
@@ -158,7 +158,9 @@ Design questions are open — treat items as scoping placeholders until this mil
 
 > Add bugs here as they're found; fix P1 bugs before any feature work.
 
-*(none open — v0.2-era fixes are recorded in the [changelog](CHANGELOG.md))*
+- [ ] [P2] **Glacier maxed-meta sits ~4 pts under the 40% floor** (36%, n=64) after the v0.3 card-pool growth diluted bot build quality — full analysis in BALANCE.md §5. Already eased within Claude's authority (enemyScale 1.4→1.35, Kernel Panic 2400→2000, thaw ×1.8, crab weights trimmed) — flat within noise; the binding constraint is the map's *designed* tank wall starving boss DPS mid-run. **Needs a user ruling between:** (a) soften the late tank skew (identity cost), (b) lengthen crunch past the specced 30s (global, helps slips only), (c) accept ~35% as the deepest map's floor and amend the target (bot understates humans; zero-meta gate fully intact at 0/16)
+
+*(other v0.2-era fixes are recorded in the [changelog](CHANGELOG.md))*
 
 ---
 
