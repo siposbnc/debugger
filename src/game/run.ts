@@ -110,6 +110,14 @@ export interface Pickup {
   bossTier?: number;
 }
 
+/** Impassable terrain blocker (server rack &c.) — a static collision circle.
+ *  Blocks player + regular enemy movement via push-out (slide-along falls out
+ *  of removing only the penetration component); bosses and stationary enemies
+ *  are exempt, projectiles and shots fly over. */
+export interface Obstacle {
+  x: number; y: number; r: number;
+}
+
 export interface GroundZone {
   kind: 'leak' | 'marsh' | 'vent' | 'latency';
   x: number; y: number;
@@ -309,6 +317,7 @@ export class Run {
   enemyShots: EnemyShot[] = [];
   pickups: Pickup[] = [];
   zones: GroundZone[] = [];
+  obstacles: Obstacle[] = [];
   allies: Ally[] = [];
   grid = new SpatialHash<Enemy>(80);
   events: RunEvent[] = [];
@@ -408,6 +417,40 @@ export class Run {
           radius: r, maxRadius: r, life: Infinity, maxLife: Infinity, dps: 0,
         });
       }
+    }
+    if (map.obstacles) {
+      // Scattered with rejection sampling: clear of the spawn point, of each
+      // other (aisles must stay walkable) and of zone centers (a vent grate
+      // under a rack would be invisible AND undodgeable).
+      const { count, rMin, rMax } = map.obstacles;
+      for (let i = 0; i < count; i++) {
+        for (let tries = 0; tries < 30; tries++) {
+          const a = this.rng() * Math.PI * 2;
+          const d = 280 + this.rng() * 1300;
+          const r = rMin + this.rng() * (rMax - rMin);
+          const x = Math.cos(a) * d, y = Math.sin(a) * d;
+          if (this.obstacles.some((o) => dist(x, y, o.x, o.y) < o.r + r + 110)) continue;
+          if (this.zones.some((z) => dist(x, y, z.x, z.y) < z.radius + r + 20)) continue;
+          this.obstacles.push({ x, y, r });
+          break;
+        }
+      }
+    }
+  }
+
+  /** Push a moving body of radius `br` out of every obstacle it penetrates.
+   *  Removing only the penetration component is what makes entities slide
+   *  along racks instead of sticking to them. Hot loop: squared early-out,
+   *  no allocation. */
+  resolveObstacles(b: { x: number; y: number }, br: number): void {
+    for (const o of this.obstacles) {
+      const dx = b.x - o.x, dy = b.y - o.y;
+      const min = o.r + br;
+      const d2 = dx * dx + dy * dy;
+      if (d2 >= min * min) continue;
+      const d = Math.sqrt(d2) || 0.001;
+      b.x = o.x + (dx / d) * min;
+      b.y = o.y + (dy / d) * min;
     }
   }
 
@@ -654,10 +697,17 @@ export class Run {
     const sp = this.stats.moveSpeed * this.playerSlow * (this.crunchT > 0 ? CRUNCH_SPEED_MULT : 1);
     this.px += wx * sp * dt;
     this.py += wy * sp * dt;
+    if (this.obstacles.length > 0) {
+      const s = this.obstacleScratch;
+      s.x = this.px; s.y = this.py;
+      this.resolveObstacles(s, 13);
+      this.px = s.x; this.py = s.y;
+    }
     if (wx !== 0 || wy !== 0) {
       this.faceX = wx; this.faceY = wy;
     }
   }
+  private obstacleScratch = { x: 0, y: 0 };
 
   private updateEnemies(dt: number): void {
     const pr = 14; // player body radius
@@ -680,6 +730,13 @@ export class Run {
         e.frozenT -= dt;
       } else {
         this.moveEnemy(e, dt);
+      }
+
+      // racks block regular bugs (movement + knockback alike); bosses crush
+      // past (blink/slam mechanics must never strand a boss behind a wall)
+      // and stationary pillars never moved into one to begin with
+      if (this.obstacles.length > 0 && !e.isBoss && !(e.def as EnemyDef).stationary) {
+        this.resolveObstacles(e, e.def.radius);
       }
 
       if (e.isBoss) updateBossMechanics(this, e, dt);

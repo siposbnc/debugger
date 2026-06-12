@@ -136,6 +136,22 @@ export class CanvasRenderer extends RendererBase {
       ctx.stroke();
     }
 
+    // terrain blockers (gameplay-critical: collision must be visible; the GL
+    // rack sprite stays GL-only — this backend is frozen)
+    for (const o of run.obstacles) {
+      const s = this.proj(o.x, o.y);
+      ctx.fillStyle = 'rgba(0,0,0,0.35)';
+      ctx.beginPath();
+      ctx.ellipse(s.x, s.y, o.r * 1.15, o.r * 0.58, 0, 0, 7);
+      ctx.fill();
+      const w = o.r * 1.5, h = o.r * 2.1;
+      ctx.fillStyle = '#1f232b';
+      ctx.fillRect(s.x - w / 2, s.y - h + o.r * 0.3, w, h);
+      ctx.strokeStyle = '#3a4150';
+      ctx.lineWidth = 1.5;
+      ctx.strokeRect(s.x - w / 2, s.y - h + o.r * 0.3, w, h);
+    }
+
     // firewalls / DMZ rings (gameplay-relevant: minimal line/ring rendering)
     for (const wl of run.walls) {
       const fade = Math.min(1, wl.life / 0.5);

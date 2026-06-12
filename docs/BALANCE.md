@@ -162,6 +162,12 @@ greenfield 44% row above was never re-measured after that growth): **greenfield 
 29%** (band ~30–50%) and **marsh meta 39%** (floor 40%). Treat them as the current
 baseline; only further drops are regressions.
 
+**Post-terrain re-cert (2026-06-12, production server racks — v0.3 vertical slice):**
+production zero **6%** (2/32, gate intact at the baseline reading), production meta
+**41%** (13/32, floor 40%, baseline 47% within noise). 14 rack blockers neither shelter
+the zero-meta bot nor wall the maxed bot off its boss queue. Other maps have no
+obstacles — no other arm touched.
+
 **Post-equalization re-cert (2026-06-12, §8 weapon pass — final wand, n=64/32):**
 greenfield zero **23%** (15/64), greenfield meta **69%** (22/32). The ~6-pt zero-arm
 drop vs the 29% baseline is the *deliberate* cost of the Syntax Wand tail trim (the

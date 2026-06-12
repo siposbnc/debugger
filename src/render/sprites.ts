@@ -652,7 +652,45 @@ export function helperSprite(): HTMLCanvasElement {
   });
 }
 
-export function propSprite(kind: 'terminal' | 'shard' | 'nest'): HTMLCanvasElement {
+export function propSprite(kind: 'terminal' | 'shard' | 'nest' | 'rack'): HTMLCanvasElement {
+  if (kind === 'rack') {
+    // server rack (terrain blocker): pseudo-iso cabinet, bottom edge at y≈+28
+    // so the renderer can anchor the footprint on the collision circle
+    return bake('prop:rack', 64, 84, (ctx) => {
+      // side face (left, darker) then front face
+      ctx.fillStyle = '#15171c';
+      ctx.beginPath();
+      ctx.moveTo(-24, -22); ctx.lineTo(-10, -30); ctx.lineTo(-10, 18); ctx.lineTo(-24, 26);
+      ctx.closePath(); ctx.fill();
+      ctx.fillStyle = '#1f232b';
+      ctx.fillRect(-10, -30, 32, 48);
+      // top slab
+      ctx.fillStyle = '#2c313c';
+      ctx.beginPath();
+      ctx.moveTo(-24, -22); ctx.lineTo(-10, -30); ctx.lineTo(22, -30); ctx.lineTo(8, -22);
+      ctx.closePath(); ctx.fill();
+      // rack units: horizontal seams on the front
+      ctx.strokeStyle = '#12141a';
+      ctx.lineWidth = 1;
+      for (let y = -24; y <= 12; y += 6) {
+        ctx.beginPath(); ctx.moveTo(-10, y); ctx.lineTo(22, y); ctx.stroke();
+      }
+      // status LEDs: mostly green heartbeat, a few hot oranges (it IS production)
+      for (let row = 0; row < 6; row++) {
+        const y = -21 + row * 6;
+        for (let i = 0; i < 3; i++) {
+          const hot = (row * 3 + i) % 7 === 3;
+          ctx.fillStyle = hot ? '#ff9b3d' : '#53e8a8';
+          ctx.globalAlpha = hot ? 0.95 : 0.7;
+          ctx.fillRect(14 - i * 4, y, 2, 2);
+        }
+      }
+      ctx.globalAlpha = 1;
+      // grounded shading at the base
+      ctx.fillStyle = 'rgba(0,0,0,0.35)';
+      ctx.fillRect(-10, 14, 32, 4);
+    });
+  }
   if (kind === 'terminal') {
     return bake('prop:terminal', 60, 64, (ctx) => {
       ctx.fillStyle = '#23262e';

@@ -93,6 +93,7 @@ function recycleStragglers(run: Run): void {
     e.x = run.px + Math.cos(ang) * r;
     e.y = run.py + Math.sin(ang) * r;
     e.knockX = 0; e.knockY = 0;
+    run.resolveObstacles(e, e.def.radius); // never recycle INTO a rack
   }
 }
 
@@ -128,6 +129,8 @@ export function updateSpawner(run: Run, dt: number): void {
     const r = SPAWN_RADIUS + rand(0, 90);
     const x = run.px + Math.cos(ang) * r + (count > 1 ? rand(-40, 40) : 0);
     const y = run.py + Math.sin(ang) * r + (count > 1 ? rand(-40, 40) : 0);
-    run.enemies.push(makeEnemy(run, def, x, y, elite && i === 0));
+    const e = makeEnemy(run, def, x, y, elite && i === 0);
+    run.resolveObstacles(e, def.radius); // spawn-point validation (push out of racks)
+    run.enemies.push(e);
   }
 }

@@ -50,13 +50,16 @@ export const MAPS: Record<string, MapDef> = {
 
   productionServer: {
     id: 'productionServer', name: 'Production Server',
-    desc: 'The room nobody enters without a change ticket. Floor vents cycle from warm to incandescent — step off the glow before it blows. ×1.5 Bits.',
+    desc: 'The room nobody enters without a change ticket. Floor vents cycle from warm to incandescent — step off the glow before it blows — and the racks themselves block the aisles. ×1.5 Bits.',
     icon: '🏭', bitsMult: 1.5, cost: 1200,
     palette: {
       ground1: '#241f22', ground2: '#2b2528',
       grid: '#4a3835', accent: '#ff9b3d', fog: '#120d0e',
     },
     hazardVents: true,
+    // Terrain vertical slice (v0.3): server-rack blockers — aisles between them
+    // are the map's terrain identity; bosses crush past, bullets fly over.
+    obstacles: { count: 14, rMin: 26, rMax: 40 },
     enemyScale: 1.35, // meta-gating: near-impossible without serious meta investment
     // Skew: exception beetles from minute 0, deadlock scarabs early — uptime
     // pressure (explosions to dodge, locks slowing the escape) on hot floors.

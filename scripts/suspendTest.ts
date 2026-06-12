@@ -92,6 +92,18 @@ for (let t = 0; t < 30 * 60; t++) {
 check('restored run simulates 30s without errors', Math.abs(r2.time - (t0 + 30)) < 0.01, `t=${r2.time}`);
 check('restored run still fights (kills advance)', r2.kills > k0, `${k0} → ${r2.kills}`);
 
+// --- 3. terrain blockers (production server racks) round-trip ---
+const prodRun = new Run(CHARACTERS.ada, MAPS.productionServer, {},
+  [...new Set([...DEFAULT_WEAPON_POOL, CHARACTERS.ada.weapon])], new Set());
+check('precondition: racks rolled', prodRun.obstacles.length > 0, `${prodRun.obstacles.length}`);
+const psnap: SuspendedRun = JSON.parse(JSON.stringify(snapshotRun(prodRun)));
+const pr = restoreRun(psnap, new Set());
+check('obstacles restored exactly (not re-rolled)',
+  JSON.stringify(pr.obstacles) === JSON.stringify(prodRun.obstacles));
+delete psnap.obstacles;
+const prLegacy = restoreRun(psnap, new Set());
+check('pre-terrain snapshot restores rackless', prLegacy.obstacles.length === 0);
+
 // --- 3. content drift is rejected, not resumed ---
 const bad: SuspendedRun = JSON.parse(JSON.stringify(snap));
 bad.weapons[0].id = 'deletedWeapon';

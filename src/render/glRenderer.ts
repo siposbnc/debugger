@@ -15,7 +15,7 @@ const TILE = 56;
 
 // Depth-sorted entity pass entries — pooled, no per-frame closures.
 interface SortEntry { depth: number; kind: number; obj: unknown; }
-const K_ENEMY = 0, K_ALLY = 1, K_PET = 2, K_MUSHI = 3, K_PLAYER = 4;
+const K_ENEMY = 0, K_ALLY = 1, K_PET = 2, K_MUSHI = 3, K_PLAYER = 4, K_OBSTACLE = 5;
 
 /**
  * WebGL2 world renderer: every world draw goes through one batched quad
@@ -281,6 +281,8 @@ export class GlRenderer extends RendererBase {
     for (const a of run.allies) entry(a.x + a.y, K_ALLY, a);
     for (const pet of petPositions(run)) entry(pet.x + pet.y, K_PET, pet);
     if (run.mushi) entry(run.mushi.x + run.mushi.y, K_MUSHI, run.mushi);
+    // tall terrain props join the same depth sort — that IS the iso occlusion
+    for (const o of run.obstacles) entry(o.x + o.y, K_OBSTACLE, o);
     entry(run.px + run.py, K_PLAYER, null);
 
     const view = buf.slice(0, n); // sort() needs an exact-length window
@@ -306,6 +308,21 @@ export class GlRenderer extends RendererBase {
           b.ellipse(sx, sy - 18 + bob, 15, 15, 1); // baked-glow stand-in
           b.color(pet.color);
           b.diamond(sx, sy - 18 + bob, 8, 8);
+          break;
+        }
+        case K_OBSTACLE: {
+          const o = s.obj as Run['obstacles'][number];
+          const sx = px(o.x, o.y), sy = py(o.x, o.y);
+          b.color('#000', 0.35);
+          b.ellipse(sx, sy, o.r * 1.15, o.r * 0.58);
+          b.alpha(1);
+          const sprite = propSprite('rack');
+          // scale the one baked rack to the collision footprint (r 26–40)
+          const sc = o.r / 30;
+          const w = (sprite.width / 2) * sc, h = (sprite.height / 2) * sc;
+          // bottom edge of the cabinet sits at +28/42 of the half-scale bake —
+          // anchor it just below the circle center so the footprint reads
+          this.batch.sprite(this.reg(sprite), sx, sy - h * 0.28, w, h, 0, 0, 1, false);
           break;
         }
         case K_MUSHI: {

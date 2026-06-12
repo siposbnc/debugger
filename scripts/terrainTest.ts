@@ -1,0 +1,71 @@
+// Headless assertions for the terrain-blocker slice (production server racks):
+// layout constraints, push-out collision, slide-along, and map isolation.
+//   npx esbuild scripts/terrainTest.ts --bundle --platform=node --outfile=scripts/terrainTest.cjs && node scripts/terrainTest.cjs
+import { Run } from '../src/game/run';
+import { CHARACTERS } from '../src/data/characters';
+import { MAPS } from '../src/data/maps';
+import { DEFAULT_WEAPON_POOL } from '../src/data/weapons';
+
+let failures = 0;
+function check(name: string, ok: boolean, detail = ''): void {
+  console.log(`${ok ? 'PASS' : 'FAIL'}  ${name}${detail ? ` — ${detail}` : ''}`);
+  if (!ok) failures++;
+}
+
+const pool = [...new Set([...DEFAULT_WEAPON_POOL, CHARACTERS.ada.weapon])];
+const run = new Run(CHARACTERS.ada, MAPS.productionServer, {}, pool, new Set());
+const spec = MAPS.productionServer.obstacles!;
+
+// --- layout ---
+check('racks rolled (rejection sampling finds room)', run.obstacles.length >= spec.count - 2,
+  `${run.obstacles.length}/${spec.count}`);
+check('radii within spec', run.obstacles.every((o) => o.r >= spec.rMin && o.r <= spec.rMax));
+check('player start clear', run.obstacles.every((o) => Math.hypot(o.x, o.y) > 280 - 1e-9));
+let pairOk = true;
+for (const a of run.obstacles) for (const b of run.obstacles) {
+  if (a !== b && Math.hypot(a.x - b.x, a.y - b.y) < a.r + b.r + 110 - 1e-9) pairOk = false;
+}
+check('aisles stay walkable (pairwise spacing ≥ 110)', pairOk);
+check('no rack covers a vent center',
+  run.obstacles.every((o) => run.zones.every((z) => Math.hypot(o.x - z.x, o.y - z.y) >= z.radius + o.r + 20 - 1e-9)));
+
+// --- push-out ---
+const o0 = run.obstacles[0];
+const body = { x: o0.x + 1, y: o0.y }; // deep inside
+run.resolveObstacles(body, 13);
+check('body inside a rack is pushed to the edge',
+  Math.hypot(body.x - o0.x, body.y - o0.y) >= o0.r + 13 - 1e-6,
+  `d=${Math.hypot(body.x - o0.x, body.y - o0.y).toFixed(1)} vs ${(o0.r + 13).toFixed(1)}`);
+
+// --- slide-along: a body moving at 45° into the rack must keep its tangential
+// progress (push-out removes only the penetration component) ---
+const start = { x: o0.x - o0.r - 13.5, y: o0.y - 60 };
+const slider = { ...start };
+for (let i = 0; i < 120; i++) {
+  slider.x += 1.2; slider.y += 1.2; // diagonal step into the rack
+  run.resolveObstacles(slider, 13);
+}
+check('slide-along: tangential progress survives', slider.y > start.y + 80,
+  `Δy=${(slider.y - start.y).toFixed(0)}`);
+check('slide-along: never inside the rack',
+  Math.hypot(slider.x - o0.x, slider.y - o0.y) >= o0.r + 13 - 1e-6);
+
+// --- simulation: a minute of production with racks, nothing tunnels ---
+run.invincible = true;
+for (let t = 0; t < 60 * 60; t++) {
+  run.update(1 / 60);
+  run.events.length = 0;
+  run.pendingLevelUps = 0;
+}
+const inside = run.enemies.filter((e) =>
+  !e.isBoss && run.obstacles.some((o) => Math.hypot(e.x - o.x, e.y - o.y) < o.r - 2)).length;
+check('no regular enemy ends a frame inside a rack', inside === 0, `${inside} inside`);
+check('player not inside a rack',
+  run.obstacles.every((o) => Math.hypot(run.px - o.x, run.py - o.y) >= o.r + 13 - 1e-6));
+
+// --- map isolation ---
+const green = new Run(CHARACTERS.ada, MAPS.greenfield, {}, pool, new Set());
+check('greenfield stays featureless (no obstacles)', green.obstacles.length === 0);
+
+console.log(failures === 0 ? '\nAll terrain checks passed.' : `\n${failures} FAILURE(S)`);
+process.exit(failures === 0 ? 0 : 1);

@@ -147,6 +147,17 @@ function avoidanceField(run: Run): { fx: number; fy: number } {
     const w = ((reach - d) / reach) * 2.5;
     fx += (dx / d) * w; fy += (dy / d) * w;
   }
+  // terrain blockers (server racks): steer around rather than hump the wall —
+  // the game's push-out gives slide-along, but a fleeing bot pinned between a
+  // rack and the horde dies measuring the rack, not the build
+  for (const o of run.obstacles) {
+    const dx = run.px - o.x, dy = run.py - o.y;
+    const d = Math.hypot(dx, dy) || 1;
+    const reach = o.r + 45;
+    if (d > reach) continue;
+    const w = ((reach - d) / reach) * 2.2;
+    fx += (dx / d) * w; fy += (dy / d) * w;
+  }
   return { fx, fy };
 }
 
