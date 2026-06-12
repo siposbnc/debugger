@@ -60,10 +60,15 @@ const TP_RANGE = [170, 300] as const; // arrival distance from the player
 const TP_FAN = [-0.3, -0.1, 0.1, 0.3]; // aimed arrival volley spreads
 const TP_SHOT_SPEED = 215;
 const TP_SHOT_DMG = 12;           // (scaled by tier)
-const IMAGE_LIFE = 3.4;           // afterimage fuse — kill it before this runs out
-const IMAGE_HP = 0.07;            // afterimage HP as a fraction of the boss pool
+const IMAGE_LIFE = 4.2;           // afterimage fuse — kill it before this runs out
+const IMAGE_HP = 0.03;            // fragile ghost: any real hit resolves the race in
+                                  // the player's favor — the cost is attention/aim,
+                                  // not DPS (at 0.07 a kiting build that never faced
+                                  // the image stalled the fight on heals — sim-caught)
 const IMAGE_DMG = 0.6;            // afterimage contact dps, fraction of the boss's
-const RACE_HEAL = 0.06;           // boss heal per race lost (fraction of max HP)
+const RACE_HEAL = 0.03;           // boss heal per race lost (fraction of max HP) —
+                                  // sustain, not a wall: a player who ignores every
+                                  // image must still be able to grind it down
 // critical exception (slam)
 const SLAM_PERIOD_HI = 3.4;       // cast cadence at full HP…
 const SLAM_PERIOD_LO = 1.7;       // …accelerating linearly to this at 0 HP
@@ -77,8 +82,8 @@ const SLAM_LEAD = 110;            // second slam leads the player's heading by t
 const INC_POOL_PERIOD = 4.5;      // slower drip than the Leak's (it has two jobs)
 const INC_FAN_PERIOD = 3.4;
 const INC_FAN = [-0.33, -0.11, 0.11, 0.33];
-const INC_SUMMON_PERIOD = 9;
-const INC_SUMMON_N = 4;
+const INC_SUMMON_PERIOD = 12;     // longer guard downtime than the Overflow's 5s —
+const INC_SUMMON_N = 3;           // the incident has two other jobs running
 // kernel panic (chill rings + hard-freeze rhythm)
 const RING_PERIOD = 3.0;
 const RING_N = 14;
@@ -93,7 +98,11 @@ const THAW_T = 4;                 // vulnerable window after the freeze
 const THAW_ARMOR = 1.5;           // damage-taken multiplier — strike the thaw
 
 const UNIQUE_SLOT = 5;            // 2:00 + 5×120s = 12:00 — the finale slot
-const OPENER_MAX_HP = 800;        // the 2:00 slot draws only light bosses
+const LIGHT_SLOT_MAX_HP = 800;    // the 2:00 opener (no build yet) AND every
+                                  // post-finale slot (feature freeze: the 14:00
+                                  // boss has ~60s + crunch to die — a tier-6
+                                  // Stack Overflow there was an auto-slip,
+                                  // sim-caught) draw only light bosses
 
 export function updateBossSchedule(run: Run, _dt: number): void {
   if (run.nextBossId === null || !BOSSES[run.nextBossId]) {
@@ -120,8 +129,8 @@ export function updateBossSchedule(run: Run, _dt: number): void {
 function drawBossId(run: Run, index: number): string {
   if (index === UNIQUE_SLOT) return run.map.uniqueBoss;
   let entries = Object.entries(run.map.bossPool);
-  if (index === 0) {
-    const light = entries.filter(([id]) => BOSSES[id].hp <= OPENER_MAX_HP);
+  if (index === 0 || index > UNIQUE_SLOT) {
+    const light = entries.filter(([id]) => BOSSES[id].hp <= LIGHT_SLOT_MAX_HP);
     if (light.length) entries = light;
   }
   const fresh = entries.filter(([id]) => id !== run.lastBossId);
@@ -266,7 +275,9 @@ export function updateBossMechanics(run: Run, e: Enemy, dt: number): void {
     case 'summon': {
       e.mechT -= dt;
       if (e.mechT <= 0) {
-        e.mechT = 5;
+        // 6s (was 5): frame HP difficulty-scales, so late-slot Overflows kept
+        // the guard up near-permanently and stalled the whole boss queue
+        e.mechT = 6;
         summonStackFrames(run, e, 5);
       }
       e.mechT2 -= dt;

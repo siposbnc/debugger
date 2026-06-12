@@ -123,6 +123,22 @@ function kiteMovement(run: Run): void {
     const w = ((110 - d) / 110) * 2;
     fx += (dx / d) * w; fy += (dy / d) * w;
   }
+  // telegraphed slams: leave the circle before it fills — this IS the
+  // critical-exception mechanic, and a bot that face-tanks every slam
+  // measures a dodge boss as a pure DPS check (marsh cert collapsed to 3%)
+  for (const s of run.slams) {
+    const dx = run.px - s.x, dy = run.py - s.y;
+    const d = Math.hypot(dx, dy) || 1;
+    const reach = s.radius + 40;
+    if (d > reach) continue;
+    // slams spawn centered on the player: at the degenerate center, flee
+    // along the current heading instead of standing on the bullseye
+    let ux = dx / d, uy = dy / d;
+    if (d < 20) { ux = run.faceX || 1; uy = run.faceY; }
+    const urgency = 1 - s.t / s.maxT;
+    const w = ((reach - d) / reach + 0.5) * (2.5 + 3 * urgency);
+    fx += ux * w; fy += uy * w;
+  }
   // hazard zones (marsh pools, boss leftovers)
   for (const z of run.zones) {
     if (z.dps <= 0) continue;

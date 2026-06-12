@@ -99,26 +99,30 @@ The certification metric is the **meta gap**: zero-meta vs maxed-meta win rate o
 same good-build scenario. The old "marsh is build-gated, not meta-gated, by design"
 ruling is **superseded** by this directive.
 
-Certified 2026-06-12 (`build-good` / `build-good-meta` scenario presets — same lv 12 @
-6:00 focused build, only meta differs; greedy continuation; n = 16/arm), after the same-day
-card-tuning + boss-buff + crunch-punishment passes which lowered all absolute rates:
+Certified 2026-06-12 **post boss-tier rework** (`build-good` / `build-good-meta`
+scenario presets — same lv 12 @ 6:00 focused build, only meta differs; greedy
+continuation; n = 32 on the tight arms, 16 elsewhere). The boss rework (random weighted
+pools, 12:00 unique finales, light-slot rules) initially collapsed production to 12.5%
+and marsh to 3% — re-tuned same day (finale base HP, light post-finale slots, Stack
+Overflow resummon 5s → 6s, fragile race afterimages) back to:
 
 | Map (enemyScale) | good build, zero meta | good build, maxed meta | Target |
 |---|---|---|---|
-| greenfield (1.0) | **38%** (careless onward: 6%) | **69%** (careless onward: 38%) | zero ~30–50%, meta ≥ 60% |
-| memoryMarsh (1.2) | **12.5%** | **56%** | zero ≤ 15%, meta ≥ 40% |
-| productionServer (1.35) | **0%** | **50%** | zero ~0%, meta ≥ 40% |
-| cyberGlacier (1.4) | **3%** (1/32) | **47%** (15/32) | zero ~0%, meta ≥ 40% |
+| greenfield (1.0) | **44%** (7/16) | **62.5%** (10/16) | zero ~30–50%, meta ≥ 60% |
+| memoryMarsh (1.2) | **0%** (0/32) | **44%** (14/32) | zero ≤ 15%, meta ≥ 40% |
+| productionServer (1.35) | **~0%** (0/16 pre-rework, not re-run — bosses only got harder at zero meta) | **47%** (15/32) | zero ~0%, meta ≥ 40% |
+| cyberGlacier (1.4) | **0%** (0/16) | **47%** (15/32) | zero ~0%, meta ≥ 40% |
 
-Cyber Glacier certified 2026-06-12 at map ship (same presets, n = 32/arm, **greedy**).
-Maxed-meta failures were 16 release-slips vs 1 death — the bot survives but the boss
-queue outlives crunch, so boss TTK is the check, exactly like production. The latency
-fields slow the horde as much as the player; the map's extra difficulty comes from
-`enemyScale` 1.4 + the tank skew, not from the hazard cornering the kiter like marsh
-pools do. **Methodology note:** the win rates in this table are greedy-bot numbers, but
-the `build-good*` presets set `bot.pick: "first"` — always pass `--pick=greedy`
-explicitly when re-certifying, or the rates come out ~3–4× lower (measured 12.5% vs 47%
-on the glacier maxed arm) and aren't comparable to this table.
+Maxed-meta failures are overwhelmingly release-slips, not deaths (production: 28 slips
+vs 4 deaths across the tuning runs) — the bot survives but the boss queue outlives
+crunch, so boss TTK is the late-game check. Exception: Memory Marsh, where the Critical
+Exception's slams kill outright (~1/3 of maxed runs die at 12:0x–12:4x) — a finale
+doing its job. **Instrument note:** the kiting bot dodges slam telegraphs as of this
+cert (`simBot.ts`) — without it the marsh arm reads 3% because the bot face-tanks a
+dodge boss and measures it as a pure DPS check. **Methodology note:** the win rates in
+this table are greedy-bot numbers, but the `build-good*` presets set
+`bot.pick: "first"` — always pass `--pick=greedy` explicitly when re-certifying, or the
+rates come out ~3–4× lower and aren't comparable to this table.
 
 Reading the ladder: on the starter map, *either* meta or build/skill buys a fair shot and
 both together make it comfortable; each next map shifts the requirement one notch toward

@@ -116,16 +116,21 @@ uniqueness with other pressure (speed, heavy melee, hard-to-avoid mechanics,
 bug spawning); the Legacy Monolith is the canonical one (pillars + breeding +
 bulk, zero shots).
 
-**Boss tiers** (v0.3 direction, lands with the +3 new bosses): bosses split into
-**standard** and **unique**. Standard bosses fill the every-2-minutes slots,
-drawn from a *shared pool with per-map filtering/weights* (replaces today's
-fixed per-map `bossOrder` — every map currently runs the same five in a
-different order, which reads as reskinned scheduling, not map identity). Each
-map gets exactly one **unique** finale boss that appears only there (bigger,
-late-run, full bullet-heaven kit). Provisional assignment: Legacy Monolith →
-Greenfield; The Critical Exception → Memory Marsh; The Production Incident →
-Production Server; Cyber Glacier's unique TBD with the map. The Race Condition
-joins the standard pool.
+**Boss tiers** (v0.3, shipped): bosses split into **standard** and **unique**
+(`BossDef.tier`). Standard bosses fill the every-2-minutes slots, drawn from
+the map's *weighted pool* (`MapDef.bossPool`) — random, no immediate repeat,
+and two **light-slot rules** (base HP ≤ 800 only): the 2:00 opener (no build
+yet) and every post-finale slot (feature freeze: a 14:00 tank with ~60s +
+crunch to die was an automatic release-slip, sim-caught). Each map has exactly
+one **unique** finale (`MapDef.uniqueBoss`) at the fixed 12:00 slot: Legacy
+Monolith → Greenfield, The Critical Exception → Memory Marsh, The Production
+Incident → Production Server, The Kernel Panic → Cyber Glacier. The Race
+Condition joined the standard pool (all maps). Standard base HP sits in a
+narrow 650–1000 band — slots are random, so escalation is the per-slot tier
+multiplier's job; finale base HP *descends* as the map ladder climbs
+(2600/2400/2200/2400) because the slot multiplier, the map's `enemyScale` and
+the finale's own resist mechanics all stack on it (certified against the
+BALANCE.md §5 maxed-meta arms).
 
 | Boss | Layer 1: pattern | Layer 2: build test |
 |---|---|---|
@@ -134,11 +139,18 @@ joins the standard pool.
 | The Infinite Loop | radial bursts, faster each cycle | snapshots your position every 7s and rewinds you to it 2.5s later (marker shown) → plan positions, end the fight before the bursts compound |
 | The Stack Overflow | summons recursive mites + aimed 5-shot fans | live mites are stack frames: 50% damage resist while any live (shield ring + one pip per frame over its HP bar); clearing the stack pops it — 2.5s stun at full vulnerability (10s pop cooldown) → add-clear/AoE check |
 | The Legacy Monolith | armored phase (75% resist) ↔ exposed core | armor spawns 3 Deprecated Dependency pillars that soak shots/auto-aim and **holds until all are destroyed** (no timer; 5s exposed core after). Pillars *orbit* the boss — they travel with it, so the boss advancing is what brings them into weapon range (stationary pillars left a kiting melee build unable to ever break armor — sim-caught). Also breeds bugs: pairs from the map's spawn pool hatch around it every 4.5s the whole fight — it's legacy code, touching it makes more bugs |
+| The Race Condition *(standard, v0.3)* | blinks to mid-range every ~4s, fires an aimed 4-fan on arrival | leaves a fragile **afterimage** (3% HP — any real hit pops it) at its old position; an image expiring unkilled = the race resolved in its favor → it heals 3% (attention/aim test, not a DPS test — at 7% image HP a kiting build that never faced the image stalled the fight on heals, sim-caught) |
+| The Critical Exception *(Marsh finale, v0.3)* | huge telegraphed ground slams (1.25s circle, leave it or eat ~32×tier) + radial shard scatter from every impact | slam cadence accelerates linearly as HP drops (3.4s → 1.7s) and doubles below 50% (second slam *leads* the escape heading) — the dodge boss becomes a DPS race: end it before the floor is all telegraphs |
+| The Production Incident *(Production finale, v0.3)* | aimed 4-fans + permanent leak pools (the Leak's kit, slower drip) | **two prior mechanics at once**: also summons stack frames (50% resist while any live, pop-stun on clear — the Overflow's kit, longer downtime). Lowest finale base HP on purpose: the frame guard nearly doubles its effective pool |
+| The Kernel Panic *(Glacier finale, v0.3)* | expanding rings of **chill shards** — every hit lags the player (0.5× speed, 1.6s) | hard-freeze rhythm: at 70%/35% HP it locks up for 4s (0.15× armor, blizzard-rate rings) then **thaws** for 4s at 1.5× damage taken — burst-window test: strike the thaw |
 
 A boss that is resistant *right now* always shows the rotating dashed shield
 ring (+ desaturated sprite) — the armored state is never invisible.
 
-Tier scaling: HP ×(1+0.35·tier), DMG ×(1+0.15·tier); order cycles past 10:00.
+Tier scaling: HP ×(1+0.35·slot), DMG ×(1+0.15·slot) — slot index is the only
+escalation now that draws are random (the old base-HP spread encoded a fixed
+order). Standard pool: Merge Conflict 650 / Memory Leak 800 / Race Condition
+800 / Infinite Loop 900 / Stack Overflow 1000.
 
 **Crunch Time** (v0.3, punishment rework 2026-06-12): the release ships at
 15:00 — any boss still alive then is a *release blocker*. Instead of a free

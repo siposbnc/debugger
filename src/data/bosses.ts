@@ -68,7 +68,12 @@ export const BOSSES: Record<string, BossDef> = {
     id: 'criticalException', name: 'The Critical Exception', tier: 'unique',
     codexDesc: 'An error so unhandled it takes the whole heap down with it. You have '
       + 'exactly one job: do not be where it lands.',
-    hp: 2800, speed: 36, damage: 30, radius: 44, color: '#ff4d4d',
+    // finale base HP is tuned per map: the 12:00 slot multiplier (×2.75) and
+    // the map's enemyScale both stack on it, so the bases DESCEND as the map
+    // ladder climbs to keep effective finale HP in the same band (monolith
+    // 2600×1.0 ≈ exception 2400×1.2 ≈ incident 2200×1.35 ≈ panic 2400×1.4
+    // minus their mechanic resists). Certified against the §5 maxed-meta arms.
+    hp: 2400, speed: 36, damage: 30, radius: 44, color: '#ff4d4d',
     mechanic: 'slam',
     mechanicDesc: 'Telegraphs huge ground slams — leave the circle before impact. Every impact '
       + 'scatters shards, the slams come faster as its health drops, and below half '
@@ -78,7 +83,10 @@ export const BOSSES: Record<string, BossDef> = {
     id: 'productionIncident', name: 'The Production Incident', tier: 'unique',
     codexDesc: 'Every alarm at once: memory leaking, stack growing, pager screaming. The '
       + 'post-mortem writes itself, if anyone survives to write it.',
-    hp: 3000, speed: 32, damage: 30, radius: 46, color: '#ff6b35',
+    // lowest finale base on purpose: the frame guard (50% resist while frames
+    // live) nearly doubles its effective HP — at 3000 base the maxed-meta
+    // cert collapsed to 12.5% (target ≥ 40%)
+    hp: 2200, speed: 32, damage: 30, radius: 46, color: '#ff6b35',
     mechanic: 'incident',
     mechanicDesc: 'Two incidents in one: leaks permanent memory pools AND hides behind summoned '
       + 'stack frames (half damage while any live; clearing the stack stuns it). Aimed '
@@ -88,7 +96,9 @@ export const BOSSES: Record<string, BossDef> = {
     id: 'kernelPanic', name: 'The Kernel Panic', tier: 'unique',
     codexDesc: 'The whole system halts to print one final complaint. Everything it touches '
       + 'freezes with it.',
-    hp: 3200, speed: 42, damage: 28, radius: 44, color: '#7adcff',
+    // freeze phases add ~2×4s of near-immunity on top of enemyScale 1.4 —
+    // 3200 base put the glacier maxed-meta cert under the 40% floor
+    hp: 2400, speed: 42, damage: 28, radius: 44, color: '#7adcff',
     mechanic: 'panic',
     mechanicDesc: 'Fires expanding rings of chill shards that lag your movement. At health '
       + 'thresholds it hard-freezes — heavily armored while the blizzard intensifies — '

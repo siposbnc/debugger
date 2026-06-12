@@ -71,8 +71,10 @@ export const MAPS: Record<string, MapDef> = {
       { fromMin: 9, interval: 0.5, weights: { exceptionBeetle: 5, nullWasp: 5, deadlockScarab: 5, raceSpider: 5, stackCentipede: 3 } },
       { fromMin: 11, interval: 0.44, weights: { exceptionBeetle: 5, nullWasp: 5, deadlockScarab: 6, raceSpider: 5, stackCentipede: 5 } },
     ],
-    // prod is where races and stack blowups page you at 3am
-    bossPool: { stackOverflowBoss: 3, raceCondition: 3, mergeConflict: 2, infiniteLoop: 2, memoryLeak: 1 },
+    // prod is where races and stack blowups page you at 3am (overflow weight
+    // capped at 2: the two stall-heaviest standards both at 3 queued bosses
+    // into crunch on the maxed-meta cert)
+    bossPool: { stackOverflowBoss: 2, raceCondition: 3, mergeConflict: 2, infiniteLoop: 2, memoryLeak: 1 },
     uniqueBoss: 'productionIncident',
   },
   cyberGlacier: {
