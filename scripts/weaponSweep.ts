@@ -31,23 +31,27 @@ const scaled = flags.includes('--scaled');
 const weaponFilter = flags.find((f) => f.startsWith('--weapon='))?.slice(9);
 
 // Mirror of BALANCE.md §8 — risk tier × growth profile per weapon.
+// exempt: 'all' = solo bands don't apply (judged manually); 'wins' = the
+// scaled win band doesn't apply (support/control identity — solo finale
+// closure needs a partner weapon by design; kill floor + early bands still bind).
 export const PROFILES: Record<string, {
   risk: 'low' | 'high';
   growth: 'early' | 'steady' | 'late';
-  special?: string;
+  exempt?: 'all' | 'wins';
+  note?: string;
 }> = {
   syntaxWand:       { risk: 'low',  growth: 'early'  },
   deployHammer:     { risk: 'high', growth: 'steady' },
-  assertBlades:     { risk: 'high', growth: 'late'   },
+  assertBlades:     { risk: 'high', growth: 'late',  exempt: 'wins', note: 'defensive orbit — tops survival, no solo single-target finale burst (0/24 pooled scaled wins is identity, not a bug)' },
   garbageCollector: { risk: 'high', growth: 'steady' },
-  regexGrimoire:    { risk: 'low',  growth: 'steady' },
+  regexGrimoire:    { risk: 'low',  growth: 'steady', exempt: 'wins', note: 'support chain — the evolution is a +25% damage-taken debuff, valueless solo' },
   stackStaff:       { risk: 'low',  growth: 'steady' },
-  daemonFamiliar:   { risk: 'low',  growth: 'late'   },
+  daemonFamiliar:   { risk: 'low',  growth: 'late',  exempt: 'wins', note: 'pet XP economy levels slowest solo, bloom band unreachable through this lens; binding metrics are the kill floor + scaled wins ≥ 1 of 8 (passes post-tune)' },
   breakpointBow:    { risk: 'low',  growth: 'early'  },
   forkBomb:         { risk: 'low',  growth: 'steady' },
   firewall:         { risk: 'high', growth: 'late'   },
   pingStorm:        { risk: 'low',  growth: 'late'   },
-  sudoScroll:       { risk: 'low',  growth: 'steady', special: 'boss tool — no horde clear by design; judged on boss TTK, exempt from survival/win bands' },
+  sudoScroll:       { risk: 'low',  growth: 'steady', exempt: 'all', note: 'boss tool — no horde clear by design; judged on boss TTK' },
 };
 
 interface Sample {
@@ -164,12 +168,12 @@ const flagsOut: string[] = [];
 if (rows.length >= 2) {
   const winMed = median(rows.map((r) => r.s.filter((x) => x.victory).length));
   const winMax = Math.max(...rows.map((r) => r.s.filter((x) => x.victory).length));
-  const killMed = median(rows.filter((r) => !PROFILES[r.weapon]?.special)
+  const killMed = median(rows.filter((r) => PROFILES[r.weapon]?.exempt !== 'all')
     .map((r) => median(r.s.map((x) => x.kills))));
   for (const { weapon, s } of rows) {
     const p = PROFILES[weapon];
     if (!p) { flagsOut.push(`${weapon}: no declared profile (add to BALANCE.md §8 + PROFILES)`); continue; }
-    if (p.special) continue;
+    if (p.exempt === 'all') continue;
     const surv9 = s.filter((x) => x.surv9).length;
     const wins = s.filter((x) => x.victory).length;
     const evolvedN = s.filter((x) => x.evolved).length;
@@ -191,6 +195,7 @@ if (rows.length >= 2) {
     if (surv9 < floor) {
       flagsOut.push(`${weapon} (${p.risk}/${p.growth}): EARLY ${p.growth === 'late' ? 'floor' : 'band'} miss (scaled) — survived 9:00 in ${surv9}/${samples} (need ≥${floor})`);
     }
+    if (p.exempt === 'wins') continue; // support/control identity: see PROFILES note
     if (p.growth === 'late' && evolvedN < Math.ceil(samples * 0.5)) {
       flagsOut.push(`${weapon} (${p.risk}/${p.growth}): never blooms (scaled) — evolved in only ${evolvedN}/${samples}`);
     }

@@ -46,7 +46,12 @@ export const WEAPONS: Record<string, WeaponDef> = {
     evolveTo: 'compilersScepter',
     // Base pierce 1 + early pierce step: the wand is the only single-target
     // starter — without it ada falls behind the minute 3–6 swarm (matrix-verified).
-    levels: levels(L(14, 0.85, 1, 7, 420, 0, 1), { damage: 5, cooldown: 0.06, count: [3, 5, 7], pierce: [3, 6] }),
+    // Count steps end at lv 5: the v0.3 sweep had solo wand dominating the late
+    // checkpoint at zero meta (4/8 wins vs next 2/8, §8) — its tail, not its
+    // floor, was the outlier; the 4th bolt belongs to the evolution. (A first
+    // trim also dropped the lv-5 step and collapsed the mid-game floor — the
+    // lv 1–6 rows are §1-watchlist territory, don't touch them.)
+    levels: levels(L(14, 0.85, 1, 7, 420, 0, 1), { damage: 5, cooldown: 0.06, count: [3, 5], pierce: [3, 6] }),
   },
   compilersScepter: {
     id: 'compilersScepter', name: "Compiler's Scepter", kind: 'bolt', icon: '⌬', color: '#7dffce',
@@ -76,14 +81,20 @@ export const WEAPONS: Record<string, WeaponDef> = {
     desc: 'Blades orbit you, slicing any bug that fails the check.',
     flavor: 'assert(bug.isAlive == false)',
     evolveTo: 'testHalo',
-    levels: levels(L(12, 0, 2, 80, 2.4), { damage: 4, count: [2, 4, 6, 8], area: 5, speed: 0.15 }),
+    // v0.3 sweep: the high-risk-late profile stalled (0/8 scaled wins, evo 2/8,
+    // kills 58% of lane) while same-lane firewall bloomed — growth bumped so the
+    // bloom is reachable. CDR-sensitive: re-run blades-cdr after ANY touch here.
+    levels: levels(L(12, 0, 2, 80, 2.4), { damage: 5, count: [2, 4, 6, 8], area: 5, speed: 0.15 }),
   },
   testHalo: {
     id: 'testHalo', name: 'Test Suite Halo', kind: 'orbit', icon: '❂', color: '#a8d6ff',
     desc: 'A wide halo of relentless blades. 100% coverage.',
     flavor: 'All 7 tests passed. The 8th is you.',
     isEvolution: true,
-    levels: [L(26, 0, 8, 135, 3.4)],
+    // §8 round 2: the bloom itself was the laggard — blades evolved (6/8 scaled)
+    // but the halo couldn't close runs (0/8 wins, kills 58% of lane). Halo-side
+    // buffs don't touch the blades-cdr tripwire (it runs unevolved lv-8 blades).
+    levels: [L(36, 0, 8, 135, 3.8)],
   },
 
   garbageCollector: {
@@ -91,14 +102,19 @@ export const WEAPONS: Record<string, WeaponDef> = {
     desc: 'Sweeps an arc ahead of you. Instantly deletes weakened small bugs.',
     flavor: 'Unreachable objects will be reclaimed.',
     evolveTo: 'heapPurifier',
-    levels: levels(L(18, 1.5, 1, 100), { damage: 7, cooldown: 0.1, area: 9 }),
+    // v0.3 sweep: outlier-low at BOTH scalings within the high-risk lane
+    // (686 kills scaled vs hammer 4265, dead by 2:34 at zero meta) — floor,
+    // growth AND reach buffed: a strafing brawler keeps most contacts outside
+    // a narrow front cone, so area (cone radius) is the lever that actually
+    // moves its measured kills; raw damage alone barely did (94 vs 70), §8
+    levels: levels(L(24, 1.35, 1, 125), { damage: 9, cooldown: 0.09, area: 11 }),
   },
   heapPurifier: {
     id: 'heapPurifier', name: 'Heap Purifier', kind: 'sweep', icon: '♻', color: '#c2ff8a',
     desc: 'A full-circle purge. Deleting bugs restores 1 HP.',
     flavor: 'Stop the world. Then end it.',
     isEvolution: true,
-    levels: [L(48, 1.1, 1, 150)],
+    levels: [L(64, 0.9, 1, 170)], // buffed with the base (v0.3 §8) — the evolution must stay the upgrade
   },
 
   regexGrimoire: {
@@ -106,14 +122,18 @@ export const WEAPONS: Record<string, WeaponDef> = {
     desc: 'A pattern-beam matches the nearest bug, then greedily chains onward.',
     flavor: 'Now you have two problems. They have more.',
     evolveTo: 'perfectMatch',
-    levels: levels(L(12, 1.7, 3, 170), { damage: 4, cooldown: 0.1, count: [2, 4, 6, 8], area: 10 }),
+    // v0.3 sweep: outlier-low in the low-risk lane (387 kills zero / 1337
+    // scaled vs lane 2300–4300, 0 wins anywhere) — damage floor + growth up, §8
+    // (round 2: growth 5 → 6; floor fixed, the mid-late tail still died ~8:46
+    // scaled before evolving)
+    levels: levels(L(15, 1.7, 3, 170), { damage: 6, cooldown: 0.1, count: [2, 4, 6, 8], area: 10 }),
   },
   perfectMatch: {
     id: 'perfectMatch', name: 'The Perfect Match', kind: 'chain', icon: '✒', color: '#f4a4ff',
     desc: 'Chains far and wide; matched bugs take 25% more damage from everything.',
     flavor: '/^bug$/ — matched. Replaced with nothing.',
     isEvolution: true,
-    levels: [L(36, 1.0, 9, 230)],
+    levels: [L(46, 1.0, 9, 230)], // buffed with the base (v0.3 §8, round 2)
   },
 
   stackStaff: {
@@ -136,7 +156,11 @@ export const WEAPONS: Record<string, WeaponDef> = {
     desc: 'A loyal background process orbits you, shooting at bugs.',
     flavor: 'Runs even when you are not looking. Especially then.',
     evolveTo: 'processLegion',
-    levels: levels(L(8, 0.9, 1, 0, 460), { damage: 3, cooldown: 0.06, count: [4, 7] }),
+    // v0.3 sweep: zero-meta floor was non-functional (134 kills vs lane
+    // 387–617) — pet damage floor up, pets arrive a level earlier. Late
+    // profile (the legion is untouched), §8 (round 2: growth 3 → 4; the
+    // mid-late tail still couldn't reach its bloom, evo 1/8 scaled)
+    levels: levels(L(11, 0.9, 1, 0, 460), { damage: 4, cooldown: 0.06, count: [3, 6] }),
   },
   processLegion: {
     id: 'processLegion', name: 'Process Legion', kind: 'pet', icon: '⛬', color: '#ffa9bf',
