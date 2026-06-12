@@ -36,6 +36,24 @@ export const CHARACTERS: Record<string, CharacterDef> = {
     special: 'randomWeapon',
     cost: 350, color: '#7df9ff', icon: '🧑‍🎓',
   },
+  hexa: {
+    id: 'hexa', name: 'Sec Hexa', archetype: 'Security Engineer',
+    desc: 'Runs a zero-trust household. Anything that makes contact receives a signed, certified, very painful response.',
+    weapon: 'firewall',
+    passiveDesc: 'Thorns: attackers take back 20% of their contact damage.',
+    mods: {},
+    special: 'thorns',
+    cost: 550, color: '#ff6b4d', icon: '🥷',
+  },
+  dana: {
+    id: 'dana', name: 'Dana Tensor', archetype: 'Data Scientist',
+    desc: 'Refuses to act without data. Every XP shard is another training sample, and the model only ever gets stronger.',
+    weapon: 'pingStorm',
+    passiveDesc: '+1% damage per 100 XP collected this run. Scales forever.',
+    mods: {},
+    special: 'xpPower',
+    cost: 650, color: '#5fd7ff', icon: '👩‍🔬',
+  },
   linus: {
     id: 'linus', name: 'Linus Patchwell', archetype: 'Open Source Maintainer',
     desc: 'Reviews your PR, rewrites your PR, then absorbs your PR into the kernel of himself.',
@@ -44,6 +62,15 @@ export const CHARACTERS: Record<string, CharacterDef> = {
     mods: {},
     special: 'helpers',
     cost: 700, color: '#9be564', icon: '🧙',
+  },
+  cobol: {
+    id: 'cobol', name: 'Greybeard Cobol', archetype: 'Legacy Maintainer',
+    desc: 'Has maintained the mainframe since before your language existed. Walks slowly because nothing has ever made him hurry.',
+    weapon: 'stackStaff',
+    passiveDesc: 'Immune to all slows. −15% move speed. Unstoppable, eventually.',
+    mods: { speed: -0.15 },
+    special: 'slowImmune',
+    cost: 800, color: '#c9b48a', icon: '🧓',
   },
 };
 

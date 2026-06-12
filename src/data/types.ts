@@ -144,7 +144,10 @@ export interface CharacterDef {
   weapon: string;          // starting weapon id
   passiveDesc: string;
   mods: StatMods;
-  special?: 'turrets' | 'helpers' | 'eliteCrit' | 'randomWeapon';
+  special?: 'turrets' | 'helpers' | 'eliteCrit' | 'randomWeapon'
+    | 'thorns'      // returns 20% of contact damage to the attacker
+    | 'xpPower'     // +1% damage per 100 XP collected this run
+    | 'slowImmune'; // ignores every slow source (pair with a speed malus)
   cost: number;            // Bits to unlock (0 = starter)
   color: string;
   icon: string;

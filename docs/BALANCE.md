@@ -77,12 +77,13 @@ one-time, so no re-run inflation; the main growing faucet is boss kills, priced 
 | Strong 15:00 victory | 1500–2100 |
 | Weak-variance 15:00 victory (0 bosses) | ~750–900 observed — below the early-run ceiling is acceptable only because objectives carry it |
 
-Total shop cost: meta upgrades **9,425 ⌬** + characters 1,750 + weapons 5,050
-(v0.2's 1,550 + firewall 700 / forkBomb 800 / pingStorm 900 / sudoScroll 1,100) + maps
-3,700 (500 + 1,200 + 2,000) = **19,925 ⌬** → the original 25–35-run window was set
-against the v0.2 12,875 ⌬ total; the v0.3 additions sit on top and are earned at the
-higher ×1.5-map bands — re-check the runs-to-clear window at the v0.3 band
-re-certification (roadmap "Meta shop depth check").
+Total shop cost: meta upgrades **9,425 ⌬** + characters 3,750 (v0.2's 1,400 + rex 350 /
+hexa 550 / dana 650 / cobol 800) + weapons 5,050 (v0.2's 1,550 + firewall 700 /
+forkBomb 800 / pingStorm 900 / sudoScroll 1,100) + maps 3,700 (500 + 1,200 + 2,000) =
+**21,925 ⌬** → the original 25–35-run window was set against the v0.2 12,875 ⌬ total;
+the v0.3 additions sit on top and are earned at the higher ×1.5-map bands — re-check
+the runs-to-clear window at the v0.3 band re-certification (roadmap "Meta shop depth
+check").
 
 ## 5. Difficulty certification (mortal-bot win rates)
 

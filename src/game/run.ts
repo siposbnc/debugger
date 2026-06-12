@@ -49,6 +49,7 @@ export interface Enemy {
   stackFrame?: boolean;   // this enemy is a Stack Overflow stack frame (summoned mite)
   critical?: boolean;     // Crunch Time severity escalation (bug severity, not player crit)
   mechT3?: number;        // third mechanic clock (incident: summon timer)
+  thornT?: number;        // Sec Hexa thorns: per-enemy return-damage tick window
   raceImage?: boolean;    // race-condition afterimage (boss-owned, expiry heals the boss)
   panicState?: 'normal' | 'frozen' | 'thaw'; // kernel panic hard-freeze rhythm
   panicT?: number;        // seconds left in the current frozen/thaw window
@@ -412,6 +413,11 @@ export class Run {
   recompute(): void {
     const hpFrac = this.hp / this.stats.maxHp;
     this.stats = computeStats(this.character, this.metaLevels, this.cardMods);
+    // xpPower (Dana): +1% damage per 100 XP collected — applied here so card
+    // pickups don't wipe it; refreshed on the 1s objective tick (update()).
+    if (this.character.special === 'xpPower') {
+      this.stats.damageMult *= 1 + Math.floor(this.xpCollected / 100) * 0.01;
+    }
     if (this.statOverrides) Object.assign(this.stats, this.statOverrides);
     this.hp = clamp(hpFrac * this.stats.maxHp, 1, this.stats.maxHp);
   }
@@ -576,6 +582,9 @@ export class Run {
     if (this.objectiveCheckT <= 0) {
       this.objectiveCheckT = 1;
       this.checkObjectives();
+      // Dana's xpPower bonus grows with collected XP — refreshing once per
+      // second keeps recompute() out of the pickup hot path
+      if (this.character.special === 'xpPower') this.recompute();
     }
   }
 
@@ -602,6 +611,9 @@ export class Run {
         this.playerSlow = Math.min(this.playerSlow, LATENCY_SLOW);
       }
     }
+    // slow immunity (Greybeard Cobol): every slow source above is void — the
+    // tradeoff is the flat −15% speed in his mods
+    if (this.character.special === 'slowImmune') this.playerSlow = 1;
 
     const sp = this.stats.moveSpeed * this.playerSlow * (this.crunchT > 0 ? CRUNCH_SPEED_MULT : 1);
     this.px += wx * sp * dt;
@@ -649,6 +661,16 @@ export class Run {
           e.hp = Math.min(e.maxHp, e.hp + 6 * dt); // leech heals itself
         }
         this.hurtPlayer(dps * dt);
+        // thorns (Sec Hexa): 20% of contact damage flows back — ticked on a
+        // 0.5s window per enemy so it doesn't spam damage numbers per frame
+        if (this.character.special === 'thorns') {
+          e.thornT = (e.thornT ?? 0) - dt;
+          if (e.thornT <= 0) {
+            e.thornT = 0.5;
+            // credited as ally/special damage (same bucket as turrets/helpers)
+            this.hitEnemy(e, dps * 0.5 * 0.2, { noCrit: true, source: 'ally' });
+          }
+        }
       }
 
       // race condition spider duplication

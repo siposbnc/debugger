@@ -197,14 +197,18 @@ export const WEAPONS: Record<string, WeaponDef> = {
     desc: 'Fires homing packets at random bugs. They always find a route.',
     flavor: '64 bytes from bug: icmp_seq=1 ttl=0',
     evolveTo: 'ddos',
-    levels: levels(L(8, 1.5, 2, 6, 340), { damage: 3, cooldown: 0.09, count: [3, 5, 7], speed: 12 }),
+    // Base pierce 1 + a real lv-1 punch: random targeting spreads damage thin,
+    // so without kill concentration the dana starter capped the field by min 4
+    // and stalled her XP passive entirely (sim-caught — the syntaxWand pierce
+    // lesson again: the early window has a floor even for late bloomers).
+    levels: levels(L(13, 1.2, 2, 6, 340, 0, 1), { damage: 4, cooldown: 0.07, count: [3, 5, 7], speed: 12 }),
   },
   ddos: {
     id: 'ddos', name: 'DDoS', kind: 'homing', icon: '⇶', color: '#9be6ff',
     desc: 'A distributed flood of packets. The swarm gets denied service.',
     flavor: 'Your traffic is important to us.',
     isEvolution: true,
-    levels: [L(12, 0.55, 6, 6, 430)],
+    levels: [L(16, 0.5, 6, 6, 430, 0, 1)],
   },
 
   sudoScroll: {
