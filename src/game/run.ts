@@ -8,7 +8,7 @@ import { moveVector } from '../core/input';
 import { clamp, dist, mulberry32, pick, rand } from '../core/util';
 import { computeStats, type ComputedStats } from './stats';
 import { updateWeapons } from './combat';
-import { updateSpawner, SPAWN_RADIUS } from './spawner';
+import { updateSpawner, makeCritical, SPAWN_RADIUS } from './spawner';
 import { updateBossSchedule, updateBossMechanics, crumblePillars } from './bossLogic';
 
 // ---------- entities ----------
@@ -47,6 +47,7 @@ export interface Enemy {
   addsAlive?: number;     // last frame's live add count (stack frames / pillars) for drop detection
   popCdT?: number;        // stack-pop re-trigger cooldown
   stackFrame?: boolean;   // this enemy is a Stack Overflow stack frame (summoned mite)
+  critical?: boolean;     // Crunch Time severity escalation (bug severity, not player crit)
   facing: number;              // for rendering
   // difficulty-scaled values stamped at spawn time
   scaledSpeed?: number;
@@ -66,6 +67,8 @@ export interface Projectile {
 export interface EnemyShot {
   x: number; y: number; vx: number; vy: number;
   damage: number; radius: number; life: number; color: string;
+  /** Memory-Leak glob: splash a short-lived leak puddle where the shot dies. */
+  splash?: { radius: number; dps: number; life: number };
 }
 
 export interface Pickup {
@@ -204,8 +207,10 @@ export class Run {
   over = false;
   victory = false;
   // Crunch Time: the release ships at 15:00 — bosses still alive then are
-  // release blockers. The run gets CRUNCH_DURATION seconds of overtime (trash
-  // descoped, spawner frozen, crunch buffs); blockers outliving it fail the run.
+  // release blockers. The run gets CRUNCH_DURATION seconds of overtime, but
+  // crunch is a punishment, not a rescue: every live bug goes CRITICAL
+  // (harder-hitting, faster) instead of despawning. Only NEW spawns freeze
+  // (feature freeze); blockers outliving the overtime fail the run.
   crunchStarted = false;
   crunchT = 0;          // remaining overtime; > 0 while crunching
   releaseFailed = false;
@@ -441,13 +446,12 @@ export class Run {
       if (!this.crunchStarted) {
         if (!blockers) { this.finishVictory(); return; }
         // ship date reached with bosses alive: crunch time. Feature freeze —
-        // the trash is descoped (no rewards), only the blockers (and the
-        // Monolith's props) remain; the spawner stays frozen for the overtime.
+        // no new bugs spawn — but the live backlog doesn't vanish: every bug
+        // on the field escalates to critical severity. Shipping late hurts.
         this.crunchStarted = true;
         this.crunchT = CRUNCH_DURATION;
-        for (let i = this.enemies.length - 1; i >= 0; i--) {
-          const e = this.enemies[i];
-          if (!e.isBoss && !(e.def as EnemyDef).stationary) this.removeEnemy(i);
+        for (const e of this.enemies) {
+          if (!(e.def as EnemyDef).stationary) makeCritical(e);
         }
         this.emit({ type: 'crunch' });
       } else {
@@ -469,7 +473,7 @@ export class Run {
     this.grid.clear();
     for (const e of this.enemies) this.grid.insert(e);
 
-    if (!this.crunchStarted) updateSpawner(this, dt);
+    updateSpawner(this, dt); // crunch freeze handled inside (recycling must continue)
     updateBossSchedule(this, dt);
     this.updateEnemies(dt);
     updateWeapons(this, dt);
@@ -662,7 +666,18 @@ export class Run {
         this.hurtPlayer(s.damage);
         remove = true;
       }
-      if (remove) { this.enemyShots[i] = this.enemyShots[this.enemyShots.length - 1]; this.enemyShots.pop(); }
+      if (remove) {
+        if (s.splash) {
+          // age pre-seeded so the puddle lands at a readable size immediately
+          this.zones.push({
+            kind: 'leak', x: s.x, y: s.y,
+            radius: s.splash.radius * 0.6, maxRadius: s.splash.radius,
+            life: s.splash.life, maxLife: s.splash.life, age: 1.5,
+            dps: s.splash.dps,
+          });
+        }
+        this.enemyShots[i] = this.enemyShots[this.enemyShots.length - 1]; this.enemyShots.pop();
+      }
     }
   }
 

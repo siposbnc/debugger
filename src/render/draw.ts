@@ -217,7 +217,7 @@ export class Renderer {
         }
         break;
       case 'crunch':
-        this.banner('🚨 CRUNCH TIME', 'ship date reached — resolve all release blockers in 30s', '#ff5e5e', 5);
+        this.banner('🚨 CRUNCH TIME', 'ship date reached — every bug goes critical; resolve all blockers in 30s', '#ff5e5e', 5);
         this.shake(8);
         break;
       case 'vent': {
@@ -575,6 +575,13 @@ export class Renderer {
             }
           }
 
+          // crunch-time critical severity: thin pulsing red ring on every bug
+          if (e.critical) {
+            ctx.strokeStyle = `rgba(255, 70, 70, ${0.5 + 0.25 * Math.sin(this.t * 8)})`;
+            ctx.lineWidth = 2;
+            const cr = e.def.radius * 1.35;
+            ctx.beginPath(); ctx.ellipse(s.x, s.y, cr, cr / 2, 0, 0, 7); ctx.stroke();
+          }
           // force-push enrage: pulsing red threat ring under the sprite
           if (e.enraged) {
             ctx.strokeStyle = 'rgba(255, 94, 94, 0.85)';
@@ -602,6 +609,7 @@ export class Renderer {
             ctx.filter = e.armorMult! <= 0.25 ? 'saturate(0.3) brightness(0.8)' : 'saturate(0.55) brightness(0.9)';
           }
           if (e.enraged && e.hitFlash <= 0) ctx.filter = 'brightness(1.35) saturate(1.5)';
+          if (e.critical && e.hitFlash <= 0 && e.frozenT <= 0) ctx.filter = 'brightness(1.25) saturate(1.6)';
           if (e.isCopy) ctx.globalAlpha = 0.55;
           ctx.drawImage(sprite, s.x - w / 2, s.y - h + e.def.radius / 2, w, h);
           ctx.restore();

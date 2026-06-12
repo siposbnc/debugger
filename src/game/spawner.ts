@@ -36,12 +36,26 @@ export function randomPhaseEnemyDef(run: Run): EnemyDef {
   return ENEMIES[ids[weightedIndex(ids.map((id) => phase.weights[id]))]];
 }
 
+/** Crunch Time severity escalation: at 15:00 the live backlog doesn't get
+ *  descoped — every bug on the field (and anything hatched during overtime)
+ *  is promoted to CRITICAL: harder-hitting, faster, visually flagged. */
+export const CRITICAL_DMG_MULT = 1.5;
+export const CRITICAL_SPEED_MULT = 1.3;
+
+export function makeCritical(e: Enemy): void {
+  if (e.critical || e.isBoss) return;
+  e.critical = true;
+  e.scaledDamage = (e.scaledDamage ?? e.def.damage) * CRITICAL_DMG_MULT;
+  e.scaledSpeed = (e.scaledSpeed ?? e.def.speed) * CRITICAL_SPEED_MULT;
+}
+
 export function makeEnemy(run: Run, def: EnemyDef, x: number, y: number, elite: boolean): Enemy {
   const diff = difficulty(run.time / 60);
-  return {
+  const scale = run.map.enemyScale ?? 1; // per-map meta-gating multiplier
+  const hp = def.hp * diff.hpMult * scale * (elite ? ELITE.hpMult : 1);
+  const e: Enemy = {
     def, x, y,
-    hp: def.hp * diff.hpMult * (elite ? ELITE.hpMult : 1),
-    maxHp: def.hp * diff.hpMult * (elite ? ELITE.hpMult : 1),
+    hp, maxHp: hp,
     elite, isBoss: false,
     slowT: 0, slowAmt: 0, frozenT: 0, hitFlash: 0, matchMarkT: 0,
     knockX: 0, knockY: 0,
@@ -52,8 +66,11 @@ export function makeEnemy(run: Run, def: EnemyDef, x: number, y: number, elite: 
     phase: 'exposed', phaseT: 0, splitDone: false,
     facing: 0,
     scaledSpeed: def.speed * diff.speedMult * (elite ? ELITE.speedMult : 1),
-    scaledDamage: def.damage * diff.damageMult * (elite ? ELITE.damageMult : 1),
+    scaledDamage: def.damage * diff.damageMult * scale * (elite ? ELITE.damageMult : 1),
   };
+  // anything hatched during overtime (Monolith breeding, stack frames) is born critical
+  if (run.crunchStarted) makeCritical(e);
+  return e;
 }
 
 function recycleStragglers(run: Run): void {
@@ -80,6 +97,9 @@ function recycleStragglers(run: Run): void {
 
 export function updateSpawner(run: Run, dt: number): void {
   recycleStragglers(run); // must run even (especially) when the cap is full
+  // Crunch Time feature freeze: nothing NEW spawns during overtime, but
+  // recycling above must keep running — the critical horde stays inescapable.
+  if (run.crunchStarted) return;
   if (run.enemies.length >= MAX_ENEMIES) return;
 
   const minutes = run.time / 60;
