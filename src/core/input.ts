@@ -1,4 +1,5 @@
-// Keyboard + gamepad state. Movement vector from WASD/arrows + left stick/d-pad.
+// Keyboard + gamepad + touch state. Movement vector from WASD/arrows +
+// left stick/d-pad + virtual touch stick.
 
 const down = new Set<string>();
 const pressedThisFrame = new Set<string>();
@@ -30,9 +31,9 @@ export function consumePressed(): void {
   padPressedFrame.clear();
 }
 
-/** Movement vector in WORLD space, length ≤ 1 (analog stick preserves magnitude). */
+/** Movement vector in SCREEN space, length ≤ 1 (analog stick preserves magnitude). */
 export function moveVector(): { x: number; y: number } {
-  let x = padX, y = padY;
+  let x = padX + stickVX, y = padY + stickVY;
   if (isDown('KeyW') || isDown('ArrowUp')) y -= 1;
   if (isDown('KeyS') || isDown('ArrowDown')) y += 1;
   if (isDown('KeyA') || isDown('ArrowLeft')) x -= 1;
@@ -133,4 +134,79 @@ export function padWasPressed(button: number): boolean {
 /** Menu-nav direction for this frame (press + auto-repeat), or null. */
 export function padMenuDir(): { x: number; y: number } | null {
   return menuDir;
+}
+
+// ---------- touch (floating virtual stick) ----------
+// The first touch on the canvas anchors the stick base where the finger lands;
+// dragging sets a radius-clamped vector that merges into moveVector() exactly
+// like the pad stick. Later touches while one is held are ignored (the DOM
+// pause button sits above the canvas and never reaches these handlers).
+// Only main.ts calls initTouch() — the headless sim never sees any of this.
+
+const STICK_RADIUS = 64;  // drag distance (CSS px) for full speed
+const STICK_DEAD = 8;     // ignore micro-jitter so a tap doesn't nudge the player
+
+let stickTouchId: number | null = null;
+let stickBaseX = 0, stickBaseY = 0; // base anchor, CSS px
+let stickKnobX = 0, stickKnobY = 0; // knob offset from base, clamped to STICK_RADIUS
+let stickVX = 0, stickVY = 0;       // movement vector, length ≤ 1
+let touchSeen = false;              // any touch ever → show touch-only UI
+
+export function initTouch(target: HTMLElement): void {
+  // Menu taps land on DOM buttons, not the canvas — catch every touch at the
+  // window so touch-only UI (the pause button) exists from the first tap.
+  window.addEventListener('touchstart', () => { touchSeen = true; }, { capture: true, passive: true });
+
+  target.addEventListener('touchstart', (e) => {
+    e.preventDefault(); // no scroll/zoom/long-press-select on the playfield
+    if (stickTouchId !== null) return;
+    const t = e.changedTouches[0];
+    stickTouchId = t.identifier;
+    stickBaseX = t.clientX;
+    stickBaseY = t.clientY;
+    stickKnobX = stickKnobY = stickVX = stickVY = 0;
+  }, { passive: false });
+
+  target.addEventListener('touchmove', (e) => {
+    e.preventDefault();
+    for (const t of Array.from(e.changedTouches)) {
+      if (t.identifier !== stickTouchId) continue;
+      const dx = t.clientX - stickBaseX, dy = t.clientY - stickBaseY;
+      const len = Math.hypot(dx, dy);
+      if (len < STICK_DEAD) {
+        stickKnobX = stickKnobY = stickVX = stickVY = 0;
+      } else {
+        const mag = Math.min(1, len / STICK_RADIUS);
+        stickVX = (dx / len) * mag;
+        stickVY = (dy / len) * mag;
+        stickKnobX = stickVX * STICK_RADIUS;
+        stickKnobY = stickVY * STICK_RADIUS;
+      }
+    }
+  }, { passive: false });
+
+  const release = (e: TouchEvent): void => {
+    for (const t of Array.from(e.changedTouches)) {
+      if (t.identifier !== stickTouchId) continue;
+      stickTouchId = null;
+      stickKnobX = stickKnobY = stickVX = stickVY = 0;
+    }
+  };
+  target.addEventListener('touchend', release);
+  target.addEventListener('touchcancel', release);
+  window.addEventListener('blur', () => {
+    stickTouchId = null;
+    stickKnobX = stickKnobY = stickVX = stickVY = 0;
+  });
+}
+
+/** Live virtual-stick geometry for the renderer (CSS px), or null when idle. */
+export function touchStick(): { baseX: number; baseY: number; knobX: number; knobY: number; radius: number } | null {
+  if (stickTouchId === null) return null;
+  return { baseX: stickBaseX, baseY: stickBaseY, knobX: stickKnobX, knobY: stickKnobY, radius: STICK_RADIUS };
+}
+
+/** True once any touch input has been seen this session (gates touch-only UI). */
+export function touchUsed(): boolean {
+  return touchSeen;
 }

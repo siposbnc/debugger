@@ -1,5 +1,5 @@
 import './style.css';
-import { initInput, wasPressed, consumePressed, pollGamepad, padWasPressed, padMenuDir, PAD } from './core/input';
+import { initInput, initTouch, touchUsed, wasPressed, consumePressed, pollGamepad, padWasPressed, padMenuDir, PAD } from './core/input';
 import { loadSave, persistSave } from './save/save';
 import { CHARACTERS } from './data/characters';
 import { MAPS } from './data/maps';
@@ -154,6 +154,21 @@ function resume(): void {
   state = 'run';
 }
 
+// Touch pause button: keyboard has Esc/P and pads have Start, but a touch run
+// has no way into the pause menu without this. Lives outside #ui (menus wipe
+// that) and above the canvas, so its touches never reach the virtual stick.
+// Hidden until the session actually uses touch, then shown during runs only.
+const touchPauseBtn = document.createElement('button');
+touchPauseBtn.id = 'touch-pause';
+touchPauseBtn.textContent = '❚❚';
+touchPauseBtn.setAttribute('aria-label', 'Pause');
+document.body.appendChild(touchPauseBtn);
+touchPauseBtn.addEventListener('touchstart', (e) => {
+  e.preventDefault(); // don't also fire the synthetic click
+  pause();
+});
+touchPauseBtn.addEventListener('click', () => pause());
+
 /** Esc/P/Start/B while paused: from the settings sub-screen back to the
  *  pause overview; from the pause screen itself, resume the run. */
 function pauseBack(): void {
@@ -260,6 +275,8 @@ function frame(now: number): void {
   }
   consumePressed();
 
+  touchPauseBtn.classList.toggle('show', state === 'run' && touchUsed());
+
   renderer.update(elapsed);
   const map = run ? run.map : MAPS[save.lastMap] ?? MAPS.greenfield;
   renderer.render(state === 'summary' ? null : run, map, state === 'menu');
@@ -274,6 +291,7 @@ window.addEventListener('blur', () => { if (!TURBO) pause(); });
 document.addEventListener('visibilitychange', () => { if (document.hidden && !TURBO) pause(); });
 
 initInput();
+initTouch(canvas);
 // dev: ?autostart skips the menu straight into a run (combine with ?turbo)
 if (new URLSearchParams(location.search).has('autostart')) {
   startRun(save.lastCharacter, save.lastMap);

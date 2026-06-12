@@ -3,6 +3,7 @@ import { ENEMIES } from '../data/enemies';
 import type { BossDef, EnemyDef, MapDef } from '../data/types';
 import { bladePositions, petPositions } from '../game/combat';
 import { hash2, clamp, formatTime, lerp, rand } from '../core/util';
+import { touchStick } from '../core/input';
 import {
   bugSprite, bossSprite, playerSprite, gemSprite, coffeeSprite,
   chestSprite, turretSprite, helperSprite, propSprite,
@@ -283,6 +284,7 @@ export class Renderer {
     if (run) {
       this.drawHud(run);
       this.drawBossIndicators(run);
+      this.drawTouchStick();
     }
     this.drawBanners();
 
@@ -886,6 +888,29 @@ export class Renderer {
       ctx.fillText((boss.def as BossDef).name, this.w / 2, 92);
     }
     ctx.textAlign = 'left';
+  }
+
+  /** Floating virtual stick (touch play): faint base ring + knob under the finger. */
+  private drawTouchStick(): void {
+    const ts = touchStick();
+    if (!ts) return;
+    const ctx = this.ctx;
+    ctx.save();
+    ctx.globalAlpha = 0.35;
+    ctx.strokeStyle = '#7df9ff';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(ts.baseX, ts.baseY, ts.radius, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.globalAlpha = 0.5;
+    ctx.fillStyle = 'rgba(125, 249, 255, 0.35)';
+    ctx.beginPath();
+    ctx.arc(ts.baseX + ts.knobX, ts.baseY + ts.knobY, 24, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = '#7df9ff';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+    ctx.restore();
   }
 
   private drawBanners(): void {
