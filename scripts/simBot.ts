@@ -23,6 +23,14 @@ export type PickStrategy = 'first' | 'greedy';
 export interface BotOptions {
   pick: PickStrategy;
   mortal: boolean;
+  /** Mortal movement style. 'kite' (default) flees enemy pressure — correct for
+   *  ranged weapons, but it faces away from the horde, so short-reach weapons
+   *  (orbit/sweep/shockwave/wall) read ~zero DPS under it. 'brawl' holds the
+   *  weapon's engagement range and strafes tangentially — how high-risk weapons
+   *  are meant to be played (BALANCE.md §8). */
+  style?: 'kite' | 'brawl';
+  /** Brawl engagement distance (world units to the priority target). */
+  engageR?: number;
 }
 
 export const DEFAULT_BOT: BotOptions = { pick: 'first', mortal: false };
@@ -101,21 +109,10 @@ function orbitMovement(run: Run): void {
   moveTowards(run, cx + Math.cos(ang) * r, cy + Math.sin(ang) * r, speed);
 }
 
-/** Mortal-bot movement: potential field — survival first, objectives when safe. */
-function kiteMovement(run: Run): void {
-  const speed = run.stats.moveSpeed * run.playerSlow;
+/** Shared hard-avoidance field: shots, slam telegraphs, hazard zones.
+ *  Both mortal styles must respect these — dodging is not optional play. */
+function avoidanceField(run: Run): { fx: number; fy: number } {
   let fx = 0, fy = 0;
-
-  // enemy pressure (closer + bigger + boss = stronger push away)
-  const THREAT_R = 180;
-  for (const e of run.enemies) {
-    const dx = run.px - e.x, dy = run.py - e.y;
-    const d = Math.hypot(dx, dy) || 1;
-    const reach = THREAT_R + e.def.radius;
-    if (d > reach) continue;
-    const w = ((reach - d) / reach) * (e.isBoss ? 3 : e.elite ? 1.8 : 1);
-    fx += (dx / d) * w; fy += (dy / d) * w;
-  }
   // incoming enemy shots
   for (const s of run.enemyShots) {
     const dx = run.px - s.x, dy = run.py - s.y;
@@ -150,8 +147,11 @@ function kiteMovement(run: Run): void {
     const w = ((reach - d) / reach) * 2.5;
     fx += (dx / d) * w; fy += (dy / d) * w;
   }
+  return { fx, fy };
+}
 
-  // objectives, weakly weighted so threat always dominates
+/** Shared weak goal field: heals when hurt, chests, XP gems — threat dominates. */
+function goalField(run: Run): { ox: number; oy: number } {
   let ox = 0, oy = 0;
   const hurt = run.hp < run.stats.maxHp * 0.65;
   const heal = hurt ? run.pickups.find((p) => p.kind === 'hp') : undefined;
@@ -172,7 +172,29 @@ function kiteMovement(run: Run): void {
     const dx = goal.x - run.px, dy = goal.y - run.py;
     const d = Math.hypot(dx, dy) || 1;
     ox = (dx / d) * goalW; oy = (dy / d) * goalW;
-  } else {
+  }
+  return { ox, oy };
+}
+
+/** Mortal-bot movement: potential field — survival first, objectives when safe. */
+function kiteMovement(run: Run): void {
+  const speed = run.stats.moveSpeed * run.playerSlow;
+  let { fx, fy } = avoidanceField(run);
+
+  // enemy pressure (closer + bigger + boss = stronger push away)
+  const THREAT_R = 180;
+  for (const e of run.enemies) {
+    const dx = run.px - e.x, dy = run.py - e.y;
+    const d = Math.hypot(dx, dy) || 1;
+    const reach = THREAT_R + e.def.radius;
+    if (d > reach) continue;
+    const w = ((reach - d) / reach) * (e.isBoss ? 3 : e.elite ? 1.8 : 1);
+    fx += (dx / d) * w; fy += (dy / d) * w;
+  }
+
+  // objectives, weakly weighted so threat always dominates
+  let { ox, oy } = goalField(run);
+  if (ox === 0 && oy === 0) {
     // drift along a wide circle instead of standing still
     const ang = (run.time / 16) * Math.PI * 2;
     const tx = Math.cos(ang) * 320, ty = Math.sin(ang) * 320;
@@ -184,6 +206,56 @@ function kiteMovement(run: Run): void {
   const mx = fx + ox, my = fy + oy;
   const m = Math.hypot(mx, my);
   if (m < 0.05) return; // safe and at goal: stand and shoot
+  run.px += (mx / m) * speed * STEP;
+  run.py += (my / m) * speed * STEP;
+  run.faceX = mx / m; run.faceY = my / m;
+}
+
+/** Brawl movement: hold the weapon's engagement range on the priority target
+ *  (boss > nearest bug) and strafe tangentially, so contact-range weapons
+ *  (orbit/sweep/shockwave/wall) actually drag through the pack. Hard avoidance
+ *  (shots/slams/zones) still dominates; badly hurt backs out to recover. */
+function brawlMovement(run: Run, engageR: number): void {
+  const speed = run.stats.moveSpeed * run.playerSlow;
+  let { fx, fy } = avoidanceField(run);
+
+  let target = run.enemies.find((e) => e.isBoss) ?? null;
+  if (!target) {
+    let bestD = Infinity;
+    for (const e of run.enemies) {
+      const d = Math.hypot(e.x - run.px, e.y - run.py);
+      if (d < bestD) { bestD = d; target = e; }
+    }
+  }
+  // never stand in contact range — brawl hugs the pack edge, it doesn't melt
+  // inside it (contact dps is per-second; touching three bugs kills in seconds)
+  for (const e of run.enemies) {
+    const dx = run.px - e.x, dy = run.py - e.y;
+    const d = Math.hypot(dx, dy) || 1;
+    const reach = e.def.radius + 34;
+    if (d > reach) continue;
+    const w = ((reach - d) / reach) * 2.4 * (e.isBoss ? 2 : 1);
+    fx += (dx / d) * w; fy += (dy / d) * w;
+  }
+
+  if (target) {
+    const dx = target.x - run.px, dy = target.y - run.py;
+    const d = Math.hypot(dx, dy) || 1;
+    const hurt = run.hp < run.stats.maxHp * 0.55;
+    // radial: close in when too far, ease out when too close or hurt — backing
+    // out at 55% HP (not 35%) is what keeps a brawler alive: by the time a
+    // third of the bar is left inside a pack, no retreat saves it
+    const err = (d - engageR) / engageR;
+    const radial = hurt ? -1.8 : Math.max(-1.5, Math.min(1.2, err * 2));
+    fx += (dx / d) * radial; fy += (dy / d) * radial;
+    // tangential strafe — orbit the pack instead of standing in it
+    fx += (-dy / d) * (hurt ? 0.5 : 0.8); fy += (dx / d) * (hurt ? 0.5 : 0.8);
+  }
+
+  const { ox, oy } = goalField(run);
+  const mx = fx + ox, my = fy + oy;
+  const m = Math.hypot(mx, my);
+  if (m < 0.05) return;
   run.px += (mx / m) * speed * STEP;
   run.py += (my / m) * speed * STEP;
   run.faceX = mx / m; run.faceY = my / m;
@@ -207,7 +279,11 @@ export function botStep(run: Run, opts: BotOptions = DEFAULT_BOT): string | null
     if (card) chestCard = card.name;
   }
 
-  if (opts.mortal) kiteMovement(run);
-  else orbitMovement(run);
+  if (opts.mortal) {
+    if (opts.style === 'brawl') brawlMovement(run, opts.engageR ?? 80);
+    else kiteMovement(run);
+  } else {
+    orbitMovement(run);
+  }
   return chestCard;
 }

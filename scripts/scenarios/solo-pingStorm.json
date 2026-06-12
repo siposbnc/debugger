@@ -3,10 +3,21 @@
   "char": "ada",
   "map": "greenfield",
   "level": 12,
-  "weapons": { "pingStorm": 6 },
+  "weapons": {
+    "pingStorm": 6
+  },
   "replaceWeapons": true,
-  "cards": { "garbageDay": 2, "breakpointTrap": 2, "refactor": 1, "hotReload": 1 },
+  "poolOnly": true,
+  "cards": {
+    "garbageDay": 2,
+    "breakpointTrap": 2,
+    "refactor": 1,
+    "hotReload": 1
+  },
   "startMin": 6,
   "maxMinutes": 15,
-  "bot": { "pick": "greedy", "mortal": true }
+  "bot": {
+    "pick": "greedy",
+    "mortal": true
+  }
 }

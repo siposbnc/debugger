@@ -29,6 +29,10 @@ export interface Scenario {
   /** Drop the character's starting weapon first, so `weapons` defines the
    *  whole loadout (build isolation). */
   replaceWeapons?: boolean;
+  /** Restrict the run's offerable weapon pool to the `weapons` keys, so
+   *  level-ups can never offer other weapons (true solo isolation — without
+   *  it a greedy bot diversifies at the first offer). */
+  poolOnly?: boolean;
   /** Card id → stacks to apply (maxStacks is not enforced — author's intent). */
   cards?: Record<string, number>;
   /** Run clock start in minutes — spawn phases follow, and the boss schedule
@@ -55,9 +59,9 @@ export function createScenarioRun(sc: Scenario): Run {
   const metaLevels = sc.meta === 'max'
     ? Object.fromEntries(META_UPGRADES.map((m) => [m.id, m.maxLevel]))
     : { ...(sc.meta ?? {}) };
-  const pool = [...new Set([
-    ...DEFAULT_WEAPON_POOL, character.weapon, ...Object.keys(sc.weapons ?? {}),
-  ])];
+  const pool = sc.poolOnly
+    ? [...new Set(Object.keys(sc.weapons ?? {}))]
+    : [...new Set([...DEFAULT_WEAPON_POOL, character.weapon, ...Object.keys(sc.weapons ?? {})])];
   const run = new Run(character, map, metaLevels, pool, new Set());
   applyScenarioState(run, sc);
   return run;

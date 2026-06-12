@@ -7,6 +7,7 @@
     "breakpointBow": 6
   },
   "replaceWeapons": true,
+  "poolOnly": true,
   "cards": {
     "garbageDay": 2,
     "breakpointTrap": 2,
