@@ -5,7 +5,7 @@ import { OBJECTIVES, OBJECTIVE_BITS } from '../data/objectives';
 import { BOSS_BITS } from '../data/bosses';
 import { SpatialHash } from '../core/spatial';
 import { moveVector } from '../core/input';
-import { clamp, dist, mulberry32, rand } from '../core/util';
+import { clamp, dist, mulberry32, pick, rand } from '../core/util';
 import { computeStats, type ComputedStats } from './stats';
 import { updateWeapons } from './combat';
 import { updateSpawner, SPAWN_RADIUS } from './spawner';
@@ -239,7 +239,11 @@ export class Run {
     this.rerollsLeft = this.stats.rerolls;
     this.banishesLeft = this.stats.banishes;
     this.skipsLeft = this.stats.skips;
-    this.addWeapon(character.weapon);
+    // randomWeapon special (Rex): draw the starter from this run's offerable
+    // pool (base weapons only) instead of the fixed character weapon.
+    this.addWeapon(character.special === 'randomWeapon'
+      ? pick(this.weaponPool.filter((id) => !WEAPONS[id]?.isEvolution))
+      : character.weapon);
 
     if (map.hazardPools) {
       for (let i = 0; i < 26; i++) {

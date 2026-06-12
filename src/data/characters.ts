@@ -27,6 +27,15 @@ export const CHARACTERS: Record<string, CharacterDef> = {
     special: 'eliteCrit',
     cost: 450, color: '#6db9ff', icon: '🕵️‍♀️',
   },
+  rex: {
+    id: 'rex', name: 'Rex Intern', archetype: 'Intern',
+    desc: 'Started Monday. Already has prod access, a mechanical keyboard, and no idea which tool he grabbed on the way in.',
+    weapon: 'syntaxWand', // fallback only — randomWeapon special draws from the run's weapon pool
+    passiveDesc: 'Starts with a random weapon. +30% XP gain, −20% max HP.',
+    mods: { xpGain: 0.3, maxHp: -20 },
+    special: 'randomWeapon',
+    cost: 350, color: '#7df9ff', icon: '🧑‍🎓',
+  },
   linus: {
     id: 'linus', name: 'Linus Patchwell', archetype: 'Open Source Maintainer',
     desc: 'Reviews your PR, rewrites your PR, then absorbs your PR into the kernel of himself.',

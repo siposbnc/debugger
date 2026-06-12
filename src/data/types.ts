@@ -129,7 +129,7 @@ export interface CharacterDef {
   weapon: string;          // starting weapon id
   passiveDesc: string;
   mods: StatMods;
-  special?: 'turrets' | 'helpers' | 'eliteCrit';
+  special?: 'turrets' | 'helpers' | 'eliteCrit' | 'randomWeapon';
   cost: number;            // Bits to unlock (0 = starter)
   color: string;
   icon: string;
