@@ -52,6 +52,20 @@ export const ENEMIES: Record<string, EnemyDef> = {
     hp: 160, speed: 46, damage: 16, radius: 20, xp: 8, bits: 5,
     color: '#cf4f86', shape: 'centipede', behavior: 'chase',
   },
+  // Boss adjunct — spawned only by the Legacy Monolith's armored phase, never in
+  // spawn plans. Inert (0 contact damage) shot-soak: auto-aim and projectiles hit
+  // it like any enemy, which is exactly the mechanic. Destroying one mid-armor
+  // exposes the Monolith's core early (bossLogic.ts).
+  deprecatedDependency: {
+    id: 'deprecatedDependency', name: 'Deprecated Dependency',
+    codexDesc: 'Unmaintained since before the Monolith could walk, yet somehow still '
+      + 'load-bearing. It does nothing but stand there absorbing hits — remove it and '
+      + 'watch what it was holding up fall open.',
+    // base hp is low: makeEnemy() difficulty-scales it (~×5 at the Monolith's
+    // 10:00 debut → ~200 hp), and it must be breakable inside one 5s armor window
+    hp: 40, speed: 0, damage: 0, radius: 15, xp: 0, bits: 0,
+    color: '#8d99ae', shape: 'pillar', behavior: 'chase', stationary: true, notABug: true,
+  },
   // Easter egg — kept last so the codex lists it after every real bug.
   // Not in any spawnPlan and never enters run.enemies: run.ts drives it as its
   // own entity (untargetable, harmless, collected by touch). hp/damage/xp/bits

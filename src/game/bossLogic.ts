@@ -1,12 +1,34 @@
 import { BOSSES, BOSS_INTERVAL, BOSS_WARNING_LEAD, BOSS_TIER_HP_MULT, BOSS_TIER_DMG_MULT } from '../data/bosses';
 import { ENEMIES } from '../data/enemies';
 import type { BossDef } from '../data/types';
-import { rand } from '../core/util';
+import { clamp, dist, rand } from '../core/util';
 import { makeEnemy } from './spawner';
-import type { Enemy, Run } from './run';
+import type { Enemy, GroundZone, Run } from './run';
 
 // Boss scheduling: one boss every BOSS_INTERVAL seconds, picked from the map's
 // bossOrder (cycled with growing tier scaling once the list runs out).
+//
+// Every boss has two layers: the original attack pattern (movement check) and a
+// rule-bending layer that tests the build — DPS checks, soft enrages, interrupt
+// thresholds (ROADMAP "Boss mechanics pass"). Numbers live in the constants below.
+
+// --- second-layer tuning ---
+const TETHER_WIDTH = 26;          // half-width of the merge-conflict diff beam
+const TETHER_DPS = 14;            // (scaled by tier)
+const ENRAGE_GAP_ON = 0.30;       // HP gap (fraction of half-max) that triggers force-push
+const ENRAGE_GAP_OFF = 0.15;      // gap at which the enrage releases (hysteresis)
+const ENRAGE_SPEED = 1.6;         // (the ×1.5 contact-damage half lives in run.ts updateEnemies)
+const POOL_PERIOD = 3.5;          // leak drip interval (was 4 with expiring pools)
+const POOL_CAP = 28;              // perf/readability cap; oldest pool gets paged out
+const SNAP_PERIOD = 7;            // seconds between position snapshots
+const SNAP_DELAY = 2.5;           // marker shown this long before the rewind fires
+const POP_STUN = 2.5;             // stack-pop stun duration
+const POP_COOLDOWN = 10;          // min seconds between pops (no perma-stun from AoE)
+const FRAMES_ARMOR = 0.5;         // damage taken while stack frames live
+const PILLAR_COUNT = 3;
+const PILLAR_RING = 95;           // pillar distance from the monolith's center
+const EXPOSED_BASE = 4;           // exposed-phase seconds when armor times out…
+const EXPOSED_BONUS = 5;          // …and when a pillar break ends it early
 
 export function updateBossSchedule(run: Run, _dt: number): void {
   const def = bossForIndex(run, run.bossIndex);
@@ -69,20 +91,32 @@ export function updateBossMechanics(run: Run, e: Enemy, dt: number): void {
         run.enemies.push(clone);
         run.emit({ type: 'explosion', x: e.x, y: e.y, radius: 90, color: def.color });
       }
+      if (e.splitDone) updateDiffTether(run, e, dt);
       break;
 
-    case 'pools':
+    case 'pools': {
       e.mechT -= dt;
       if (e.mechT <= 0) {
-        e.mechT = 4;
+        e.mechT = POOL_PERIOD;
+        // pools never free while it lives — only the cap recycles the oldest
+        // one (the OS pages it out). Death reclaims them all (run.killEnemy).
+        let count = 0;
+        let oldest: GroundZone | null = null;
+        for (const z of run.zones) {
+          if (z.kind !== 'leak') continue;
+          count++;
+          if (!oldest || (z.age ?? 0) > (oldest.age ?? 0)) oldest = z;
+        }
+        if (count >= POOL_CAP && oldest) run.zones.splice(run.zones.indexOf(oldest), 1);
         run.zones.push({
           kind: 'leak', x: e.x, y: e.y,
           radius: 35, maxRadius: 110,
-          life: 8, maxLife: 8,
+          life: Infinity, maxLife: Infinity, age: 0,
           dps: 12 * (1 + e.bossTier * 0.3),
         });
       }
       break;
+    }
 
     case 'burst':
       e.mechT -= dt;
@@ -100,6 +134,22 @@ export function updateBossMechanics(run: Run, e: Enemy, dt: number): void {
           });
         }
       }
+      // second layer: snapshot the player's position, rewind them to it later —
+      // wherever you stand now, you must survive standing again in SNAP_DELAY s
+      if ((e.snapT ?? 0) > 0) {
+        e.snapT = e.snapT! - dt;
+        if (e.snapT <= 0) {
+          run.px = e.snapX!; run.py = e.snapY!;
+          run.emit({ type: 'rewind', x: run.px, y: run.py });
+          e.mechT2 = SNAP_PERIOD;
+        }
+      } else {
+        e.mechT2 -= dt;
+        if (e.mechT2 <= 0) {
+          e.snapX = run.px; e.snapY = run.py; e.snapT = SNAP_DELAY;
+          run.emit({ type: 'snapshot', x: run.px, y: run.py });
+        }
+      }
       break;
 
     case 'summon': {
@@ -108,7 +158,9 @@ export function updateBossMechanics(run: Run, e: Enemy, dt: number): void {
         e.mechT = 5;
         for (let i = 0; i < 5; i++) {
           const a = Math.random() * Math.PI * 2;
-          run.enemies.push(makeEnemy(run, ENEMIES.syntaxMite, e.x + Math.cos(a) * 70, e.y + Math.sin(a) * 70, false));
+          const mite = makeEnemy(run, ENEMIES.syntaxMite, e.x + Math.cos(a) * 70, e.y + Math.sin(a) * 70, false);
+          mite.stackFrame = true;
+          run.enemies.push(mite);
         }
       }
       e.mechT2 -= dt;
@@ -123,17 +175,110 @@ export function updateBossMechanics(run: Run, e: Enemy, dt: number): void {
           });
         }
       }
+      // second layer: live frames guard it; clearing the whole stack pops it
+      let frames = 0;
+      for (const o of run.enemies) if (o.stackFrame) frames++;
+      e.armorMult = frames > 0 ? FRAMES_ARMOR : 1;
+      e.popCdT = Math.max(0, (e.popCdT ?? 0) - dt);
+      if (frames === 0 && (e.addsAlive ?? 0) > 0 && e.popCdT === 0) {
+        e.frozenT = Math.max(e.frozenT, POP_STUN);
+        e.mechT = Math.max(e.mechT, POP_STUN + 1);  // no resummon during the burst window
+        e.mechT2 = Math.max(e.mechT2, POP_STUN);    // and no shots while stunned
+        e.popCdT = POP_COOLDOWN;
+        run.emit({ type: 'stackPop', x: e.x, y: e.y });
+      }
+      e.addsAlive = frames;
       break;
     }
 
-    case 'phase':
+    case 'phase': {
       e.phaseT -= dt;
       if (e.phaseT <= 0) {
-        if (e.phase === 'armored') { e.phase = 'exposed'; e.phaseT = 4; }
-        else { e.phase = 'armored'; e.phaseT = 5; }
+        if (e.phase === 'armored') {
+          exposeCore(run, e, EXPOSED_BASE, false);
+        } else {
+          e.phase = 'armored'; e.phaseT = 5;
+          spawnPillars(run, e);
+        }
       }
+      if (e.phase === 'armored') {
+        // second layer: a destroyed pillar ends the armor early (+1s window)
+        let pillars = 0;
+        for (const o of run.enemies) if (o.def === ENEMIES.deprecatedDependency) pillars++;
+        if (pillars < (e.addsAlive ?? 0)) {
+          exposeCore(run, e, EXPOSED_BONUS, true);
+        } else {
+          e.addsAlive = pillars;
+        }
+      }
+      e.armorMult = e.phase === 'armored' ? 0.25 : 1;
       // armored phase crawls; exposed marches
-      e.scaledSpeed = (e.def as BossDef).speed * (e.phase === 'armored' ? 0.6 : 1.1);
+      e.scaledSpeed = def.speed * (e.phase === 'armored' ? 0.6 : 1.1);
       break;
+    }
   }
+}
+
+/** Merge Conflict post-split: a damaging diff beam links the halves, and an HP
+ *  gap beyond ENRAGE_GAP_ON force-push enrages the healthier half (contact
+ *  damage ×1.5 in run.ts, speed ×ENRAGE_SPEED here) until the gap closes
+ *  below ENRAGE_GAP_OFF. Spread your damage. */
+function updateDiffTether(run: Run, e: Enemy, dt: number): void {
+  const twin = run.enemies.find((o) => o !== e && o.isBoss && o.def === e.def && o.splitDone);
+  if (!twin) { e.enraged = false; e.scaledSpeed = (e.def as BossDef).speed; return; }
+  // the pair reaches here twice per frame — the lower-index half owns the update
+  if (run.enemies.indexOf(e) > run.enemies.indexOf(twin)) return;
+
+  if (segDist(run.px, run.py, e.x, e.y, twin.x, twin.y) < TETHER_WIDTH) {
+    run.hurtPlayer(TETHER_DPS * (1 + e.bossTier * 0.25) * dt);
+  }
+
+  const gap = Math.abs(e.hp - twin.hp);
+  const strong = e.hp >= twin.hp ? e : twin;
+  const weak = strong === e ? twin : e;
+  if (gap > e.maxHp * ENRAGE_GAP_ON && !strong.enraged) {
+    strong.enraged = true;
+    run.emit({ type: 'forcePush', x: strong.x, y: strong.y });
+  } else if (gap < e.maxHp * ENRAGE_GAP_OFF) {
+    strong.enraged = false;
+  }
+  weak.enraged = false;
+  for (const half of [e, twin]) {
+    half.scaledSpeed = (half.def as BossDef).speed * (half.enraged ? ENRAGE_SPEED : 1);
+  }
+}
+
+/** Distance from point (px,py) to the segment (ax,ay)–(bx,by). */
+function segDist(px: number, py: number, ax: number, ay: number, bx: number, by: number): number {
+  const dx = bx - ax, dy = by - ay;
+  const len2 = dx * dx + dy * dy || 1;
+  const t = clamp(((px - ax) * dx + (py - ay) * dy) / len2, 0, 1);
+  return dist(px, py, ax + dx * t, ay + dy * t);
+}
+
+function spawnPillars(run: Run, boss: Enemy): void {
+  const base = Math.random() * Math.PI * 2;
+  for (let i = 0; i < PILLAR_COUNT; i++) {
+    const a = base + (i * Math.PI * 2) / PILLAR_COUNT;
+    run.enemies.push(makeEnemy(
+      run, ENEMIES.deprecatedDependency,
+      boss.x + Math.cos(a) * PILLAR_RING, boss.y + Math.sin(a) * PILLAR_RING, false,
+    ));
+  }
+  boss.addsAlive = PILLAR_COUNT;
+}
+
+/** End the monolith's armored phase; surviving pillars crumble with it. */
+function exposeCore(run: Run, boss: Enemy, duration: number, early: boolean): void {
+  boss.phase = 'exposed';
+  boss.phaseT = duration;
+  boss.addsAlive = 0;
+  for (let i = run.enemies.length - 1; i >= 0; i--) {
+    const o = run.enemies[i];
+    if (o.def === ENEMIES.deprecatedDependency) {
+      run.emit({ type: 'kill', x: o.x, y: o.y, color: o.def.color, big: false });
+      run.removeEnemy(i);
+    }
+  }
+  if (early) run.emit({ type: 'coreExposed', x: boss.x, y: boss.y });
 }

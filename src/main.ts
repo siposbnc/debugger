@@ -193,6 +193,12 @@ function drainEvents(): void {
       case 'levelup': sound.play('levelup'); break;
       case 'bossWarning': sound.play('bossWarn'); break;
       case 'bossDie': sound.play('bossDie'); break;
+      case 'snapshot': sound.play('fizz'); break;
+      case 'rewind': sound.play('fizz'); break;
+      case 'forcePush': sound.play('bossWarn'); break;
+      case 'stackPop': sound.play('resolve'); break;
+      case 'coreExposed': sound.play('resolve'); break;
+      case 'memoryFreed': sound.play('resolve'); break;
       case 'chest': sound.play('chest'); break;
       case 'mushiSpawn': sound.play('fizz'); break;
       case 'mushiCaught': sound.play('resolve'); break;

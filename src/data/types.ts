@@ -93,11 +93,14 @@ export interface EnemyDef {
   xp: number;
   bits: number;
   color: string;
-  shape: 'mite' | 'tick' | 'wasp' | 'leech' | 'spider' | 'beetle' | 'scarab' | 'centipede' | 'flask';
+  shape: 'mite' | 'tick' | 'wasp' | 'leech' | 'spider' | 'beetle' | 'scarab' | 'centipede' | 'flask' | 'pillar';
   behavior: EnemyBehavior;
   /** spawn in clusters of N (Cache Tick) */
   cluster?: number;
   explodeOnDeath?: boolean;
+  /** never moves, immune to knockback, exempt from straggler recycling
+   *  (Deprecated Dependency pillars) */
+  stationary?: boolean;
   slowAura?: boolean;     // slows the player when near (Deadlock Scarab)
   drain?: boolean;        // extra close-range damage + heals itself (Memory Leech)
   duplicates?: boolean;   // occasionally spawns a short-lived copy (Race Condition Spider)

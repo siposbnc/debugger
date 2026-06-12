@@ -40,6 +40,13 @@ export interface Enemy {
   phase: 'armored' | 'exposed';
   phaseT: number;
   splitDone: boolean;
+  // boss second-layer state (optional: absent on pre-rework suspended runs)
+  armorMult?: number;     // damage-taken multiplier, set per-frame by bossLogic (1 = normal)
+  enraged?: boolean;      // merge-conflict half under force-push (+damage, +speed)
+  snapX?: number; snapY?: number; snapT?: number; // infinite-loop position snapshot + rewind countdown
+  addsAlive?: number;     // last frame's live add count (stack frames / pillars) for drop detection
+  popCdT?: number;        // stack-pop re-trigger cooldown
+  stackFrame?: boolean;   // this enemy is a Stack Overflow stack frame (summoned mite)
   facing: number;              // for rendering
   // difficulty-scaled values stamped at spawn time
   scaledSpeed?: number;
@@ -74,8 +81,9 @@ export interface GroundZone {
   kind: 'leak' | 'marsh';
   x: number; y: number;
   radius: number; maxRadius: number;
-  life: number; maxLife: number;   // marsh zones: life = Infinity
+  life: number; maxLife: number;   // marsh + boss leak zones: life = Infinity
   dps: number;
+  age?: number;                    // leak zones grow with age (life can be Infinity)
 }
 
 export interface Ally {
@@ -133,6 +141,12 @@ export type RunEvent =
   | { type: 'bossWarning'; name: string }
   | { type: 'bossSpawn'; name: string }
   | { type: 'bossDie'; x: number; y: number; name: string }
+  | { type: 'snapshot'; x: number; y: number }                  // infinite loop marks the rewind point
+  | { type: 'rewind'; x: number; y: number }                    // player yanked back to the snapshot
+  | { type: 'forcePush'; x: number; y: number }                 // merge-conflict half enrages (HP gap)
+  | { type: 'stackPop'; x: number; y: number }                  // stack overflow stunned (frames cleared)
+  | { type: 'coreExposed'; x: number; y: number }               // monolith armor broken early (pillar down)
+  | { type: 'memoryFreed'; pools: { x: number; y: number }[] }  // memory leak died; pools reclaimed
   | { type: 'chest'; x: number; y: number }
   | { type: 'mushiSpawn'; x: number; y: number }
   | { type: 'mushiCaught'; x: number; y: number }
@@ -459,6 +473,7 @@ export class Run {
       const d = dist(e.x, e.y, this.px, this.py);
       if (d < def.radius + pr) {
         let dps = e.scaledDamage ?? def.damage;
+        if (e.enraged) dps *= 1.5; // merge-conflict force-push
         if (!e.isBoss && (def as EnemyDef).drain && e.frozenT <= 0) {
           dps *= 1.5;
           e.hp = Math.min(e.maxHp, e.hp + 6 * dt); // leech heals itself
@@ -645,10 +660,13 @@ export class Run {
     for (let i = this.zones.length - 1; i >= 0; i--) {
       const z = this.zones[i];
       if (z.kind === 'leak') {
-        z.life -= dt;
-        if (z.life <= 0) { this.zones[i] = this.zones[this.zones.length - 1]; this.zones.pop(); continue; }
-        const t = 1 - z.life / z.maxLife;
-        z.radius = z.maxRadius * (0.35 + 0.65 * t);
+        z.age = (z.age ?? 0) + dt;
+        if (Number.isFinite(z.life)) {
+          z.life -= dt;
+          if (z.life <= 0) { this.zones[i] = this.zones[this.zones.length - 1]; this.zones.pop(); continue; }
+        }
+        // grow to full size over ~6s of age (boss pools are permanent: life = Infinity)
+        z.radius = z.maxRadius * Math.min(1, 0.35 + 0.65 * (z.age / 6));
       }
       if (dist(this.px, this.py, z.x, z.y) < z.radius) {
         this.hurtPlayer(z.dps * dt);
@@ -769,7 +787,9 @@ export class Run {
     if (crit) dmg *= this.stats.critMult;
 
     if (e.matchMarkT > 0) dmg *= 1.25;
-    if (e.isBoss && e.phase === 'armored' && (e.def as BossDef).mechanic === 'phase') dmg *= 0.25;
+    // unified boss resist: bossLogic sets armorMult per frame (monolith armor 0.25,
+    // stack overflow with live frames 0.5)
+    if (e.isBoss && e.armorMult !== undefined) dmg *= e.armorMult;
 
     e.hp -= dmg;
     e.hitFlash = 0.12;
@@ -779,7 +799,7 @@ export class Run {
     }
     this.emit({ type: 'damage', x: e.x, y: e.y - e.def.radius, value: Math.round(dmg), crit });
 
-    if (opts.knockFrom && opts.knock && !e.isBoss) {
+    if (opts.knockFrom && opts.knock && !e.isBoss && !(e.def as EnemyDef).stationary) {
       const d = dist(opts.knockFrom.x, opts.knockFrom.y, e.x, e.y) || 1;
       e.knockX += ((e.x - opts.knockFrom.x) / d) * opts.knock;
       e.knockY += ((e.y - opts.knockFrom.y) / d) * opts.knock;
@@ -808,6 +828,14 @@ export class Run {
       }
       this.bossKills++;
       this.emit({ type: 'bossDie', x: e.x, y: e.y, name: boss.name });
+      if (boss.mechanic === 'pools') {
+        // death frees all memory at once: every leak pool is reclaimed
+        const pools = this.zones.filter((z) => z.kind === 'leak').map((z) => ({ x: z.x, y: z.y }));
+        if (pools.length) {
+          this.zones = this.zones.filter((z) => z.kind !== 'leak');
+          this.emit({ type: 'memoryFreed', pools });
+        }
+      }
       this.pickups.push({ kind: 'chest', x: e.x, y: e.y, value: 0, magnet: false, vx: 0, vy: 0, bossTier: e.bossTier });
       return;
     }
@@ -824,7 +852,7 @@ export class Run {
       }
     }
 
-    if (!e.isCopy) {
+    if (!e.isCopy && def.xp > 0) {
       this.dropXp(e.x, e.y, def.xp * (e.elite ? 10 : 1));
       if (e.elite && Math.random() < 0.6) {
         this.pickups.push({ kind: 'hp', x: e.x, y: e.y, value: 25, magnet: false, vx: 0, vy: 0 });

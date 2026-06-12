@@ -96,13 +96,20 @@ Stack Overflow Centipede (segmented tank). Stats: `src/data/enemies.ts`.
 
 ## 13. Boss roster
 
-| Boss | Mechanic |
-|---|---|
-| The Merge Conflict | splits into two at 50% HP — both must die |
-| The Memory Leak | drops expanding damage pools |
-| The Infinite Loop | radial bursts, faster each cycle |
-| The Stack Overflow | summons recursive mites + aimed triple shots |
-| The Legacy Monolith | armored phase (75% resist) ↔ exposed core |
+Every boss is two-layered (v0.3 boss mechanics pass): layer 1 is the attack
+pattern (a movement check), layer 2 bends a rule to test the **build** — DPS
+checks, soft enrages, interrupt thresholds. Rationale: pre-v0.3 bosses were
+"different attack patterns, not unique fights" and fell to pure dodge/kite play;
+a boss should be a challenge precisely when the build is weak. Tuning constants
+live at the top of `src/game/bossLogic.ts`.
+
+| Boss | Layer 1: pattern | Layer 2: build test |
+|---|---|---|
+| The Merge Conflict | splits into two at 50% HP — both must die | halves linked by a damaging diff tether; >30% HP gap force-push enrages the stronger half (+50% dmg, +60% speed) until the gap closes below 15% → spread your damage |
+| The Memory Leak | drips damage pools | pools never expire while it lives (cap 28, oldest paged out) — soft-enrage DPS check; death frees every pool at once |
+| The Infinite Loop | radial bursts, faster each cycle | snapshots your position every 7s and rewinds you to it 2.5s later (marker shown) → plan positions, end the fight before the bursts compound |
+| The Stack Overflow | summons recursive mites + aimed triple shots | live mites are stack frames: 50% damage resist while any live; clearing the stack pops it — 2.5s stun at full vulnerability (10s pop cooldown) → add-clear/AoE check |
+| The Legacy Monolith | armored phase (75% resist) ↔ exposed core | armor spawns 3 Deprecated Dependency pillars that soak shots/auto-aim; breaking one ends the armor early with a +1s exposed window → target-priority DPS check |
 
 Tier scaling: HP ×(1+0.35·tier), DMG ×(1+0.15·tier); order cycles past 10:00.
 

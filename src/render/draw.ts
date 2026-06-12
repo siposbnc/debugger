@@ -49,6 +49,8 @@ export class Renderer {
   beams: Beam[] = [];
   columns: Column[] = [];
   banners: { text: string; sub: string; t: number; dur: number; color: string }[] = [];
+  // Infinite Loop snapshot marker: where the player will be rewound to (≤1 active)
+  rewindMark: { x: number; y: number; t: number; dur: number } | null = null;
 
   constructor(public canvas: HTMLCanvasElement) {
     this.ctx = canvas.getContext('2d')!;
@@ -172,8 +174,45 @@ export class Renderer {
       case 'bossSpawn':
         this.shake(8);
         break;
+      case 'snapshot':
+        this.rewindMark = { x: ev.x, y: ev.y, t: 0, dur: 2.5 };
+        break;
+      case 'rewind':
+        this.rewindMark = null;
+        this.rings.push({ x: ev.x, y: ev.y, radius: 70, t: 0, dur: 0.45, color: '#c45bff' });
+        for (let i = 0; i < 12; i++) {
+          this.spawnParticle({
+            x: ev.x, y: ev.y, z: 8,
+            vx: rand(-140, 140), vy: rand(-140, 140), vz: rand(60, 220),
+            life: rand(0.3, 0.6), maxLife: 0.6, color: '#c45bff', size: rand(2, 4),
+          });
+        }
+        this.shake(4);
+        break;
+      case 'forcePush':
+        this.banner('⚠ FORCE PUSH', 'uneven damage — the stronger half enrages', '#ff9430', 2.5);
+        this.rings.push({ x: ev.x, y: ev.y, radius: 90, t: 0, dur: 0.5, color: '#ff9430' });
+        this.shake(4);
+        break;
+      case 'stackPop':
+        this.banner('STACK POPPED', 'frames cleared — it is stunned', '#7df9ff', 2.5);
+        this.rings.push({ x: ev.x, y: ev.y, radius: 120, t: 0, dur: 0.5, color: '#7df9ff' });
+        this.shake(5);
+        break;
+      case 'coreExposed':
+        this.banner('CORE EXPOSED', 'dependency removed — armor down', '#41d97f', 2.5);
+        this.rings.push({ x: ev.x, y: ev.y, radius: 110, t: 0, dur: 0.5, color: '#41d97f' });
+        this.shake(5);
+        break;
+      case 'memoryFreed':
+        this.banner('MEMORY FREED', 'every leaked allocation reclaimed', '#54e06b', 3);
+        for (const p of ev.pools) {
+          this.rings.push({ x: p.x, y: p.y, radius: 60, t: 0, dur: 0.6, color: '#54e06b' });
+        }
+        break;
       case 'bossDie':
         this.banner('BUG RESOLVED', `${ev.name} — closed as fixed`, '#41d97f', 3);
+        this.rewindMark = null; // loop terminated: a pending rewind dies with it
         this.shake(10);
         for (let i = 0; i < 40; i++) {
           this.spawnParticle({
@@ -278,6 +317,10 @@ export class Renderer {
     for (let i = this.banners.length - 1; i >= 0; i--) {
       this.banners[i].t += dt;
       if (this.banners[i].t >= this.banners[i].dur) this.banners.splice(i, 1);
+    }
+    if (this.rewindMark) {
+      this.rewindMark.t += dt;
+      if (this.rewindMark.t >= this.rewindMark.dur) this.rewindMark = null;
     }
   }
 
@@ -419,6 +462,43 @@ export class Renderer {
       ctx.stroke();
     }
 
+    // merge-conflict diff tether: a marching-dash beam between the split halves
+    const halves: { x: number; y: number }[] = [];
+    for (const e of run.enemies) {
+      if (e.isBoss && e.splitDone && (e.def as BossDef).mechanic === 'split') halves.push(e);
+    }
+    if (halves.length === 2) {
+      const a = this.proj(halves[0].x, halves[0].y);
+      const b = this.proj(halves[1].x, halves[1].y);
+      ctx.save();
+      ctx.strokeStyle = 'rgba(255, 148, 48, 0.25)';
+      ctx.lineWidth = 13;
+      ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
+      ctx.strokeStyle = 'rgba(255, 148, 48, 0.9)';
+      ctx.lineWidth = 2.5;
+      ctx.setLineDash([12, 8]);
+      ctx.lineDashOffset = -this.t * 70;
+      ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
+      ctx.restore();
+    }
+
+    // infinite-loop rewind marker: you will be yanked back to this spot
+    if (this.rewindMark) {
+      const m = this.rewindMark;
+      const s = this.proj(m.x, m.y);
+      const pulse = 1 + 0.12 * Math.sin(this.t * 9);
+      const left = 1 - m.t / m.dur; // fraction of the countdown remaining
+      ctx.strokeStyle = 'rgba(196, 91, 255, 0.9)';
+      ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.ellipse(s.x, s.y, 26 * pulse, 13 * pulse, 0, 0, 7); ctx.stroke();
+      ctx.fillStyle = 'rgba(196, 91, 255, 0.3)';
+      ctx.beginPath(); ctx.ellipse(s.x, s.y, 26 * left, 13 * left, 0, 0, 7); ctx.fill();
+      ctx.fillStyle = '#c45bff';
+      ctx.font = 'bold 15px monospace';
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText('⟲', s.x, s.y - 16);
+    }
+
     // xp gems + pickups (on the ground, under entities)
     for (const p of run.pickups) {
       const s = this.proj(p.x, p.y);
@@ -465,12 +545,21 @@ export class Renderer {
             }
           }
 
+          // force-push enrage: pulsing red threat ring under the sprite
+          if (e.enraged) {
+            ctx.strokeStyle = 'rgba(255, 94, 94, 0.85)';
+            ctx.lineWidth = 3;
+            const pr2 = e.def.radius * (1.5 + 0.12 * Math.sin(this.t * 10));
+            ctx.beginPath(); ctx.ellipse(s.x, s.y, pr2, pr2 / 2, 0, 0, 7); ctx.stroke();
+          }
           ctx.save();
           if (e.hitFlash > 0) ctx.filter = 'brightness(2.2)';
           if (e.frozenT > 0) ctx.filter = 'saturate(0.2) brightness(1.4)';
-          if (e.isBoss && e.phase === 'armored' && (e.def as BossDef).mechanic === 'phase') {
-            ctx.filter = 'saturate(0.3) brightness(0.8)';
+          if (e.isBoss && (e.armorMult ?? 1) < 1) {
+            // resistant right now (monolith armor, stack-overflow frames): dimmed
+            ctx.filter = e.armorMult! <= 0.25 ? 'saturate(0.3) brightness(0.8)' : 'saturate(0.55) brightness(0.9)';
           }
+          if (e.enraged && e.hitFlash <= 0) ctx.filter = 'brightness(1.35) saturate(1.5)';
           if (e.isCopy) ctx.globalAlpha = 0.55;
           ctx.drawImage(sprite, s.x - w / 2, s.y - h + e.def.radius / 2, w, h);
           ctx.restore();

@@ -193,6 +193,50 @@ const BUG_DRAWERS: Record<string, BugDrawer> = {
     ctx.beginPath(); ctx.moveTo(-r * 0.06, r * 0.32); ctx.lineTo(r * 0.06, r * 0.32); ctx.stroke();
     eyes(ctx, 0, r * 0.32, r * 0.34, r * 0.18);
   },
+  // Deprecated Dependency: a squat legacy server-rack pillar propping up the
+  // Monolith's armor. Inert and crumbling — caution tape, dead LEDs, one
+  // stubborn amber light. No legs, no eyes: it isn't alive, just load-bearing.
+  pillar: (ctx, r, color) => {
+    const w = r * 1.1, top = -r * 1.6, h = r * 2.4;
+    withGlow(ctx, color, 6, () => {
+      ctx.fillStyle = color;
+      ctx.fillRect(-w / 2, top, w, h);
+    });
+    // side shading for depth
+    ctx.fillStyle = 'rgba(0,0,0,0.3)';
+    ctx.fillRect(w * 0.15, top, w * 0.35, h);
+    // rack slits
+    ctx.fillStyle = 'rgba(20,24,32,0.8)';
+    for (let i = 0; i < 4; i++) {
+      ctx.fillRect(-w * 0.36, top + h * (0.14 + i * 0.2), w * 0.72, h * 0.07);
+    }
+    // dead LEDs + one amber survivor
+    ctx.fillStyle = 'rgba(120,130,145,0.9)';
+    ctx.beginPath(); ctx.arc(-w * 0.22, top + h * 0.08, r * 0.07, 0, 7); ctx.fill();
+    ctx.beginPath(); ctx.arc(0, top + h * 0.08, r * 0.07, 0, 7); ctx.fill();
+    ctx.fillStyle = '#ffc12e';
+    ctx.beginPath(); ctx.arc(w * 0.22, top + h * 0.08, r * 0.07, 0, 7); ctx.fill();
+    // crack down the casing
+    ctx.strokeStyle = 'rgba(20,24,32,0.9)';
+    ctx.lineWidth = Math.max(1, r * 0.08);
+    ctx.beginPath();
+    ctx.moveTo(-w * 0.1, top);
+    ctx.lineTo(w * 0.05, top + h * 0.35);
+    ctx.lineTo(-w * 0.12, top + h * 0.62);
+    ctx.stroke();
+    // diagonal caution stripe across the base
+    ctx.save();
+    ctx.beginPath(); ctx.rect(-w / 2, top + h * 0.72, w, h * 0.2); ctx.clip();
+    for (let i = -3; i < 4; i++) {
+      ctx.fillStyle = i % 2 ? '#1a1d24' : '#ffc12e';
+      ctx.save();
+      ctx.translate(i * w * 0.3, top + h * 0.82);
+      ctx.rotate(-0.6);
+      ctx.fillRect(-w * 0.15, -h * 0.2, w * 0.3, h * 0.4);
+      ctx.restore();
+    }
+    ctx.restore();
+  },
   centipede: (ctx, r, color) => {
     withGlow(ctx, color, 8, () => {
       ctx.fillStyle = color;

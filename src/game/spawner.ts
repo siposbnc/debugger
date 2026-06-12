@@ -57,6 +57,7 @@ function recycleStragglers(run: Run): void {
   const r2 = RECYCLE_RADIUS * RECYCLE_RADIUS;
   for (const e of run.enemies) {
     if (e.isBoss) continue; // bosses keep their position (mechanics + edge arrow)
+    if ((e.def as EnemyDef).stationary) continue; // pillars stay where the boss put them
     const dx = e.x - run.px, dy = e.y - run.py;
     if (dx * dx + dy * dy < r2) continue;
     const ang = moving && Math.random() < RECYCLE_AHEAD_CHANCE
