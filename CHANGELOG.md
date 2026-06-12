@@ -8,6 +8,52 @@ not as a copied task list. Dropped or deferred items are noted at the end of eac
 
 ---
 
+## v0.3.50 — Content Expansion (2026-06-12)
+
+More reasons to do one more run: two new maps with real terrain, per-map boss rosters
+with unique finales, +4 weapons, +4 characters, shields, and a difficulty model where
+meta investment is what unlocks the harder maps.
+
+### Maps & terrain
+- **Production Server** (1,200 ⌬, ×1.5 Bits): industrial server room — 24 staggered overheating floor vents (telegraphed eruptions), server racks in aisle rows, data-bus conveyor lanes between them; beetle/scarab skew, enemyScale 1.4
+- **Cyber Glacier** (2,000 ⌬, ×1.5 Bits): frozen processes — 22 latency fields that slow player AND enemies (positional hazard), frozen-process ice columns, tank skew, enemyScale 1.35
+- **Terrain system**: impassable blockers on every non-starter map (racks / dead process trees / ice columns — Greenfield stays featureless by design). Push-out collision with natural slide-along for player and bugs; bosses *crush* blockers they plow into; flat-flying projectiles stop on cover from both sides (lobbed arcs fly over; instant effects ignore cover); projectile auto-aim is line-of-sight-gated; spawns and straggler recycling validate placement
+- **Terrain patches** (non-damaging, symmetric — bugs ride them too): Data Bus conveyor lanes (Production) and Swap Space gravity wells (Memory Marsh)
+- Map hazard/terrain layouts are excluded from balance simulations by policy (`noTerrain`) — win-rate baselines are terrain-independent by construction
+
+### Bosses
+- **Boss tier system**: the 2-minute slots draw from weighted per-map pools (no immediate repeats, light openers); every map ends in its own **unique 12:00 finale**: Legacy Monolith (Greenfield), Critical Exception (Marsh), Production Incident (Production), Kernel Panic (Glacier)
+- 4 new bosses, each a mechanic: Race Condition (blink + fragile afterimages that heal it if ignored), Critical Exception (escalating telegraphed slams), Production Incident (permanent pools + frame guard + fans), Kernel Panic (chill rings + hard-freeze/thaw)
+- **Mechanics pass over the original five**: Merge Conflict diff-tether + durable split + force-push enrage, Memory Leak permanent pools + heap-glob splashes, Infinite Loop position rewind, Stack Overflow frame-guard resist + stack-pop stun, Legacy Monolith breakable orbiting pillars + breeding — "bullet heaven by default"
+- **Crunch Time**: bosses alive at 15:00 trigger a 30s overtime — every live bug goes critical (+50% dmg, +30% speed), and any blocker outliving it fails the run (**RELEASE SLIPPED**)
+
+### Weapons & balance
+- +4 weapons with evolutions (arsenal now 12): **Fork Bomb**→Zip Bomb (lobbed recursive splitter), **Firewall**→DMZ (burning walls → perimeter rings), **Ping Storm**→DDoS (random-target homing packets), **Sudo Scroll**→Root Shell (highest-HP smite + execute)
+- **Risk-adjusted equalization** (BALANCE.md §8): every weapon declared on two axes (risk tier × growth profile) and sim-certified against profile bands over natural solo runs at two checkpoints; outliers tuned (Syntax Wand's 4th bolt moved to its evolution; Garbage Collector, Regex Grimoire, Daemon Familiar, Assertion Blades buffed into their lanes); the blades+CDR "strongest combo" flag ruled stale — kept as a tripwire scenario
+- **Stat-cap headroom**: CDR cap 60% → 75% (an endgame asymptote, not a mid-run wall); crit reviewed unchanged
+- Card stack caps (rares ×3, epics ×2) + outlier trims; joke-card downsides made real
+
+### Characters & survivability
+- +4 developers (roster now 8): **Rex Intern** (random starter weapon, +30% XP, −20 HP), **Sec Hexa** (contact thorns, starts Firewall), **Dana Tensor** (+1% damage per 100 XP, starts Ping Storm), **Greybeard Cobol** (slow-immune, −15% speed, starts Stack Staff)
+- **Shield system**: a recharging absorb layer above HP (6s clean → 18%/s back) — Try/Catch Block, Sandbox Environment and Defense in Depth cards, Air Gap meta upgrade
+- +11 stat cards total (crit, projectiles, regen, area, shield, XP-with-downside) and +2 late bugs: **Tracer Bug** (holds range, spits aimed shots) and **Checksum Crab** (frontal damage reduction — flank it)
+
+### Difficulty & progression
+- **Meta-gating is the design** (DESIGN.md pillar 5): per-map enemyScale makes pricier maps near-unwinnable at zero meta even on a good build (certified ~0–6% zero-meta vs 40%+ maxed-meta win rates per map, BALANCE.md §5)
+- Progressive discovery: codex entries reveal on first encounter (scrambled until then), meta-shop rows reveal by playing the matching stat/mechanic, level-up cards hint at unrevealed rows
+- "What's new" screen with per-release player notes and a NEW badge keyed to your last seen version
+
+### Engine & QoL
+- **WebGL2 world renderer**: zero-dependency batched quad pipeline (~1 draw call/frame), particle cap 900 → 6,000, per-frame Canvas2D costs eliminated; Canvas2D kept as a frozen fallback
+- Edge radar: elites (!) and chests ($) join bosses and the Precipitate as screen-edge markers
+- Weapon cards preview their concrete level-up deltas ("Damage 14 → 19"); the pause screen weapons panel shows each weapon's description and fully-resolved live stats
+- Objectives moved to their own main-menu screen; sticky bottom navigation in scrolling menus; banners render above overlays
+
+### Deferred / dropped
+- P3s to Backlog: "decrease boss spawn timer" meta upgrade (maybe a v0.4 curse instead), +6 objectives for the new content (incl. "Don't get hit" / "Don't move" challenges)
+- Glacier maxed-meta band accepted at 30–40% by ruling — the v0.5 infinite-meta-levels item is the designed endgame solve
+- linus meta-scaling gap (~2× under ada at maxed meta) analyzed and deferred to a v0.4 character pass (BALANCE.md §6)
+
 ## v0.2.67 — Polish & QoL (2026-06-12)
 
 The game v0.1 already was, but friendlier, smoother and more informative. No new content
