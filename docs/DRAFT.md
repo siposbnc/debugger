@@ -17,6 +17,25 @@ into [ROADMAP.md](../ROADMAP.md), and moves them to **Processed** below.
 
 ---
 
+## Processed → ROADMAP.md (2026-06-12, batch 17)
+
+- Enemy variants + per-map enemy pools → **merged into one v0.4 P1 (L) "Per-map enemy pools via variants"** (new "Map identity" section — same direction as the v0.3 boss pools): every map gets ≥5 enemy types, no two maps share an exact type, overlap only as variants. Variants are the mechanism that makes 4 distinct rosters affordable: `variantOf` data records reusing a base archetype's sprite/behavior with palette + stat shifts (+ at most one flag tweak). Spawn plans rewritten per map; full sim re-cert flagged (kill-rate + meta-gap are sensitive to enemy stats). The v0.3 "+2 enemy types" P2 cross-referenced as pool feed
+- Unique boss: Printer → **v0.4 P2 (M) "The Printer"** — mimic boss whose kit is other bosses' mechanics drawn at random, one per ~25% HP phase, printer-flavored visuals (paper-jam pools, toner globs, PC LOAD LETTER). Open question recorded: standard-pool member everywhere (lean) vs rare wildcard hijacking a map's 12:00 finale slot — the wildcard would dilute the per-map finale identity v0.3 just established
+
+<details>
+<summary>Batch 17 — original notes (kept for reference)</summary>
+
+### Draft ideas
+
+- enemy variants
+- maps should have their own enemy pool, atleast 5 type of enemy per mapp
+    - some overlap with variants is ok, but 2 pools shouldnt contain the exact enemy type
+- unique boss: Printer
+    - noone knows how it works
+    - isn't predictable, never acts the same way (copies other boss' mechanics)
+
+</details>
+
 ## Processed → ROADMAP.md (2026-06-12, batch 16)
 
 - Banner texts unreadable under the level-up blur → **fixed same day**: banners now draw on their own transparent canvas (`#banners`, z-index 30) stacked above the DOM UI layer (z 10) and below the scanlines (z 50), so level-up/pause/summary backdrops can't blur or dim them — the flavor text stays readable and finishes its fade in view

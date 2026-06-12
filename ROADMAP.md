@@ -79,7 +79,7 @@ a shared, per-map-filtered random pool; each map gets exactly one **unique** fin
 ### Cards & enemies
 - [ ] [P2] (M) **Shield system** — new defensive layer on top of HP (0 by default): absorbs damage first, and shield hits don't count as "real" damage (won't fail no-hit objectives). Includes new Shield stat cards + **"Starting Shield"** meta upgrade. Decide at design time: does shield regenerate (out-of-combat delay?) or only refill via pickups/cards?
 - [ ] [P2] (M) +8 stat cards (fill thin categories: status effects, chain, summons — see brief; Shield cards counted under the shield-system item)
-- [ ] [P2] (M) +2 enemy types: ranged spitter (forces movement), shielded enemy (directional block)
+- [ ] [P2] (M) +2 enemy types: ranged spitter (forces movement), shielded enemy (directional block) — *new base archetypes; they also feed the v0.4 per-map enemy pools if this rolls over*
 - [ ] [P3] (S) Meta upgrade: **decrease boss spawn timer** (bosses arrive sooner → faster, riskier runs). Open question: is "harder sooner" something players will pay Bits for? Decide when implementing — maybe frame as a curse-style toggle (v0.4) instead of a meta buy
 - [ ] [P3] (S) +6 objectives covering the new content (one per new map/boss/weapon class) + hardcore full-run challenges from draft: **"Don't get hit"** (whole 15:00 run; shield absorbs don't count once the shield system lands) and **"Don't move"** (whole run — ultimate turret-build check)
 
@@ -93,6 +93,10 @@ a shared, per-map-filtered random pool; each map gets exactly one **unique** fin
 ---
 
 ## 🎮 v0.4 — Modes & replayability
+
+### Map identity *(from draft 2026-06-12: maps should differ in WHAT you fight, not just weights — same direction as the v0.3 boss pools)*
+- [ ] [P1] (L) **Per-map enemy pools via variants** — every map gets its own roster of ≥5 enemy types, and no two maps share the *exact* same type (overlap only as variants). Mechanism: **variants** — data records that reuse a base archetype's shape/behavior with a palette swap, stat shifts and at most one flag tweak (e.g. glacier "Frost Mite": mite shape, icy palette, slower but chills on contact; production "Panic Beetle": bigger blast). ~8 base archetypes fan out into 4 distinct rosters without 20 hand-drawn enemies — `EnemyDef` gains `variantOf` (sprite/behavior inherited, codex groups variants under the base entry or as their own dimmed sub-rows: decide at implementation). Spawn plans rewritten per map; sim re-cert across all maps (kill-rate crossover + meta gap are sensitive to enemy stat shifts). The v0.3 "+2 enemy types" item (spitter, shielded) feeds the pools if it rolls over
+- [ ] [P2] (M) **The Printer** (boss) — *no one knows how it works.* Unpredictable mimic: its kit is other bosses' mechanics, drawn at random — never the same fight twice. Proposal: each phase (~25% HP) it "prints a copy of" a random standard boss's signature layer (diff-hunk volleys / heap globs / radial bursts / frame guard) with printer-flavored visuals (paper-jam pools, toner globs, PC LOAD LETTER banner). Open design question at implementation: standard-pool member on all maps (mimicry IS its identity, map-agnostic) vs a rare wildcard that can hijack any map's 12:00 finale slot (~10%?) — lean standard-pool, the wildcard dilutes the per-map finale identity just established in v0.3
 
 - [ ] [P1] (L) **Endless mode** — past 15:00: boss order reshuffles, scaling continues, leaderboard-style best-time stat in codex
 - [ ] [P1] (M) **Curses / difficulty modifiers** — pre-run toggles (e.g. "−25% pickup radius", "+50% enemy speed") each adding a Bits multiplier; stacking allowed
