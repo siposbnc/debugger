@@ -28,6 +28,14 @@ function currentPhase(run: Run): SpawnPhase {
   return phase;
 }
 
+/** Weighted draw from the map's current spawn phase (also feeds the Legacy
+ *  Monolith's bug-breeding aura). */
+export function randomPhaseEnemyDef(run: Run): EnemyDef {
+  const phase = currentPhase(run);
+  const ids = Object.keys(phase.weights);
+  return ENEMIES[ids[weightedIndex(ids.map((id) => phase.weights[id]))]];
+}
+
 export function makeEnemy(run: Run, def: EnemyDef, x: number, y: number, elite: boolean): Enemy {
   const diff = difficulty(run.time / 60);
   return {
@@ -82,9 +90,7 @@ export function updateSpawner(run: Run, dt: number): void {
   if (run.spawnTimer > 0) return;
   run.spawnTimer = phase.interval * diff.spawnRateMult;
 
-  const ids = Object.keys(phase.weights);
-  const weights = ids.map((id) => phase.weights[id]);
-  const def = ENEMIES[ids[weightedIndex(weights)]];
+  const def = randomPhaseEnemyDef(run);
 
   const eliteChance = minutes >= ELITE.fromMin
     ? ELITE.baseChance + ELITE.chancePerMin * (minutes - ELITE.fromMin)

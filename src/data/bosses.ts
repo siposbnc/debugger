@@ -38,11 +38,12 @@ export const BOSSES: Record<string, BossDef> = {
   },
   legacyMonolith: {
     id: 'legacyMonolith', name: 'The Legacy Monolith',
-    codexDesc: 'Nobody knows how it works. It has been load-bearing since 1987.',
+    codexDesc: 'Nobody knows how it works. It has been load-bearing since 1987, and every '
+      + 'attempt to touch it introduces new bugs.',
     hp: 2600, speed: 26, damage: 34, radius: 52, color: '#8d99ae',
     mechanic: 'phase',
-    mechanicDesc: 'Alternates between an armored phase (75% damage resist) and an exposed core. '
-      + 'Its armor is propped up by deprecated dependencies — break one to expose the core early.',
+    mechanicDesc: 'Its armor (75% damage resist) holds until every Deprecated Dependency '
+      + 'propping it up is destroyed. Bugs hatch continuously around it — it is legacy code.',
   },
 };
 

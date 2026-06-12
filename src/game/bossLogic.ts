@@ -2,7 +2,7 @@ import { BOSSES, BOSS_INTERVAL, BOSS_WARNING_LEAD, BOSS_TIER_HP_MULT, BOSS_TIER_
 import { ENEMIES } from '../data/enemies';
 import type { BossDef } from '../data/types';
 import { clamp, dist, rand } from '../core/util';
-import { makeEnemy } from './spawner';
+import { makeEnemy, randomPhaseEnemyDef } from './spawner';
 import type { Enemy, GroundZone, Run } from './run';
 
 // Boss scheduling: one boss every BOSS_INTERVAL seconds, picked from the map's
@@ -26,9 +26,16 @@ const POP_STUN = 2.5;             // stack-pop stun duration
 const POP_COOLDOWN = 10;          // min seconds between pops (no perma-stun from AoE)
 const FRAMES_ARMOR = 0.5;         // damage taken while stack frames live
 const PILLAR_COUNT = 3;
-const PILLAR_RING = 95;           // pillar distance from the monolith's center
-const EXPOSED_BASE = 4;           // exposed-phase seconds when armor times out…
-const EXPOSED_BONUS = 5;          // …and when a pillar break ends it early
+const PILLAR_RING = 170;          // pillar orbit distance — wide, so pillars enter the
+                                  // player's weapon envelope well before the boss core does
+const PILLAR_SPIN = 0.4;          // pillar orbit speed (rad/s) — they travel with the boss
+const EXPOSED_T = 5;              // exposed-core seconds once every pillar is down
+const LEGACY_BUG_PERIOD = 8;      // legacy code breeds: extra bug pair every N s —
+                                  // pressure, not a meat shield: at 4.5s the bred swarm
+                                  // absorbed all auto-aim and the boss never died (sim)
+const LEGACY_BUG_CEILING = 300;   // stop breeding while the field is this crowded
+                                  // (never let the monolith pin the global enemy cap)
+const LEGACY_BUG_RING = [120, 220] as const; // …this far around the monolith
 
 export function updateBossSchedule(run: Run, _dt: number): void {
   const def = bossForIndex(run, run.bossIndex);
@@ -82,11 +89,13 @@ export function updateBossMechanics(run: Run, e: Enemy, dt: number): void {
     case 'split':
       if (!e.splitDone && e.hp <= e.maxHp * 0.5) {
         e.splitDone = true;
+        // both halves start at a full bar (35% of the original pool each);
+        // equal maxHp also keeps the enrage-gap threshold symmetric
+        const half = e.maxHp * 0.35;
         const clone = run.makeEnemyFrom(e);
         clone.splitDone = true;
-        clone.hp = e.maxHp * 0.35;
-        clone.maxHp = e.maxHp * 0.35;
-        e.hp = e.maxHp * 0.35;
+        clone.hp = half; clone.maxHp = half;
+        e.hp = half; e.maxHp = half;
         clone.x += rand(60, 120); clone.y += rand(-60, 60);
         run.enemies.push(clone);
         run.emit({ type: 'explosion', x: e.x, y: e.y, radius: 90, color: def.color });
@@ -192,28 +201,48 @@ export function updateBossMechanics(run: Run, e: Enemy, dt: number): void {
     }
 
     case 'phase': {
-      e.phaseT -= dt;
-      if (e.phaseT <= 0) {
-        if (e.phase === 'armored') {
-          exposeCore(run, e, EXPOSED_BASE, false);
-        } else {
-          e.phase = 'armored'; e.phaseT = 5;
+      if (e.phase === 'armored') {
+        // second layer: the armor holds until EVERY propping pillar is destroyed
+        // — no timer out. Pillars orbit the monolith (slot angle parked in
+        // jitterAng at spawn) so they travel with it: the boss closing in is
+        // also what brings its dependencies into weapon range — without this,
+        // kiting leaves the stationary pillars behind and melee/orbit builds
+        // could never break the armor (sim-verified failure mode).
+        let pillars = 0;
+        for (const o of run.enemies) {
+          if (o.def !== ENEMIES.deprecatedDependency) continue;
+          pillars++;
+          const a = o.jitterAng + run.time * PILLAR_SPIN;
+          o.x = e.x + Math.cos(a) * PILLAR_RING;
+          o.y = e.y + Math.sin(a) * PILLAR_RING;
+        }
+        e.addsAlive = pillars;
+        if (pillars === 0) {
+          e.phase = 'exposed'; e.phaseT = EXPOSED_T;
+          run.emit({ type: 'coreExposed', x: e.x, y: e.y });
+        }
+      } else {
+        e.phaseT -= dt;
+        if (e.phaseT <= 0) {
+          e.phase = 'armored';
           spawnPillars(run, e);
         }
       }
-      if (e.phase === 'armored') {
-        // second layer: a destroyed pillar ends the armor early (+1s window)
-        let pillars = 0;
-        for (const o of run.enemies) if (o.def === ENEMIES.deprecatedDependency) pillars++;
-        if (pillars < (e.addsAlive ?? 0)) {
-          exposeCore(run, e, EXPOSED_BONUS, true);
-        } else {
-          e.addsAlive = pillars;
+      // legacy code breeds bugs: the longer it stands, the more crawl out of it
+      e.mechT -= dt;
+      if (e.mechT <= 0 && run.enemies.length < LEGACY_BUG_CEILING) {
+        e.mechT = LEGACY_BUG_PERIOD;
+        for (let i = 0; i < 2; i++) {
+          const a = Math.random() * Math.PI * 2;
+          const d = rand(LEGACY_BUG_RING[0], LEGACY_BUG_RING[1]);
+          run.enemies.push(makeEnemy(run, randomPhaseEnemyDef(run), e.x + Math.cos(a) * d, e.y + Math.sin(a) * d, false));
         }
       }
       e.armorMult = e.phase === 'armored' ? 0.25 : 1;
-      // armored phase crawls; exposed marches
-      e.scaledSpeed = def.speed * (e.phase === 'armored' ? 0.6 : 1.1);
+      // armored: near-full advance — the shield wall must actually reach a
+      // kiting player or the pillars never enter weapon range (sim-verified:
+      // at 0.75× the bot outran the boss for 5 straight minutes); exposed: march
+      e.scaledSpeed = def.speed * (e.phase === 'armored' ? 0.95 : 1.1);
       break;
     }
   }
@@ -260,19 +289,20 @@ function spawnPillars(run: Run, boss: Enemy): void {
   const base = Math.random() * Math.PI * 2;
   for (let i = 0; i < PILLAR_COUNT; i++) {
     const a = base + (i * Math.PI * 2) / PILLAR_COUNT;
-    run.enemies.push(makeEnemy(
+    const p = makeEnemy(
       run, ENEMIES.deprecatedDependency,
       boss.x + Math.cos(a) * PILLAR_RING, boss.y + Math.sin(a) * PILLAR_RING, false,
-    ));
+    );
+    // orbit slot (the armored monolith drives positions from this); offset by
+    // spawn time so slot + time*spin starts exactly at the placement angle
+    p.jitterAng = a - run.time * PILLAR_SPIN;
+    run.enemies.push(p);
   }
   boss.addsAlive = PILLAR_COUNT;
 }
 
-/** End the monolith's armored phase; surviving pillars crumble with it. */
-function exposeCore(run: Run, boss: Enemy, duration: number, early: boolean): void {
-  boss.phase = 'exposed';
-  boss.phaseT = duration;
-  boss.addsAlive = 0;
+/** Remove every pillar (the monolith died mid-armor — nothing left to prop). */
+export function crumblePillars(run: Run): void {
   for (let i = run.enemies.length - 1; i >= 0; i--) {
     const o = run.enemies[i];
     if (o.def === ENEMIES.deprecatedDependency) {
@@ -280,5 +310,4 @@ function exposeCore(run: Run, boss: Enemy, duration: number, early: boolean): vo
       run.removeEnemy(i);
     }
   }
-  if (early) run.emit({ type: 'coreExposed', x: boss.x, y: boss.y });
 }

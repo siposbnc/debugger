@@ -62,8 +62,9 @@ export const ENEMIES: Record<string, EnemyDef> = {
       + 'load-bearing. It does nothing but stand there absorbing hits — remove it and '
       + 'watch what it was holding up fall open.',
     // base hp is low: makeEnemy() difficulty-scales it (~×5 at the Monolith's
-    // 10:00 debut → ~200 hp), and it must be breakable inside one 5s armor window
-    hp: 40, speed: 0, damage: 0, radius: 15, xp: 0, bits: 0,
+    // 10:00 debut → ~135 hp each); armor holds until all three die, so the set
+    // must fall to incidental AoE within seconds once the orbit reaches the player
+    hp: 28, speed: 0, damage: 0, radius: 18, xp: 0, bits: 0,
     color: '#8d99ae', shape: 'pillar', behavior: 'chase', stationary: true, notABug: true,
   },
   // Easter egg — kept last so the codex lists it after every real bug.
