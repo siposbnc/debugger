@@ -1,5 +1,5 @@
 import './style.css';
-import { initInput, initTouch, touchUsed, wasPressed, consumePressed, pollGamepad, padWasPressed, padMenuDir, PAD } from './core/input';
+import { initInput, initTouch, touchUsed, wasPressed, consumePressed, pollGamepad, padWasPressed, padMenuDir, PAD, setKeyBindings, binding } from './core/input';
 import { loadSave, persistSave } from './save/save';
 import { CHARACTERS } from './data/characters';
 import { MAPS } from './data/maps';
@@ -42,6 +42,7 @@ function applySettings(): void {
   renderer.reduceFlashEnabled = save.settings.reduceFlash;
   renderer.playerHpBarEnabled = save.settings.playerHpBar;
   renderer.fpsCounterEnabled = save.settings.fpsCounter;
+  setKeyBindings(save.settings.keys);
 }
 applySettings();
 ui.onSettingsChanged = applySettings;
@@ -270,7 +271,7 @@ function frame(now: number): void {
 
   // Esc/P/Start pause toggling lives here, not in kbnav — menus handle their own Esc=back.
   // Space-resume comes from kbnav: the pause screen's default highlight is CONTINUE.
-  if (wasPressed('Escape') || wasPressed('KeyP') || padWasPressed(PAD.START)) {
+  if (wasPressed('Escape') || wasPressed(binding('pause')) || padWasPressed(PAD.START)) {
     if (state === 'run') pause();
     else if (state === 'paused') pauseBack();
   } else if (state === 'paused' && padWasPressed(PAD.B)) {

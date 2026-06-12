@@ -56,7 +56,7 @@ records in `src/data/` plus a behavior key in `src/game/` and a sprite in `src/r
 - [ ] [P2] (S) Tune Assertion Blades + cooldown-build scaling (flagged as outlier) — *moved here from v0.2 per user 2026-06-12; the checked-in `blades-cdr` scenario is the measurement instrument, and the risk-tier framing above decides how much of its edge is legitimate (short reach = high risk) vs outlier*
 
 ### Characters (target: +4, total 8)
-- [ ] [P1] (S) **Rex Intern** — Intern; starts with random weapon; passive: +30% XP, −20% max HP (high risk beginner-luck char)
+- [x] [P1] (S) **Rex Intern** — Intern; starts with random weapon; passive: +30% XP, −20% max HP (high risk beginner-luck char) — *done: `special: 'randomWeapon'` (new CharacterDef special) — starter drawn in the Run constructor from the run's offerable pool (base weapons only), so it grows with shop unlocks and stays DOM-free; char select shows "Random weapon"; suspend/resume safe (restore replaces constructor weapons). Cost 350 ⌬ (between max 250 / nia 450). Verified: build clean; sim-verifier 3×rex+1×ada 15-min victories, all watchlist items at baseline (Bits 2157–2183, ~XP-passive-driven, ruled fine); 10-draw starter distribution covered all 4 pool weapons*
 - [ ] [P2] (S) **Sec Hexa** — Security Engineer; starts Firewall; passive: thorns (returns 20% contact damage)
 - [ ] [P2] (S) **Dana Tensor** — Data Scientist; starts Ping Storm; passive: pickups give +1% stacking damage per 100 XP (scaling late-game)
 - [ ] [P3] (S) **Greybeard Cobol** — Legacy Maintainer; starts Stack Staff; passive: immune to slows, −15% move speed (tank archetype)
@@ -74,7 +74,7 @@ records in `src/data/` plus a behavior key in `src/game/` and a sprite in `src/r
 
 ### QoL roll-over (unfinished v0.2 P2s)
 - [ ] [P2] (M) Minimap or edge-radar showing boss, elites, chests — *in-run events (v0.4) will want this too*
-- [ ] [P2] (S) Remappable keys in settings
+- [x] [P2] (S) Remappable keys in settings — *done: `settings.keys` (action → KeyboardEvent.code, pure save addition); rebindable Move up/down/left/right + Pause via click-to-capture rows (Esc cancels, duplicate codes move to the new action, binding the default clears the custom); arrows + Esc stay fixed fallbacks so the game is never unplayable; "reset binds" row when any custom exists. Verified via one-off Playwright flow (11 checks: capture, persist across reload, rebound pause key pauses a live run, reset)*
 - [x] [P2] (S) Volume sliders split: master / music / SFX (currently single toggle-ish) — *done: SFX/music sliders already existed; added the missing `settings.master` (pure save addition, default 1.0) as a multiplier on both gain nodes + a Master slider row above them*
 - [x] [P2] (S) Reduce-flash mode (tone down screen flash + shake for photosensitivity) — *done: `settings.reduceFlash` toggle (default off) — full-screen overlays (level-up/evolve/victory cyan, hurt red) drop to 25% intensity and screen shake to 35% magnitude; per-sprite hit flashes untouched (small-area, not a photosensitivity risk)*
 - [x] [P2] (M) FPS safeguard: auto-lower particle density when frame time >20ms (the v0.2 FPS counter is the verification surface). *note: do not lower enemy cap as it changes with the difficulty balance* — *done: all particle spawns routed through `spawnParticle()` (probabilistic drop + 900 hard cap); density sheds fast (−0.5/s, floor 15%) while the frame-time EMA exceeds 20ms and recovers slowly (+0.08/s) under 15ms. Enemy cap untouched by construction. Effects other than particles (rings/beams/banners) unaffected*
@@ -186,3 +186,5 @@ Parking lot — promote into a milestone before working on these.
 
 - 2026-06-12 — **v0.2 released** (`v0.2.67`, release/0.2 → main): see [CHANGELOG.md](CHANGELOG.md). dev bumped to 0.3.0-dev (`v0.3-base`); v0.2 P2 QoL rolled into v0.3, P3s demoted to Backlog
 - 2026-06-12 — Three QoL roll-overs shipped in one settings/render pass: master volume slider (multiplier over SFX/music gains), reduce-flash mode (full-screen flash 25% / shake 35% when on), FPS particle safeguard (spawn probability sheds at >20ms frame EMA, floor 15%, hard cap 900; enemy cap untouched). All pure save additions, game logic untouched (no sim re-run needed)
+- 2026-06-12 — **Rex Intern shipped** (first v0.3 character, P1): `randomWeapon` special draws the starter from the run's weapon pool, +30% XP / −20 max HP, 350 ⌬. Sim-verified (3 rex + 1 ada regression, all victories, watchlist at baseline)
+- 2026-06-12 — Remappable keys shipped (last S-sized QoL roll-over): click-to-capture rebinding for movement + pause with fixed arrow/Esc fallbacks, conflict stealing, reset row; Playwright-verified incl. rebound-pause on a live run

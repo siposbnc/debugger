@@ -12,6 +12,7 @@ import { RARITY_COLOR, RARITY_ORDER, type StatMods, type EnemyDef, type BossDef 
 import { bugSprite, bossSprite } from '../render/sprites';
 import { computeStats, type ComputedStats } from '../game/stats';
 import { formatTime, formatDuration } from '../core/util';
+import { DEFAULT_BINDINGS, type BindAction } from '../core/input';
 import { sound } from '../audio/sound';
 import { makeOffer, applyOffer, offerOdds, type OfferItem } from '../game/levelup';
 import type { Run, RunResults } from '../game/run';
@@ -19,6 +20,21 @@ import { KbNav } from './kbnav';
 
 // All DOM UI: menus, shop, codex, settings, level-up modal, pause, summary.
 // Mutates the shared SaveData for purchases and persists immediately.
+
+// Remappable actions shown in settings (arrows/Esc stay fixed fallbacks).
+const BIND_ACTIONS: { action: BindAction; label: string }[] = [
+  { action: 'up', label: 'Move up' },
+  { action: 'down', label: 'Move down' },
+  { action: 'left', label: 'Move left' },
+  { action: 'right', label: 'Move right' },
+  { action: 'pause', label: 'Pause' },
+];
+
+/** Human label for a KeyboardEvent.code ("KeyW" → "W", "ArrowUp" → "↑"). */
+function keyLabel(code: string): string {
+  const arrows: Record<string, string> = { ArrowUp: '↑', ArrowDown: '↓', ArrowLeft: '←', ArrowRight: '→' };
+  return arrows[code] ?? code.replace(/^(Key|Digit)/, '').toUpperCase();
+}
 
 // Card stat preview: each StatMods key → the resolved stat it lands on and how
 // to print it. Resulting values come from computeStats() with the card
@@ -195,7 +211,7 @@ export class UI {
     const cards = CHARACTER_LIST.map((c) => {
       const unlocked = this.save.unlockedCharacters.includes(c.id);
       const selected = this.save.lastCharacter === c.id;
-      const weapon = WEAPONS[c.weapon];
+      const weaponName = c.special === 'randomWeapon' ? 'Random weapon' : WEAPONS[c.weapon].name;
       return `
         <div class="select-card ${unlocked ? '' : 'locked'} ${selected ? 'selected' : ''}"
              data-id="${c.id}" style="--accent:${c.color}">
@@ -204,7 +220,7 @@ export class UI {
           <h3>${c.name}</h3>
           <div class="arch">${c.archetype}</div>
           <p>${c.desc}</p>
-          <div class="passive">⌁ ${weapon.name}<br>★ ${c.passiveDesc}</div>
+          <div class="passive">⌁ ${weaponName}<br>★ ${c.passiveDesc}</div>
           ${unlocked ? '' : `<div class="cost">🔒 ${c.cost} bits</div>`}
         </div>`;
     }).join('');
@@ -477,6 +493,15 @@ export class UI {
           <label>FPS counter</label>
           <button class="toggle ${st.fpsCounter ? '' : 'off'}" id="fps">${st.fpsCounter ? 'ON' : 'OFF'}</button>
         </div>
+        ${BIND_ACTIONS.map(({ action, label }) => `
+        <div class="setting-row">
+          <label>${label}</label>
+          <button class="toggle bindbtn" data-bind="${action}">${keyLabel(st.keys[action] ?? DEFAULT_BINDINGS[action])}</button>
+        </div>`).join('')}
+        <div class="setting-row keybind-hint">
+          <label class="dimlabel">arrow keys & ESC are fixed fallbacks</label>
+          ${Object.keys(st.keys).length > 0 ? '<button class="btn small" id="resetkeys">reset binds</button>' : ''}
+        </div>
         ${onBack ? '' : `
         <div class="setting-row">
           <label>Save data</label>
@@ -516,6 +541,34 @@ export class UI {
     });
     s.querySelector('#fps')!.addEventListener('click', () => {
       st.fpsCounter = !st.fpsCounter;
+      this.persist();
+      this.onSettingsChanged();
+      this.showSettings(onBack);
+    });
+    // Key rebinding: click arms a one-shot capture; the next keydown is taken
+    // before kbnav/input see it. Esc cancels. A code bound elsewhere moves.
+    for (const btn of Array.from(s.querySelectorAll<HTMLButtonElement>('.bindbtn'))) {
+      btn.addEventListener('click', () => {
+        btn.textContent = 'PRESS A KEY…';
+        const action = btn.dataset.bind!;
+        const capture = (e: KeyboardEvent): void => {
+          e.preventDefault();
+          e.stopImmediatePropagation();
+          window.removeEventListener('keydown', capture, true);
+          if (e.code !== 'Escape') {
+            for (const a of Object.keys(st.keys)) if (st.keys[a] === e.code) delete st.keys[a];
+            if (e.code === DEFAULT_BINDINGS[action as BindAction]) delete st.keys[action];
+            else st.keys[action] = e.code;
+            this.persist();
+            this.onSettingsChanged();
+          }
+          this.showSettings(onBack);
+        };
+        window.addEventListener('keydown', capture, true);
+      });
+    }
+    s.querySelector('#resetkeys')?.addEventListener('click', () => {
+      st.keys = {};
       this.persist();
       this.onSettingsChanged();
       this.showSettings(onBack);

@@ -21,6 +21,24 @@ export function isDown(code: string): boolean {
   return down.has(code);
 }
 
+// ---------- remappable bindings ----------
+// Custom codes from settings override the WASD/P defaults; arrows (movement)
+// and Esc (pause) are fixed fallbacks and never remap.
+
+export type BindAction = 'up' | 'down' | 'left' | 'right' | 'pause';
+export const DEFAULT_BINDINGS: Record<BindAction, string> = {
+  up: 'KeyW', down: 'KeyS', left: 'KeyA', right: 'KeyD', pause: 'KeyP',
+};
+let bindings: Record<BindAction, string> = { ...DEFAULT_BINDINGS };
+
+export function setKeyBindings(custom: Partial<Record<BindAction, string>>): void {
+  bindings = { ...DEFAULT_BINDINGS, ...custom };
+}
+
+export function binding(action: BindAction): string {
+  return bindings[action];
+}
+
 /** True only on the frame the key went down. Call consumePressed() at frame end. */
 export function wasPressed(code: string): boolean {
   return pressedThisFrame.has(code);
@@ -34,10 +52,10 @@ export function consumePressed(): void {
 /** Movement vector in SCREEN space, length ≤ 1 (analog stick preserves magnitude). */
 export function moveVector(): { x: number; y: number } {
   let x = padX + stickVX, y = padY + stickVY;
-  if (isDown('KeyW') || isDown('ArrowUp')) y -= 1;
-  if (isDown('KeyS') || isDown('ArrowDown')) y += 1;
-  if (isDown('KeyA') || isDown('ArrowLeft')) x -= 1;
-  if (isDown('KeyD') || isDown('ArrowRight')) x += 1;
+  if (isDown(bindings.up) || isDown('ArrowUp')) y -= 1;
+  if (isDown(bindings.down) || isDown('ArrowDown')) y += 1;
+  if (isDown(bindings.left) || isDown('ArrowLeft')) x -= 1;
+  if (isDown(bindings.right) || isDown('ArrowRight')) x += 1;
   const len = Math.hypot(x, y);
   if (len > 1) { x /= len; y /= len; }
   return { x, y };
