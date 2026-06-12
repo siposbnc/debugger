@@ -77,9 +77,11 @@ one-time, so no re-run inflation; the main growing faucet is boss kills, priced 
 | Strong 15:00 victory | 1500–2100 |
 | Weak-variance 15:00 victory (0 bosses) | ~750–900 observed — below the early-run ceiling is acceptable only because objectives carry it |
 
-Total shop cost: meta upgrades **9,425 ⌬** + characters 1,400 + weapons 1,550 + map 500 =
-**12,875 ⌬** → at the target bands a full clear lands in the user-set **25–35 runs** window
-(avg ~370–515 ⌬/run blended).
+Total shop cost: meta upgrades **9,425 ⌬** + characters 1,750 + weapons 1,550 + maps 3,700
+(500 + 1,200 + 2,000) = **16,425 ⌬** → the original 25–35-run window was set against the
+v0.2 12,875 ⌬ total; the v0.3 additions (Rex 350, Production Server 1,200, Cyber Glacier
+2,000) sit on top and are earned at the higher ×1.5-map bands — re-check the runs-to-clear
+window at the v0.3 band re-certification (roadmap "Meta shop depth check").
 
 ## 5. Difficulty certification (mortal-bot win rates)
 
@@ -92,10 +94,10 @@ enemy-damage term makes an uncleaned wall lethal past ~min 8.
 **Meta-gating is the core design (user directive 2026-06-12, DESIGN.md pillar 5):**
 harder maps must be near-unwinnable at zero meta *even with a good in-run build*; meta
 investment is what unlocks them. The lever is per-map `enemyScale` (enemy + boss
-HP/damage; greenfield 1.0, memoryMarsh 1.2, productionServer 1.35). The certification
-metric is the **meta gap**: zero-meta vs maxed-meta win rate on the same good-build
-scenario. The old "marsh is build-gated, not meta-gated, by design" ruling is
-**superseded** by this directive.
+HP/damage; greenfield 1.0, memoryMarsh 1.2, productionServer 1.35, cyberGlacier 1.4).
+The certification metric is the **meta gap**: zero-meta vs maxed-meta win rate on the
+same good-build scenario. The old "marsh is build-gated, not meta-gated, by design"
+ruling is **superseded** by this directive.
 
 Certified 2026-06-12 (`build-good` / `build-good-meta` scenario presets — same lv 12 @
 6:00 focused build, only meta differs; greedy continuation; n = 16/arm), after the same-day
@@ -106,6 +108,12 @@ card-tuning + boss-buff + crunch-punishment passes which lowered all absolute ra
 | greenfield (1.0) | **38%** (careless onward: 6%) | **69%** (careless onward: 38%) | zero ~30–50%, meta ≥ 60% |
 | memoryMarsh (1.2) | **12.5%** | **56%** | zero ≤ 15%, meta ≥ 40% |
 | productionServer (1.35) | **0%** | **50%** | zero ~0%, meta ≥ 40% |
+| cyberGlacier (1.4) | **0%** (median death ~8:40) | **44%** | zero ~0%, meta ≥ 40% |
+
+Cyber Glacier certified 2026-06-12 at map ship (same presets/n; maxed-meta failures split
+~half deaths, ~half release-slips — the latency fields slow the horde as much as the
+player, so the map's extra difficulty comes from `enemyScale` 1.4 + the tank skew, not
+the hazard kiting the bot into corners like marsh pools do).
 
 Reading the ladder: on the starter map, *either* meta or build/skill buys a fair shot and
 both together make it comfortable; each next map shifts the requirement one notch toward
