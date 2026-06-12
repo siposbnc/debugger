@@ -42,9 +42,11 @@ const bot: BotOptions = scenario?.bot
   : DEFAULT_BOT;
 
 console.log(`=== simulating ${charId} on ${mapId} (${maxMinutes} min cap) ===`);
+// Balance-sim policy (user 2026-06-12): sims run terrain-free (see matrix.ts).
+const NO_TERRAIN = { noTerrain: true };
 let run: Run;
 if (scenario) {
-  run = createScenarioRun(scenario);
+  run = createScenarioRun(scenario, NO_TERRAIN);
   console.log(`scenario: ${scenario.name ?? scenarioArg}`);
   console.log(`  start: lv ${run.level}, ${formatTime(run.time)}, bot ${bot.mortal ? 'mortal' : 'invincible'}/${bot.pick}`);
   console.log(`  weapons: ${run.weapons.map((w) => `${w.def.id}:${w.level}`).join(', ')}`);
@@ -53,7 +55,7 @@ if (scenario) {
   }
 } else {
   run = new Run(CHARACTERS[charId], MAPS[mapId], {},
-    [...new Set([...DEFAULT_WEAPON_POOL, CHARACTERS[charId].weapon])], new Set());
+    [...new Set([...DEFAULT_WEAPON_POOL, CHARACTERS[charId].weapon])], new Set(), NO_TERRAIN);
 }
 run.invincible = !bot.mortal;
 

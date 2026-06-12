@@ -44,7 +44,7 @@ npx esbuild scripts/offerTest.ts --bundle --platform=node --outfile=scripts/offe
 
 In-browser dev flags: `?autostart` skips the menu into a run; `?autostart&turbo` = 6× speed, invincible, auto-picked cards (for watching balance live). On dev builds, `window.dbg` (browser console) manipulates the live run — `dbg.help()` lists the API (`bits`, `offer`, `give`, `level`, `xp`, `god`, `stat`, `time`, `speed`, `list`); verified by `scripts/devtoolsTest.mjs` (Playwright, needs a served `build:dev` output).
 
-After any gameplay/content/balance change, run the simulator and check against the "Balance watchlist" in ROADMAP.md (kill rate ≥ spawn rate before min 6, first-boss TTK 60–100s, Bits/run bands).
+After any gameplay/content/balance change, run the simulator and check against the "Balance watchlist" in ROADMAP.md (kill rate ≥ spawn rate before min 6, first-boss TTK 60–100s, Bits/run bands). **Balance sims always run terrain-free** (user policy 2026-06-12): the sim scripts pass `noTerrain` to disable obstacles/patches/events (hazards stay) so terrain content never invalidates win-rate baselines — terrain has its own tests (`scripts/terrainTest.ts`).
 
 ### Subagent delegation (cost policy)
 

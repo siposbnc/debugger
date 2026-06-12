@@ -22,12 +22,21 @@ export function effective(run: Run, w: WeaponInstance): WeaponLevelStats & { cou
   };
 }
 
-/** Up to n nearest distinct living enemies within range of (x, y). */
-function nearestN(run: Run, x: number, y: number, n: number, range: number): Enemy[] {
+/** Up to n nearest distinct living enemies within range of (x, y).
+ *  `los` = skip targets behind terrain blockers (projectile weapons only —
+ *  instant effects like chains/columns/smites ignore cover by ruling, and
+ *  lobbed bombs arc over it). */
+function nearestN(run: Run, x: number, y: number, n: number, range: number, los = false): Enemy[] {
   const found: Enemy[] = [];
   run.grid.forEachInRadius(x, y, range, (e) => found.push(e));
   found.sort((a, b) => dist(x, y, a.x, a.y) - dist(x, y, b.x, b.y));
-  return found.slice(0, n);
+  if (!los || run.obstacles.length === 0) return found.slice(0, n);
+  const out: Enemy[] = [];
+  for (const e of found) {
+    if (out.length >= n) break;
+    if (run.hasLOS(x, y, e.x, e.y)) out.push(e);
+  }
+  return out;
 }
 
 export function updateWeapons(run: Run, dt: number): void {
@@ -56,7 +65,7 @@ export function updateWeapons(run: Run, dt: number): void {
 }
 
 function fireBolt(run: Run, w: WeaponInstance, s: ReturnType<typeof effective>): boolean {
-  const targets = nearestN(run, run.px, run.py, s.count, TARGET_RANGE);
+  const targets = nearestN(run, run.px, run.py, s.count, TARGET_RANGE, true);
   if (targets.length === 0) return false;
   for (let i = 0; i < s.count; i++) {
     const t = targets[i % targets.length];
@@ -77,7 +86,7 @@ function fireBolt(run: Run, w: WeaponInstance, s: ReturnType<typeof effective>):
 }
 
 function fireSnipe(run: Run, w: WeaponInstance, s: ReturnType<typeof effective>): boolean {
-  const targets = nearestN(run, run.px, run.py, s.count, TARGET_RANGE + 160);
+  const targets = nearestN(run, run.px, run.py, s.count, TARGET_RANGE + 160, true);
   if (targets.length === 0) return false;
   const isFreeze = w.def.id === 'timefreezeDebugger';
   for (let i = 0; i < s.count; i++) {
@@ -239,7 +248,7 @@ function fireWall(run: Run, w: WeaponInstance, s: ReturnType<typeof effective>):
 /** Ping Storm: homing packets fired at RANDOM enemies in range (not nearest —
  *  storm, not focus). The DDoS evolution is simply a flood of them. */
 function fireHoming(run: Run, w: WeaponInstance, s: ReturnType<typeof effective>): boolean {
-  const candidates = nearestN(run, run.px, run.py, 24, TARGET_RANGE);
+  const candidates = nearestN(run, run.px, run.py, 24, TARGET_RANGE, true);
   if (candidates.length === 0) return false;
   for (let i = 0; i < s.count; i++) {
     const t = candidates[Math.floor(Math.random() * candidates.length)];
@@ -317,7 +326,7 @@ function updatePet(run: Run, w: WeaponInstance, s: ReturnType<typeof effective>,
     const ang = w.orbitAngle + (Math.PI * 2 * i) / s.count;
     const px = run.px + Math.cos(ang) * 52;
     const py = run.py + Math.sin(ang) * 52;
-    const target = run.grid.nearest(px, py, 440);
+    const target = run.grid.nearest(px, py, 440, (e) => run.hasLOS(px, py, e.x, e.y));
     if (!target) continue;
     w.petTimers[i] = s.cooldown;
     const d = dist(px, py, target.x, target.y) || 1;

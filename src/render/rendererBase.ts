@@ -245,6 +245,23 @@ export abstract class RendererBase {
         this.banner('🚨 CRUNCH TIME', 'ship date reached — every bug goes critical; resolve all blockers in 30s', '#ff5e5e', 5);
         this.shake(8);
         break;
+      case 'crush': {
+        // rack demolition: dark panel shards + a few LED sparks, small kick
+        for (let i = 0; i < 14; i++) {
+          const a = Math.random() * Math.PI * 2;
+          const d = Math.random() * ev.radius * 0.8;
+          const led = Math.random() < 0.25;
+          this.spawnParticle({
+            x: ev.x + Math.cos(a) * d, y: ev.y + Math.sin(a) * d, z: rand(4, 30),
+            vx: rand(-130, 130), vy: rand(-130, 130), vz: rand(80, 260),
+            life: rand(0.35, 0.7), maxLife: 0.7,
+            color: led ? (Math.random() < 0.5 ? '#53e8a8' : '#ff9b3d') : '#2c313c',
+            size: led ? rand(1.5, 2.5) : rand(3, 6),
+          });
+        }
+        this.shake(2.5);
+        break;
+      }
       case 'vent': {
         // eruption kick: a brief fire column + ember burst (ongoing embers come
         // from drawVent while the erupt phase lasts)

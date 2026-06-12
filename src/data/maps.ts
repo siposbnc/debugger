@@ -60,7 +60,10 @@ export const MAPS: Record<string, MapDef> = {
     // Terrain vertical slice (v0.3): server-rack blockers — aisles between them
     // are the map's terrain identity; bosses crush past, bullets fly over.
     obstacles: { count: 14, rMin: 26, rMax: 40 },
-    enemyScale: 1.35, // meta-gating: near-impossible without serious meta investment
+    // meta-gating: near-impossible without serious meta investment. 1.35 → 1.4
+    // after the v0.3 weapon equalization lifted the zero-meta ceiling here to
+    // ~12.5% (inverting the ladder vs marsh's 0%) — §5 re-certed at 1.4
+    enemyScale: 1.4,
     // Skew: exception beetles from minute 0, deadlock scarabs early — uptime
     // pressure (explosions to dodge, locks slowing the escape) on hot floors.
     // Late beetle weight stays ≤5: explosion stacking past min 10 is a known

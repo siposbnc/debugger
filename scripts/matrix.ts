@@ -57,11 +57,16 @@ interface Sample {
   firstBossTTK: number | null; // s from first spawn to first boss death (null = never)
 }
 
+// Balance-sim policy (user 2026-06-12): sims always run terrain-free
+// (obstacles/patches/events off, hazards stay) so terrain content never
+// invalidates win-rate baselines. Terrain is validated by terrainTest.ts.
+const NO_TERRAIN = { noTerrain: true };
+
 function simulateOne(charId: string, mapId: string): Sample {
   const run = scenario
-    ? createScenarioRun(scenario)
+    ? createScenarioRun(scenario, NO_TERRAIN)
     : new Run(CHARACTERS[charId], MAPS[mapId], metaLevels,
-        [...new Set([...DEFAULT_WEAPON_POOL, CHARACTERS[charId].weapon])], new Set());
+        [...new Set([...DEFAULT_WEAPON_POOL, CHARACTERS[charId].weapon])], new Set(), NO_TERRAIN);
   run.invincible = !mortal;
 
   const killsAt = [0], aliveAt = [0], levelAt = [run.level];

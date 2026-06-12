@@ -6,6 +6,14 @@ on purpose, update this file in the same commit.** Where a target is marked *(pr
 it was set from limited sim samples and should be recalibrated by the v0.2 simulator-matrix
 item; everything else is sim-verified or a user-set design goal.
 
+**Sim-environment policy (user 2026-06-12): balance simulations always run on
+terrain-free maps** — obstacles (and v0.4 terrain patches / in-run events, when they
+land) are disabled via the `noTerrain` Run option, which `matrix.ts` / `simulate.ts` /
+`weaponSweep.ts` pass unconditionally. Hazards (pools/vents/latency) stay on — they are
+the map's difficulty identity. Rationale: terrain content must never invalidate
+win-rate baselines, and the sim bot never needs terrain micro-skills; terrain
+correctness gets its own instruments (`terrainTest.ts`, suspendTest, visual checks).
+
 How to measure (see CLAUDE.md for the full commands):
 
 ```bash
@@ -105,7 +113,8 @@ enemy-damage term makes an uncleaned wall lethal past ~min 8.
 **Meta-gating is the core design (user directive 2026-06-12, DESIGN.md pillar 5):**
 harder maps must be near-unwinnable at zero meta *even with a good in-run build*; meta
 investment is what unlocks them. The lever is per-map `enemyScale` (enemy + boss
-HP/damage; greenfield 1.0, memoryMarsh 1.2, productionServer 1.35, cyberGlacier 1.4).
+HP/damage; greenfield 1.0, memoryMarsh 1.2, productionServer 1.4 — raised from 1.35
+post-equalization, see below — cyberGlacier 1.35).
 The certification metric is the **meta gap**: zero-meta vs maxed-meta win rate on the
 same good-build scenario. The old "marsh is build-gated, not meta-gated, by design"
 ruling is **superseded** by this directive.
@@ -162,14 +171,21 @@ greenfield 44% row above was never re-measured after that growth): **greenfield 
 29%** (band ~30–50%) and **marsh meta 39%** (floor 40%). Treat them as the current
 baseline; only further drops are regressions.
 
-**Post-terrain re-cert (2026-06-12, production server racks — v0.3 vertical slice):**
-production zero **6%** (2/32, gate intact at the baseline reading), production meta
-**41%** (13/32, floor 40%, baseline 47% within noise). 14 rack blockers neither shelter
-the zero-meta bot nor wall the maxed bot off its boss queue. Other maps have no
-obstacles — no other arm touched. **Re-certified same day after the projectile-blocking
-ruling** (racks stop flat-flying shots both ways; lobbed arcs pass): zero 1/32 (3%),
-meta 13/32 (41%) — both arms hold even with the bot wasting blocked shots (auto-aim has
-no line-of-sight concept yet; if LOS targeting lands later, expect these to tick UP).
+**Post-equalization full-ladder gate check (2026-06-12, terrain-free per the sim
+policy):** the §8 weapon buffs lifted the zero-meta ceiling unevenly — marsh zero
+**0/16** and glacier zero **1/16** held their gates, but production zero crept to
+**12.5%** (6/48), inverting the ladder vs marsh. Fixed with the designed lever:
+production `enemyScale` 1.35 → **1.4** (same rung as glacier). Re-certified at 1.4:
+zero **3%** (1/32 — gate restored), meta **44%** (14/32 — floor holds with margin; the
+same weapon buffs that eroded the gate absorbed the scale bump on the meta side).
+These are the standing production numbers; the §5 table's (1.35) row is superseded.
+
+**Terrain validation runs (2026-06-12, historical one-offs):** when the rack slice
+landed, the production arms were validated WITH terrain twice — movement-only: zero 6%
+(2/32) / meta 41% (13/32); after projectile blocking: zero 3% (1/32) / meta 41%
+(13/32). Both held the gates/floors. These were one-off validations: **the sim policy
+above (terrain-free arms) was adopted the same day**, so standing §5 numbers exclude
+terrain by construction and these rack-inclusive readings are not comparable baselines.
 
 **Post-equalization re-cert (2026-06-12, §8 weapon pass — final wand, n=64/32):**
 greenfield zero **23%** (15/64), greenfield meta **69%** (22/32). The ~6-pt zero-arm

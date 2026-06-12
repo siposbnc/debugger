@@ -255,6 +255,7 @@ function drainEvents(): void {
       case 'memoryFreed': sound.play('resolve'); break;
       case 'crunch': sound.play('bossWarn'); break;
       case 'vent': sound.play('vent'); break;
+      case 'crush': sound.play('vent'); break; // rack demolition: the pressurized burst reads as a crunch
       case 'teleport': sound.play('fizz'); break;
       case 'raceResolved': sound.play('bossWarn'); break;
       case 'slam': sound.play('vent'); break;

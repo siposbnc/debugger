@@ -229,6 +229,7 @@ export type RunEvent =
   | { type: 'memoryFreed'; pools: { x: number; y: number }[] }  // memory leak died; pools reclaimed
   | { type: 'crunch' }                                          // 15:00 with bosses alive: crunch time
   | { type: 'vent'; x: number; y: number; radius: number }      // floor vent eruption near the player
+  | { type: 'crush'; x: number; y: number; radius: number }     // a boss crushed a terrain blocker
   | { type: 'teleport'; x: number; y: number }                  // race condition blinked here
   | { type: 'raceResolved'; x: number; y: number }              // afterimage expired unkilled: boss healed
   | { type: 'slam'; x: number; y: number; radius: number }      // critical exception impact landed
@@ -373,6 +374,11 @@ export class Run {
     public metaLevels: Record<string, number>,
     public weaponPool: string[],                 // ids offerable this run
     public doneObjectives: Set<string>,          // lifetime-completed (excluded)
+    /** noTerrain: skip terrain features (obstacles; later patches/in-run
+     *  events) — hazards stay. Balance-sim policy (user 2026-06-12): the §5/§1
+     *  instruments always run on terrain-free maps so terrain content never
+     *  invalidates win-rate baselines; terrain is validated by its own tests. */
+    private opts: { noTerrain?: boolean } = {},
   ) {
     this.stats = computeStats(character, metaLevels, this.cardMods);
     this.hp = this.stats.maxHp;
@@ -420,7 +426,7 @@ export class Run {
         });
       }
     }
-    if (map.obstacles) {
+    if (map.obstacles && !this.opts.noTerrain) {
       // Scattered with rejection sampling: clear of the spawn point, of each
       // other (aisles must stay walkable) and of zone centers (a vent grate
       // under a rack would be invisible AND undodgeable).
@@ -447,6 +453,20 @@ export class Run {
       if (dx * dx + dy * dy < r * r) return true;
     }
     return false;
+  }
+
+  /** Line of sight: does the segment (x1,y1)→(x2,y2) clear every blocker?
+   *  Used by projectile-weapon targeting (user ruling: LOS targeting on) —
+   *  trivially true on obstacle-free maps. Segment-circle, no allocation. */
+  hasLOS(x1: number, y1: number, x2: number, y2: number): boolean {
+    for (const o of this.obstacles) {
+      const dx = x2 - x1, dy = y2 - y1;
+      const len2 = dx * dx + dy * dy || 1;
+      const t = clamp(((o.x - x1) * dx + (o.y - y1) * dy) / len2, 0, 1);
+      const cx = x1 + dx * t - o.x, cy = y1 + dy * t - o.y;
+      if (cx * cx + cy * cy < o.r * o.r) return false;
+    }
+    return true;
   }
 
   /** Push a moving body of radius `br` out of every obstacle it penetrates.
@@ -743,11 +763,23 @@ export class Run {
         this.moveEnemy(e, dt);
       }
 
-      // racks block regular bugs (movement + knockback alike); bosses crush
-      // past (blink/slam mechanics must never strand a boss behind a wall)
-      // and stationary pillars never moved into one to begin with
-      if (this.obstacles.length > 0 && !e.isBoss && !(e.def as EnemyDef).stationary) {
-        this.resolveObstacles(e, e.def.radius);
+      // racks block regular bugs (movement + knockback alike); bosses CRUSH
+      // them (user ruling) — walking through a rack destroys it, so boss
+      // fights progressively clear the arena and a boss is never stranded.
+      // Stationary pillars never moved into one to begin with.
+      if (this.obstacles.length > 0) {
+        if (e.isBoss) {
+          for (let oi = this.obstacles.length - 1; oi >= 0; oi--) {
+            const o = this.obstacles[oi];
+            // substantial overlap, not a graze — the crush should read as deliberate
+            if (dist(e.x, e.y, o.x, o.y) < e.def.radius + o.r * 0.5) {
+              this.obstacles.splice(oi, 1);
+              this.emit({ type: 'crush', x: o.x, y: o.y, radius: o.r });
+            }
+          }
+        } else if (!(e.def as EnemyDef).stationary) {
+          this.resolveObstacles(e, e.def.radius);
+        }
       }
 
       if (e.isBoss) updateBossMechanics(this, e, dt);
@@ -883,7 +915,10 @@ export class Run {
       // ping-storm packets steer toward their target, re-acquiring on a kill
       if (p.homing) {
         let t = p.homing.target;
-        if (!t || t.hp <= 0) t = p.homing.target = this.grid.nearest(p.x, p.y, 320, (e) => !p.hit.has(e));
+        if (!t || t.hp <= 0) {
+          t = p.homing.target = this.grid.nearest(p.x, p.y, 320,
+            (e) => !p.hit.has(e) && this.hasLOS(p.x, p.y, e.x, e.y));
+        }
         if (t) {
           const want = Math.atan2(t.y - p.y, t.x - p.x);
           const cur = Math.atan2(p.vy, p.vx);
@@ -1062,7 +1097,7 @@ export class Run {
       a.shootT -= dt;
       if (a.kind === 'turret') {
         if (a.shootT <= 0) {
-          const target = this.grid.nearest(a.x, a.y, 380);
+          const target = this.grid.nearest(a.x, a.y, 380, (e) => this.hasLOS(a.x, a.y, e.x, e.y));
           if (target) {
             a.shootT = 0.55;
             const base = Math.atan2(target.y - a.y, target.x - a.x);

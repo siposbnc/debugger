@@ -95,7 +95,8 @@ function runOne(weaponId: string): Sample {
     bot: { pick: 'greedy', mortal: true },
   };
   const bot = botFor(weaponId);
-  const run = createScenarioRun(sc);
+  // balance-sim policy (user 2026-06-12): terrain-free, see matrix.ts
+  const run = createScenarioRun(sc, { noTerrain: true });
   run.invincible = false;
 
   let firstSpawnT: number | null = null, firstDieT: number | null = null;

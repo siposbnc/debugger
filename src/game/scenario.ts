@@ -52,8 +52,9 @@ function fail(what: string, id: string, where: string): never {
   throw new Error(`scenario: unknown ${what} "${id}" — ids live in src/data/${where}`);
 }
 
-/** Build a Run starting from the scenario's state. */
-export function createScenarioRun(sc: Scenario): Run {
+/** Build a Run starting from the scenario's state. `opts.noTerrain` is the
+ *  balance-sim policy switch (sims always pass it — see Run's constructor). */
+export function createScenarioRun(sc: Scenario, opts: { noTerrain?: boolean } = {}): Run {
   const character = CHARACTERS[sc.char ?? 'ada'] ?? fail('character', sc.char!, 'characters.ts');
   const map = MAPS[sc.map ?? 'greenfield'] ?? fail('map', sc.map!, 'maps.ts');
   const metaLevels = sc.meta === 'max'
@@ -62,7 +63,7 @@ export function createScenarioRun(sc: Scenario): Run {
   const pool = sc.poolOnly
     ? [...new Set(Object.keys(sc.weapons ?? {}))]
     : [...new Set([...DEFAULT_WEAPON_POOL, character.weapon, ...Object.keys(sc.weapons ?? {})])];
-  const run = new Run(character, map, metaLevels, pool, new Set());
+  const run = new Run(character, map, metaLevels, pool, new Set(), opts);
   applyScenarioState(run, sc);
   return run;
 }
