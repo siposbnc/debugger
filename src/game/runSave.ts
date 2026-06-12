@@ -45,6 +45,8 @@ export interface SuspendedRun {
   chestBonus: boolean;
   // spawning / boss schedule
   spawnTimer: number; nextBossAt: number; bossIndex: number; bossWarned: boolean;
+  // crunch time — optional: snapshots from before the mechanic existed restore inactive
+  crunchStarted?: boolean; crunchT?: number;
   // character specials
   turretT: number; helperT: number;
   // entities
@@ -97,6 +99,7 @@ export function snapshotRun(run: Run): SuspendedRun {
     objectivesThisRun: [...run.objectivesThisRun],
     chestBonus: run.chestBonus,
     spawnTimer: run.spawnTimer, nextBossAt: run.nextBossAt, bossIndex: run.bossIndex, bossWarned: run.bossWarned,
+    crunchStarted: run.crunchStarted, crunchT: run.crunchT,
     turretT: run.turretT, helperT: run.helperT,
     enemies: run.enemies.map(snapEnemy),
     pickups: run.pickups.map((p) => ({ ...p })),
@@ -153,6 +156,8 @@ export function restoreRun(snap: SuspendedRun, doneObjectives: Set<string>): Run
   run.nextBossAt = snap.nextBossAt;
   run.bossIndex = snap.bossIndex;
   run.bossWarned = snap.bossWarned;
+  run.crunchStarted = snap.crunchStarted ?? false;
+  run.crunchT = snap.crunchT ?? 0;
   run.turretT = snap.turretT; run.helperT = snap.helperT;
 
   run.enemies = snap.enemies.map(restoreEnemy);

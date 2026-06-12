@@ -89,6 +89,13 @@ by power, not movement: straggler recycling (`spawner.ts`) makes the horde inesc
 heading-biased, and the quadratic enemy-damage term makes an uncleaned wall lethal past
 ~min 8. Targets (zero meta unless stated, n ≥ 8 per config):
 
+> **Crunch Time caveat (2026-06-12):** v0.3 tightened the victory definition — bosses
+> alive at 15:00 trigger a 30s crunch overtime, and a surviving blocker now *fails* the
+> run ("RELEASE SLIPPED"). The win rates below were certified under the old
+> survive-to-15:00 rule; outlive-the-bosses kiting no longer counts as a win, so these
+> targets need re-certification (expect lower careless-bot numbers — that's intended:
+> crunch exists precisely to stop boss-ignoring play from winning).
+
 | Bot | greenfield | memoryMarsh | Status (2026-06-11) |
 |---|---|---|---|
 | Careless (offer[0]), zero meta | **≤ 30%** win | ~0% | 28% / 0% ✓ |

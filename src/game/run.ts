@@ -9,7 +9,7 @@ import { clamp, dist, mulberry32, pick, rand } from '../core/util';
 import { computeStats, type ComputedStats } from './stats';
 import { updateWeapons } from './combat';
 import { updateSpawner, SPAWN_RADIUS } from './spawner';
-import { updateBossSchedule, updateBossMechanics } from './bossLogic';
+import { updateBossSchedule, updateBossMechanics, crumblePillars } from './bossLogic';
 
 // ---------- entities ----------
 
@@ -147,6 +147,7 @@ export type RunEvent =
   | { type: 'stackPop'; x: number; y: number }                  // stack overflow stunned (frames cleared)
   | { type: 'coreExposed'; x: number; y: number }               // monolith armor broken early (pillar down)
   | { type: 'memoryFreed'; pools: { x: number; y: number }[] }  // memory leak died; pools reclaimed
+  | { type: 'crunch' }                                          // 15:00 with bosses alive: crunch time
   | { type: 'chest'; x: number; y: number }
   | { type: 'mushiSpawn'; x: number; y: number }
   | { type: 'mushiCaught'; x: number; y: number }
@@ -163,6 +164,7 @@ export interface RunResults {
   level: number;
   bossKills: number;
   victory: boolean;
+  releaseFailed: boolean; // defeat flavor: blockers outlived crunch time (not a death)
   newObjectives: string[];
   bits: number;
   bitsBreakdown: { label: string; value: number }[];
@@ -172,10 +174,22 @@ export interface RunResults {
 
 // ---------- the run ----------
 
+/** Crunch Time: overtime seconds granted at 15:00 to resolve live release blockers. */
+export const CRUNCH_DURATION = 30;
+/** Crunch adrenaline: player damage / move-speed multipliers while crunching. */
+export const CRUNCH_DMG_MULT = 1.5;
+export const CRUNCH_SPEED_MULT = 1.15;
+
 export class Run {
   time = 0;
   over = false;
   victory = false;
+  // Crunch Time: the release ships at 15:00 — bosses still alive then are
+  // release blockers. The run gets CRUNCH_DURATION seconds of overtime (trash
+  // descoped, spawner frozen, crunch buffs); blockers outliving it fail the run.
+  crunchStarted = false;
+  crunchT = 0;          // remaining overtime; > 0 while crunching
+  releaseFailed = false;
 
   // player
   px = 0; py = 0;
@@ -333,6 +347,13 @@ export class Run {
     }
   }
 
+  private finishVictory(): void {
+    this.over = true;
+    this.victory = true;
+    this.checkObjectives();
+    this.emit({ type: 'victory' });
+  }
+
   hurtPlayer(amount: number): void {
     if (this.invincible || this.over) return;
     const dmg = Math.max(0.5, amount - this.stats.armor);
@@ -381,11 +402,31 @@ export class Run {
     this.time += dt;
 
     if (this.time >= RUN_DURATION) {
-      this.over = true;
-      this.victory = true;
-      this.checkObjectives();
-      this.emit({ type: 'victory' });
-      return;
+      const blockers = this.enemies.some((e) => e.isBoss);
+      if (!this.crunchStarted) {
+        if (!blockers) { this.finishVictory(); return; }
+        // ship date reached with bosses alive: crunch time. Feature freeze —
+        // the trash is descoped (no rewards), only the blockers (and the
+        // Monolith's props) remain; the spawner stays frozen for the overtime.
+        this.crunchStarted = true;
+        this.crunchT = CRUNCH_DURATION;
+        for (let i = this.enemies.length - 1; i >= 0; i--) {
+          const e = this.enemies[i];
+          if (!e.isBoss && !(e.def as EnemyDef).stationary) this.removeEnemy(i);
+        }
+        this.emit({ type: 'crunch' });
+      } else {
+        this.crunchT -= dt;
+        if (!blockers) { this.finishVictory(); return; }
+        if (this.crunchT <= 0) {
+          // blockers outlived the deadline — the release slips
+          this.over = true;
+          this.victory = false;
+          this.releaseFailed = true;
+          this.emit({ type: 'death' });
+          return;
+        }
+      }
     }
 
     this.updatePlayer(dt);
@@ -393,7 +434,7 @@ export class Run {
     this.grid.clear();
     for (const e of this.enemies) this.grid.insert(e);
 
-    updateSpawner(this, dt);
+    if (!this.crunchStarted) updateSpawner(this, dt);
     updateBossSchedule(this, dt);
     this.updateEnemies(dt);
     updateWeapons(this, dt);
@@ -433,7 +474,7 @@ export class Run {
       }
     }
 
-    const sp = this.stats.moveSpeed * this.playerSlow;
+    const sp = this.stats.moveSpeed * this.playerSlow * (this.crunchT > 0 ? CRUNCH_SPEED_MULT : 1);
     this.px += wx * sp * dt;
     this.py += wy * sp * dt;
     if (wx !== 0 || wy !== 0) {
@@ -790,6 +831,7 @@ export class Run {
     // unified boss resist: bossLogic sets armorMult per frame (monolith armor 0.25,
     // stack overflow with live frames 0.5)
     if (e.isBoss && e.armorMult !== undefined) dmg *= e.armorMult;
+    if (this.crunchT > 0) dmg *= CRUNCH_DMG_MULT; // crunch adrenaline
 
     e.hp -= dmg;
     e.hitFlash = 0.12;
@@ -828,6 +870,7 @@ export class Run {
       }
       this.bossKills++;
       this.emit({ type: 'bossDie', x: e.x, y: e.y, name: boss.name });
+      if (boss.mechanic === 'phase') crumblePillars(this); // died mid-armor: props fall with it
       if (boss.mechanic === 'pools') {
         // death frees all memory at once: every leak pool is reclaimed
         const pools = this.zones.filter((z) => z.kind === 'leak').map((z) => ({ x: z.x, y: z.y }));
@@ -891,6 +934,7 @@ export class Run {
       level: this.level,
       bossKills: this.bossKills,
       victory: this.victory,
+      releaseFailed: this.releaseFailed,
       newObjectives: [...this.objectivesThisRun],
       bits,
       bitsBreakdown: breakdown.map((b) => ({ label: b.label, value: Math.floor(b.value) })),

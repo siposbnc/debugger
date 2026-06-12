@@ -13,7 +13,8 @@ into [ROADMAP.md](../ROADMAP.md), and moves them to **Processed** below.
 
 ## Bugs
 
-*(empty)*
+- banner texts should render above the blur layer
+  - when a banner text is shown and a levelup screen appears. the text is not readable, the user doesn't get to see a lot of flavor text because of it
 
 ---
 

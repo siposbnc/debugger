@@ -856,11 +856,13 @@ export class UI {
 
     const s = this.screen(`
       <div class="result-heading ${results.victory ? 'win' : 'lose'}">
-        ${results.victory ? 'SYSTEM STABILIZED' : 'SEGMENTATION FAULT'}
+        ${results.victory ? 'SYSTEM STABILIZED' : results.releaseFailed ? 'RELEASE SLIPPED' : 'SEGMENTATION FAULT'}
       </div>
       <div class="hint">${results.victory
         ? 'all critical bugs resolved — shipping to production'
-        : `process terminated after ${formatTime(results.timeSec)} (core dumped)`}</div>
+        : results.releaseFailed
+          ? 'a release blocker outlived crunch time — the deadline shipped without you'
+          : `process terminated after ${formatTime(results.timeSec)} (core dumped)`}</div>
       <div class="summary-box">
         <div class="row"><span>Uptime</span><span class="v">${formatTime(results.timeSec)}</span></div>
         <div class="row"><span>Bugs squashed</span><span class="v">${results.kills}</span></div>

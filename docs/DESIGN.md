@@ -105,13 +105,25 @@ live at the top of `src/game/bossLogic.ts`.
 
 | Boss | Layer 1: pattern | Layer 2: build test |
 |---|---|---|
-| The Merge Conflict | splits into two at 50% HP — both must die | halves linked by a damaging diff tether; >30% HP gap force-push enrages the stronger half (+50% dmg, +60% speed) until the gap closes below 15% → spread your damage |
+| The Merge Conflict | splits into two at 50% HP — both must die (each half starts at a full bar, 35% of the original pool) | halves linked by a damaging diff tether; >30% HP gap force-push enrages the stronger half (+50% dmg, +60% speed, "!!" marker + red ring) until the gap closes below 15% → spread your damage |
 | The Memory Leak | drips damage pools | pools never expire while it lives (cap 28, oldest paged out) — soft-enrage DPS check; death frees every pool at once |
 | The Infinite Loop | radial bursts, faster each cycle | snapshots your position every 7s and rewinds you to it 2.5s later (marker shown) → plan positions, end the fight before the bursts compound |
-| The Stack Overflow | summons recursive mites + aimed triple shots | live mites are stack frames: 50% damage resist while any live; clearing the stack pops it — 2.5s stun at full vulnerability (10s pop cooldown) → add-clear/AoE check |
-| The Legacy Monolith | armored phase (75% resist) ↔ exposed core | armor spawns 3 Deprecated Dependency pillars that soak shots/auto-aim; breaking one ends the armor early with a +1s exposed window → target-priority DPS check |
+| The Stack Overflow | summons recursive mites + aimed triple shots | live mites are stack frames: 50% damage resist while any live (shield ring + one pip per frame over its HP bar); clearing the stack pops it — 2.5s stun at full vulnerability (10s pop cooldown) → add-clear/AoE check |
+| The Legacy Monolith | armored phase (75% resist) ↔ exposed core | armor spawns 3 Deprecated Dependency pillars that soak shots/auto-aim and **holds until all are destroyed** (no timer; 5s exposed core after). Pillars *orbit* the boss — they travel with it, so the boss advancing is what brings them into weapon range (stationary pillars left a kiting melee build unable to ever break armor — sim-caught). Also breeds bugs: pairs from the map's spawn pool hatch around it every 4.5s the whole fight — it's legacy code, touching it makes more bugs |
+
+A boss that is resistant *right now* always shows the rotating dashed shield
+ring (+ desaturated sprite) — the armored state is never invisible.
 
 Tier scaling: HP ×(1+0.35·tier), DMG ×(1+0.15·tier); order cycles past 10:00.
+
+**Crunch Time** (v0.3): the release ships at 15:00 — any boss still alive then
+is a *release blocker*. Instead of a free victory, the run enters 30s of crunch:
+the trash swarm is descoped on the spot (removed, no rewards — P3s punted to the
+next sprint), the spawner freezes, and the player gets crunch adrenaline (+50%
+damage, +15% move speed). Kill every blocker before the timer ends → victory;
+any blocker outliving crunch → **the release slips and the run is failed**
+("RELEASE SLIPPED" summary). This makes ignoring bosses a real cost: pre-crunch
+they could simply be outlived. Constants: `CRUNCH_*` in `src/game/run.ts`.
 
 ## 14. Maps
 

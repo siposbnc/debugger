@@ -62,7 +62,9 @@ let damageTaken = 0;
 const originalHurt = run.hurtPlayer.bind(run);
 run.hurtPlayer = (amount: number) => { damageTaken += amount; originalHurt(amount); };
 
-while (!run.over && run.time < maxMinutes * 60) {
+// crunchT > 0: crunch-time overtime runs past the minute cap until it resolves
+// (victory, death, or the release slipping) — at most CRUNCH_DURATION seconds.
+while (!run.over && (run.time < maxMinutes * 60 || run.crunchT > 0)) {
   run.update(STEP);
 
   const chestCard = botStep(run, bot);
@@ -73,6 +75,7 @@ while (!run.over && run.time < maxMinutes * 60) {
     if (ev.type === 'bossDie') console.log(`  [${formatTime(run.time)}] BOSS DOWN:  ${ev.name}`);
     if (ev.type === 'evolve') console.log(`  [${formatTime(run.time)}] EVOLVED: ${ev.weaponName} → ${ev.evolvedName}`);
     if (ev.type === 'objective') console.log(`  [${formatTime(run.time)}] OBJECTIVE: ${ev.name}`);
+    if (ev.type === 'crunch') console.log(`  [${formatTime(run.time)}] CRUNCH TIME: release blockers alive at ship date — 30s overtime`);
   }
   run.events.length = 0;
 
@@ -89,7 +92,7 @@ while (!run.over && run.time < maxMinutes * 60) {
 
 const results = run.computeBits();
 console.log('\n=== RUN COMPLETE ===');
-console.log(`victory: ${results.victory}, time: ${formatTime(results.timeSec)}`);
+console.log(`victory: ${results.victory}${run.releaseFailed ? ' (RELEASE SLIPPED: blocker outlived crunch time)' : ''}, time: ${formatTime(results.timeSec)}`);
 console.log(`kills: ${results.kills}, level: ${results.level}, bosses: ${results.bossKills}`);
 console.log(`objectives: ${results.newObjectives.join(', ')}`);
 for (const b of results.bitsBreakdown) console.log(`  ${b.label}: +${b.value}`);

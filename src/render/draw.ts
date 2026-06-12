@@ -200,7 +200,7 @@ export class Renderer {
         this.shake(5);
         break;
       case 'coreExposed':
-        this.banner('CORE EXPOSED', 'dependency removed — armor down', '#41d97f', 2.5);
+        this.banner('CORE EXPOSED', 'dependencies removed — armor down', '#41d97f', 2.5);
         this.rings.push({ x: ev.x, y: ev.y, radius: 110, t: 0, dur: 0.5, color: '#41d97f' });
         this.shake(5);
         break;
@@ -209,6 +209,10 @@ export class Renderer {
         for (const p of ev.pools) {
           this.rings.push({ x: p.x, y: p.y, radius: 60, t: 0, dur: 0.6, color: '#54e06b' });
         }
+        break;
+      case 'crunch':
+        this.banner('🚨 CRUNCH TIME', 'ship date reached — resolve all release blockers in 30s', '#ff5e5e', 5);
+        this.shake(8);
         break;
       case 'bossDie':
         this.banner('BUG RESOLVED', `${ev.name} — closed as fixed`, '#41d97f', 3);
@@ -548,9 +552,21 @@ export class Renderer {
           // force-push enrage: pulsing red threat ring under the sprite
           if (e.enraged) {
             ctx.strokeStyle = 'rgba(255, 94, 94, 0.85)';
-            ctx.lineWidth = 3;
+            ctx.lineWidth = 4;
             const pr2 = e.def.radius * (1.5 + 0.12 * Math.sin(this.t * 10));
             ctx.beginPath(); ctx.ellipse(s.x, s.y, pr2, pr2 / 2, 0, 0, 7); ctx.stroke();
+          }
+          // resistant right now (monolith armor, stack-overflow frames):
+          // rotating dashed shield ring so the state is unmistakable
+          if (e.isBoss && (e.armorMult ?? 1) < 1) {
+            ctx.save();
+            ctx.strokeStyle = 'rgba(157, 178, 199, 0.9)';
+            ctx.lineWidth = 3;
+            ctx.setLineDash([11, 7]);
+            ctx.lineDashOffset = -this.t * 45;
+            const sr = e.def.radius * 1.75;
+            ctx.beginPath(); ctx.ellipse(s.x, s.y, sr, sr / 2, 0, 0, 7); ctx.stroke();
+            ctx.restore();
           }
           ctx.save();
           if (e.hitFlash > 0) ctx.filter = 'brightness(2.2)';
@@ -571,6 +587,21 @@ export class Renderer {
             ctx.fillRect(s.x - bw / 2, s.y - h - 4, bw, 5);
             ctx.fillStyle = e.isBoss ? '#ff5e5e' : '#ffc12e';
             ctx.fillRect(s.x - bw / 2, s.y - h - 4, bw * clamp(e.hp / e.maxHp, 0, 1), 5);
+            // stack overflow: one pip per live stack frame guarding it
+            if (e.isBoss && (e.def as BossDef).mechanic === 'summon' && (e.addsAlive ?? 0) > 0) {
+              ctx.fillStyle = '#9db2c7';
+              const n = Math.min(12, e.addsAlive!);
+              for (let i = 0; i < n; i++) {
+                ctx.fillRect(s.x - bw / 2 + i * 9, s.y - h - 13, 6, 6);
+              }
+            }
+            // force-push enrage callout
+            if (e.enraged) {
+              ctx.fillStyle = '#ff5e5e';
+              ctx.font = 'bold 14px monospace';
+              ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+              ctx.fillText('!!', s.x, s.y - h - 8);
+            }
           }
         },
       });
@@ -941,6 +972,15 @@ export class Renderer {
     ctx.strokeText(formatTime(run.time), this.w / 2, 52);
     ctx.fillText(formatTime(run.time), this.w / 2, 52);
 
+    // crunch-time overtime: blocking the release costs the run
+    if (run.crunchT > 0) {
+      const blink = run.crunchT < 10 && Math.sin(this.t * 10) > 0;
+      ctx.font = '26px VT323, monospace';
+      ctx.fillStyle = blink ? '#ffd2d2' : '#ff5e5e';
+      ctx.strokeText(`SHIP IN ${run.crunchT.toFixed(1)}s`, this.w / 2, 80);
+      ctx.fillText(`SHIP IN ${run.crunchT.toFixed(1)}s`, this.w / 2, 80);
+    }
+
     // HP bar (bottom-left)
     const hpW = 220;
     const hpY = this.h - pad - 22;
@@ -985,9 +1025,9 @@ export class Renderer {
     ctx.fillStyle = '#ffc12e';
     ctx.fillText(`⌬ ${run.computeBits().bits} bits`, this.w - pad, 70);
 
-    // next boss countdown (top-right, under bits)
+    // next boss countdown (top-right, under bits) — moot once crunch starts
     const tToBoss = run.nextBossAt - run.time;
-    if (tToBoss < 99999) {
+    if (tToBoss < 99999 && !run.crunchStarted) {
       ctx.fillStyle = tToBoss < 10 ? '#ff5e5e' : 'rgba(232, 244, 255, 0.6)';
       ctx.font = '17px VT323, monospace';
       ctx.fillText(`next boss ${formatTime(Math.max(0, tToBoss))}`, this.w - pad, 92);
