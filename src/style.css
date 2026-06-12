@@ -107,6 +107,17 @@ html, body {
 }
 .screen::before, .screen::after { content: ''; flex: 1 0 0; }
 
+/* UX: navigation must never require scrolling (draft 2026-06-12) — trailing
+   nav buttons stick to the bottom edge of the scrolling screen while the
+   content scrolls past underneath. The backdrop keeps them readable. */
+.screen > .btn:last-of-type {
+  position: sticky;
+  bottom: 0;
+  z-index: 5;
+  background: rgba(8, 12, 18, 0.92);
+  box-shadow: 0 0 12px rgba(6, 9, 14, 0.9);
+}
+
 @keyframes screenIn {
   from { opacity: 0; transform: scale(1.02); }
   to { opacity: 1; transform: scale(1); }
@@ -389,6 +400,8 @@ html, body {
 .codex-thumb { width: 42px; height: 42px; object-fit: contain; flex-shrink: 0; }
 .codex-thumb.boss { width: 52px; height: 52px; }
 .codex-tag { color: var(--gold); font-size: 9px; letter-spacing: 0.12em; border: 1px solid currentColor; padding: 1px 5px; border-radius: 3px; align-self: center; white-space: nowrap; }
+.codex-panel.objectives-panel { width: 460px; max-width: 92vw; }
+.obj-count { float: right; font-size: 16px; color: var(--gold); }
 /* progressive unlocks: not-yet-encountered entries are dimmed, glitched records */
 .codex-entry.locked { opacity: 0.45; }
 .codex-thumb.locked-thumb { display: flex; align-items: center; justify-content: center; font-size: 22px; color: var(--dim); border: 1px dashed var(--line); border-radius: 4px; }

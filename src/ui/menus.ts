@@ -193,17 +193,21 @@ export class UI {
     ];
   }
 
-  /** Everything the codex lists. Completed objectives get a distinct id so
-   *  finishing one shows NEW once even after the base entry was seen.
-   *  Progressive unlocks: bug/boss entries only count once ENCOUNTERED —
-   *  locked (glitched) rows neither badge nor get marked seen. */
+  /** Everything the codex lists. Progressive unlocks: bug/boss entries only
+   *  count once ENCOUNTERED — locked (glitched) rows neither badge nor get
+   *  marked seen. */
   private codexIds(): string[] {
     const enc = new Set(this.save.encountered);
     return [
       ...Object.keys(ENEMIES).map((id) => `bug:${id}`).filter((id) => enc.has(id)),
       ...Object.keys(BOSSES).map((id) => `boss:${id}`).filter((id) => enc.has(id)),
-      ...OBJECTIVES.map((o) => `obj:${o.id}${this.save.completedObjectives.includes(o.id) ? ':done' : ''}`),
     ];
+  }
+
+  /** The objectives screen's ids. Completed objectives get a distinct id so
+   *  finishing one shows NEW once even after the base entry was seen. */
+  private objectiveIds(): string[] {
+    return OBJECTIVES.map((o) => `obj:${o.id}${this.save.completedObjectives.includes(o.id) ? ':done' : ''}`);
   }
 
   /** Ids from the list not seen before — marked seen (persisted) right away;
@@ -271,6 +275,7 @@ export class UI {
         <button class="btn" data-act="maps">MAPS</button>
         <button class="btn" data-act="shop">UPGRADES${this.anyUnseen(this.shopIds()) ? '<span class="new-dot">●</span>' : ''}</button>
         <button class="btn" data-act="codex">BUG DATABASE${this.anyUnseen(this.codexIds()) ? '<span class="new-dot">●</span>' : ''}</button>
+        <button class="btn" data-act="objectives">OBJECTIVES${this.anyUnseen(this.objectiveIds()) ? '<span class="new-dot">●</span>' : ''}</button>
         <button class="btn" data-act="whatsnew">WHAT'S NEW${this.notesUnseen() ? '<span class="new-dot">●</span>' : ''}</button>
         <button class="btn" data-act="settings">SETTINGS</button>
       </div>
@@ -287,6 +292,7 @@ export class UI {
       else if (act === 'maps') this.showMapSelect();
       else if (act === 'shop') this.showShop();
       else if (act === 'codex') this.showCodex();
+      else if (act === 'objectives') this.showObjectives();
       else if (act === 'whatsnew') this.showWhatsNew();
       else if (act === 'settings') this.showSettings();
     });
@@ -572,7 +578,25 @@ export class UI {
       </div>`;
     }).join('');
 
-    const objectives = OBJECTIVES.map((o) => {
+    const s = this.screen(`
+      <div class="screen-heading">SELECT * FROM bug_database</div>
+      <div class="codex-cols">
+        <div class="codex-panel"><h3>~/stats</h3>${stats}</div>
+        <div class="codex-panel"><h3>~/known_bugs</h3>${bugs}</div>
+        <div class="codex-panel"><h3>~/incidents</h3>${bosses}</div>
+      </div>
+      <button class="btn" data-act="back">BACK</button>
+    `, () => this.showMainMenu());
+    s.addEventListener('click', (e) => {
+      if ((e.target as HTMLElement).closest('button')?.dataset.act === 'back') this.showMainMenu();
+    });
+  }
+
+  /** Objectives moved out of the codex into their own menu (draft 2026-06-12). */
+  showObjectives(): void {
+    const fresh = this.takeUnseen(this.objectiveIds());
+    const doneCount = this.save.completedObjectives.length;
+    const rows = OBJECTIVES.map((o) => {
       const done = this.save.completedObjectives.includes(o.id);
       return `
         <div class="codex-entry">
@@ -580,14 +604,13 @@ export class UI {
           <span>${o.desc}</span>
         </div>`;
     }).join('');
-
     const s = this.screen(`
-      <div class="screen-heading">SELECT * FROM bug_database</div>
+      <div class="screen-heading">cat TODO.md</div>
       <div class="codex-cols">
-        <div class="codex-panel"><h3>~/stats</h3>${stats}</div>
-        <div class="codex-panel"><h3>~/known_bugs</h3>${bugs}</div>
-        <div class="codex-panel"><h3>~/incidents</h3>${bosses}</div>
-        <div class="codex-panel"><h3>~/objectives</h3>${objectives}</div>
+        <div class="codex-panel objectives-panel">
+          <h3>~/objectives <span class="obj-count">${doneCount}/${OBJECTIVES.length}</span></h3>
+          ${rows}
+        </div>
       </div>
       <button class="btn" data-act="back">BACK</button>
     `, () => this.showMainMenu());

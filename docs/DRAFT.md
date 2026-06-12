@@ -17,6 +17,23 @@ into [ROADMAP.md](../ROADMAP.md), and moves them to **Processed** below.
 
 ---
 
+## Processed → ROADMAP.md (2026-06-12, batch 20)
+
+- Objectives into their own menu → **shipped same day**: new OBJECTIVES main-menu entry (`cat TODO.md` heading, done-counter, NEW-badge support moved with it); the codex drops its objectives column (now stats / known_bugs / incidents)
+- Navigation always visible without scrolling → **shipped same day**: trailing nav buttons (BACK etc.) are `position: sticky` at the bottom edge of every scrolling screen with a readable backdrop — content scrolls underneath, navigation never leaves the viewport. Verified at a 600px viewport incl. mid-scroll
+
+<details>
+<summary>Batch 20 — original notes (kept for reference)</summary>
+
+### Draft ideas
+
+- objectives into its own menu
+- ux optimalizations
+    - all buttons (especially back button) should visible in all menus at all times without scrolling
+    - scroll inside the content container instead, ui navigation needs to be always visible
+
+</details>
+
 ## Processed → ROADMAP.md (2026-06-12, batch 19)
 
 - Shield above the player character → **shipped same day**: a thin cyan strip stacks above the in-world player HP bar (both render backends) whenever the build has shield, gated by the same health-bar setting
