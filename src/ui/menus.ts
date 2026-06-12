@@ -110,6 +110,47 @@ export class UI {
     persistSave(this.save);
   }
 
+  // ---------- NEW badges (unseen codex/shop entries) ----------
+
+  /** Everything the shop screen lists, as namespaced seen-ids. */
+  private shopIds(): string[] {
+    return [
+      ...META_UPGRADES.map((m) => `meta:${m.id}`),
+      ...SHOP_WEAPONS.map((w) => `wpn:${w.id}`),
+    ];
+  }
+
+  /** Everything the codex lists. Completed objectives get a distinct id so
+   *  finishing one shows NEW once even after the base entry was seen. */
+  private codexIds(): string[] {
+    return [
+      ...Object.keys(ENEMIES).map((id) => `bug:${id}`),
+      ...Object.keys(BOSSES).map((id) => `boss:${id}`),
+      ...OBJECTIVES.map((o) => `obj:${o.id}${this.save.completedObjectives.includes(o.id) ? ':done' : ''}`),
+    ];
+  }
+
+  /** Ids from the list not seen before — marked seen (persisted) right away;
+   *  the returned set keeps the badges up for the rest of the visit. */
+  private takeUnseen(ids: string[]): Set<string> {
+    const seen = new Set(this.save.seenIds);
+    const fresh = new Set(ids.filter((id) => !seen.has(id)));
+    if (fresh.size > 0) {
+      this.save.seenIds.push(...fresh);
+      this.persist();
+    }
+    return fresh;
+  }
+
+  private anyUnseen(ids: string[]): boolean {
+    const seen = new Set(this.save.seenIds);
+    return ids.some((id) => !seen.has(id));
+  }
+
+  private static newBadge(fresh: Set<string>, id: string): string {
+    return fresh.has(id) ? ' <span class="new-badge">NEW</span>' : '';
+  }
+
   // ---------- main menu ----------
 
   showMainMenu(): void {
@@ -127,8 +168,8 @@ export class UI {
         <button class="btn ${susp ? '' : 'primary'}" data-act="start">START RUN</button>
         <button class="btn" data-act="chars">CHARACTERS</button>
         <button class="btn" data-act="maps">MAPS</button>
-        <button class="btn" data-act="shop">UPGRADES</button>
-        <button class="btn" data-act="codex">BUG DATABASE</button>
+        <button class="btn" data-act="shop">UPGRADES${this.anyUnseen(this.shopIds()) ? '<span class="new-dot">●</span>' : ''}</button>
+        <button class="btn" data-act="codex">BUG DATABASE${this.anyUnseen(this.codexIds()) ? '<span class="new-dot">●</span>' : ''}</button>
         <button class="btn" data-act="settings">SETTINGS</button>
       </div>
       <div class="controls-hint"><kbd>WASD</kbd> move/navigate &nbsp; <kbd>ENTER</kbd> select &nbsp; <kbd>ESC</kbd> back/pause &nbsp; <kbd>🎮</kbd> gamepad works too &nbsp; auto-attack: just survive</div>
@@ -247,7 +288,10 @@ export class UI {
 
   // ---------- meta shop ----------
 
-  showShop(): void {
+  /** `fresh` carries the badge set through self re-renders (purchases), so
+   *  NEW tags survive buying — they clear on the next visit. */
+  showShop(fresh?: Set<string>): void {
+    fresh ??= this.takeUnseen(this.shopIds());
     const metaRows = META_UPGRADES.map((m) => {
       const lvl = this.save.metaLevels[m.id] ?? 0;
       const maxed = lvl >= m.maxLevel;
@@ -257,7 +301,7 @@ export class UI {
       return `
         <div class="shop-row">
           <div class="icon">${m.icon}</div>
-          <div class="info"><h4>${m.name}</h4><p>${m.desc}</p></div>
+          <div class="info"><h4>${m.name}${UI.newBadge(fresh!, `meta:${m.id}`)}</h4><p>${m.desc}</p></div>
           <div class="pips">${pips}</div>
           <button class="btn small" data-meta="${m.id}" ${maxed || this.save.bits < cost ? 'disabled' : ''}>
             ${maxed ? 'MAX' : `${cost} ⌬`}
@@ -271,7 +315,7 @@ export class UI {
       return `
         <div class="shop-row">
           <div class="icon" style="color:${w.color}">${w.icon}</div>
-          <div class="info"><h4>${w.name}</h4><p>${w.desc} Evolves into ${WEAPONS[w.evolveTo!].name}.</p></div>
+          <div class="info"><h4>${w.name}${UI.newBadge(fresh!, `wpn:${id}`)}</h4><p>${w.desc} Evolves into ${WEAPONS[w.evolveTo!].name}.</p></div>
           <button class="btn small" data-weapon="${id}" ${owned || this.save.bits < cost ? 'disabled' : ''}>
             ${owned ? 'OWNED' : `${cost} ⌬`}
           </button>
@@ -302,7 +346,7 @@ export class UI {
           this.save.metaLevels[m.id] = lvl + 1;
           this.persist();
           sound.play('buy');
-          this.showShop();
+          this.showShop(fresh);
         }
       }
       if (btn.dataset.weapon) {
@@ -312,7 +356,7 @@ export class UI {
           this.save.unlockedWeapons.push(entry.id);
           this.persist();
           sound.play('buy');
-          this.showShop();
+          this.showShop(fresh);
         }
       }
     });
@@ -337,6 +381,7 @@ export class UI {
   }
 
   showCodex(): void {
+    const fresh = this.takeUnseen(this.codexIds());
     const lt = this.save.lifetime;
     const fav = Object.entries(lt.weaponDamage).sort((a, b) => b[1] - a[1])[0];
     const favWeapon = fav && WEAPONS[fav[0]] ? `${WEAPONS[fav[0]].icon} ${WEAPONS[fav[0]].name}` : '—';
@@ -355,7 +400,7 @@ export class UI {
       <div class="codex-entry with-thumb">
         <img class="codex-thumb" src="${UI.entityThumb(e, false)}" alt="">
         <div class="codex-body">
-          <b>${e.name}${e.notABug ? ' <span class="codex-tag">NOT A BUG</span>' : ''}</b>
+          <b>${e.name}${e.notABug ? ' <span class="codex-tag">NOT A BUG</span>' : ''}${UI.newBadge(fresh, `bug:${e.id}`)}</b>
           <span>${e.codexDesc}</span>
         </div>
       </div>`).join('');
@@ -364,7 +409,7 @@ export class UI {
       <div class="codex-entry with-thumb">
         <img class="codex-thumb boss" src="${UI.entityThumb(b, true)}" alt="">
         <div class="codex-body">
-          <b>${b.name}</b>
+          <b>${b.name}${UI.newBadge(fresh, `boss:${b.id}`)}</b>
           <span>${b.codexDesc}<br>⚠ ${b.mechanicDesc}</span>
         </div>
       </div>`).join('');
@@ -373,7 +418,7 @@ export class UI {
       const done = this.save.completedObjectives.includes(o.id);
       return `
         <div class="codex-entry">
-          <b class="${done ? 'done' : 'undone'}">${done ? '☑' : '☐'} ${o.name} <span>+100 ⌬</span></b>
+          <b class="${done ? 'done' : 'undone'}">${done ? '☑' : '☐'} ${o.name} <span>+100 ⌬${UI.newBadge(fresh, `obj:${o.id}${done ? ':done' : ''}`)}</span></b>
           <span>${o.desc}</span>
         </div>`;
     }).join('');

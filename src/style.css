@@ -369,6 +369,20 @@ html, body {
 .codex-thumb.boss { width: 52px; height: 52px; }
 .codex-tag { color: var(--gold); font-size: 9px; letter-spacing: 0.12em; border: 1px solid currentColor; padding: 1px 5px; border-radius: 3px; align-self: center; white-space: nowrap; }
 
+/* NEW badge on unseen codex/shop entries + menu-button dot */
+.new-badge {
+  color: var(--bg); background: var(--gold);
+  font-size: 9px; font-weight: 700; letter-spacing: 0.12em;
+  padding: 1px 5px; border-radius: 3px;
+  align-self: center; vertical-align: middle; white-space: nowrap;
+  box-shadow: 0 0 8px rgba(255, 193, 46, 0.45);
+}
+.new-dot {
+  color: var(--gold);
+  margin-left: 10px;
+  text-shadow: 0 0 8px rgba(255, 193, 46, 0.7);
+}
+
 /* ---------- pause overview ---------- */
 
 .pause-actions { display: flex; gap: 14px; flex-wrap: wrap; justify-content: center; }

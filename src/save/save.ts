@@ -26,6 +26,9 @@ export interface SaveData {
   lastMap: string;
   lifetime: LifetimeStats;
   settings: { sfx: number; music: number; shake: boolean; playerHpBar: boolean; fpsCounter: boolean };
+  /** Namespaced codex/shop entry ids already shown to the player (NEW badges).
+   *  Objectives use `obj:<id>:done` once completed so finishing one re-badges it. */
+  seenIds: string[];
   /** Mid-run snapshot from "suspend & exit" — consumed on resume. */
   suspendedRun: SuspendedRun | null;
 }
@@ -68,6 +71,7 @@ function defaults(): SaveData {
     lastMap: 'greenfield',
     lifetime: { runs: 0, kills: 0, bossKills: 0, bitsEarned: 0, bestTimeSec: 0, bestLevel: 0, victories: 0, uptimeSec: 0, weaponDamage: {} },
     settings: { sfx: 0.7, music: 0.5, shake: true, playerHpBar: true, fpsCounter: false },
+    seenIds: [],
     suspendedRun: null,
   };
 }
