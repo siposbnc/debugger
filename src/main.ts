@@ -163,7 +163,10 @@ function endRun(): void {
     // evolved weapons credit the evolution's id (totalDamage carries through)
     if (w.totalDamage > 0) lt.weaponDamage[w.def.id] = (lt.weaponDamage[w.def.id] ?? 0) + Math.round(w.totalDamage);
   }
-  if (results.victory) lt.victories++;
+  if (results.victory) {
+    lt.victories++;
+    save.mapVictories[run.map.id] = (save.mapVictories[run.map.id] ?? 0) + 1;
+  }
   for (const id of results.newObjectives) {
     if (!save.completedObjectives.includes(id)) save.completedObjectives.push(id);
   }

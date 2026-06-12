@@ -383,8 +383,22 @@ export class UI {
   // ---------- map select ----------
 
   showMapSelect(): void {
-    const cards = MAP_LIST.map((m) => {
+    const cleared = (id: string) => (this.save.mapVictories[id] ?? 0) > 0;
+    const cards = MAP_LIST.map((m, i) => {
       const unlocked = this.save.unlockedMaps.includes(m.id);
+      // Gated discovery: a map is visible once owned, or once its predecessor
+      // (list = cost order) has been cleared. Hidden = silhouetted "???" card,
+      // no name/cost — same visual language as locked codex/meta rows.
+      if (!unlocked && i > 0 && !cleared(MAP_LIST[i - 1].id)) {
+        return `
+        <div class="select-card locked undiscovered">
+          <div class="icon">?</div>
+          <h3>???</h3>
+          <div class="arch">target not discovered</div>
+          <p class="glitch-text">${UI.scramble(m.desc, `map:${m.id}`)}</p>
+          <div class="passive">ship the previous deployment to reveal</div>
+        </div>`;
+      }
       const selected = this.save.lastMap === m.id;
       return `
         <div class="select-card ${unlocked ? '' : 'locked'} ${selected ? 'selected' : ''}"
@@ -407,8 +421,8 @@ export class UI {
       const t = e.target as HTMLElement;
       if (t.closest('button')?.dataset.act === 'back') { this.showMainMenu(); return; }
       const card = t.closest<HTMLElement>('.select-card');
-      if (!card) return;
-      const id = card.dataset.id!;
+      if (!card?.dataset.id) return; // undiscovered "???" cards carry no id
+      const id = card.dataset.id;
       const def = MAPS[id];
       if (this.save.unlockedMaps.includes(id)) {
         this.save.lastMap = id;

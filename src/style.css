@@ -241,6 +241,9 @@ html, body {
 .select-card:hover { border-color: var(--accent, var(--cyan)); transform: translateY(-3px); box-shadow: 0 8px 28px rgba(0,0,0,0.5), 0 0 16px color-mix(in srgb, var(--accent, var(--cyan)) 25%, transparent); }
 .select-card.selected { border-color: var(--accent, var(--green)); box-shadow: 0 0 0 1px var(--accent, var(--green)), 0 0 22px color-mix(in srgb, var(--accent, var(--green)) 35%, transparent); }
 .select-card.locked { opacity: 0.65; }
+.select-card.undiscovered { opacity: 0.4; cursor: default; }
+.select-card.undiscovered:hover { border-color: var(--line); transform: none; box-shadow: none; }
+.select-card.undiscovered .passive { color: var(--dim); }
 .select-card .icon { font-size: 38px; }
 .select-card h3 { font-family: var(--font-display); font-size: 27px; color: var(--accent, var(--text)); font-weight: 400; }
 .select-card .arch { font-size: 11px; color: var(--dim); text-transform: uppercase; letter-spacing: 0.15em; }

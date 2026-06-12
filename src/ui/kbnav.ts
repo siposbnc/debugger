@@ -8,7 +8,7 @@ import { padRequireNeutral } from '../core/input';
 // layout works without per-screen wiring. Gamepad menu support can drive
 // move()/activate() directly.
 
-const ITEM_SELECTOR = 'button:not(:disabled), .select-card, .upgrade-card, input[type="range"]';
+const ITEM_SELECTOR = 'button:not(:disabled), .select-card:not(.undiscovered), .upgrade-card, input[type="range"]';
 
 const DIR: Record<string, { x: number; y: number }> = {
   KeyW: { x: 0, y: -1 }, ArrowUp: { x: 0, y: -1 },

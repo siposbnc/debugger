@@ -43,6 +43,10 @@ export interface SaveData {
    *  defer) once. Purchased upgrades count as unlocked regardless; the two
    *  specials derive from objectives (boss1 → bossReward, evolve → weaponSlot). */
   unlockedMeta: string[];
+  /** Victories per map id. Gates map discovery (the next map's card stays a
+   *  hidden "???" until the previous map is first cleared) and later feeds
+   *  per-map Endless unlocks + best-time stats. */
+  mapVictories: Record<string, number>;
   /** Newest patch-notes entry version the player has opened ('' = never) —
    *  drives the "What's new" menu badge. */
   lastSeenVersion: string;
@@ -91,6 +95,7 @@ function defaults(): SaveData {
     seenIds: [],
     encountered: [],
     unlockedMeta: [],
+    mapVictories: {},
     lastSeenVersion: '',
     suspendedRun: null,
   };
@@ -115,6 +120,12 @@ export function loadSave(): SaveData {
       out.encountered = out.seenIds.filter(
         (id) => (id.startsWith('bug:') || id.startsWith('boss:')) && id !== 'bug:mushi');
       if (out.completedObjectives.includes('mushiCatch')) out.encountered.push('bug:mushi');
+    }
+    // Grandfather pre-map-gating saves: per-map wins weren't tracked, so credit
+    // every owned map with one clear when the player has any victory at all —
+    // generous, but never hides a map a veteran could already see and buy.
+    if (!data.mapVictories && out.lifetime.victories > 0) {
+      for (const id of out.unlockedMaps) out.mapVictories[id] = 1;
     }
     return out;
   } catch {
