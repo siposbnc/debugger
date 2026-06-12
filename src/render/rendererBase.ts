@@ -260,6 +260,43 @@ export abstract class RendererBase {
         }
         break;
       }
+      case 'teleport':
+        // arrival glitch: a tight ring + square static burst
+        this.rings.push({ x: ev.x, y: ev.y, radius: 55, t: 0, dur: 0.3, color: '#e0d24b' });
+        for (let i = 0; i < 8; i++) {
+          this.spawnParticle({
+            x: ev.x + rand(-30, 30), y: ev.y + rand(-30, 30), z: 10,
+            vx: rand(-60, 60), vy: rand(-60, 60), vz: rand(20, 120),
+            life: rand(0.15, 0.4), maxLife: 0.4, color: '#e0d24b', size: rand(3, 6),
+          });
+        }
+        break;
+      case 'raceResolved':
+        this.banner('RACE LOST', 'the afterimage expired — it resolved in its favor and healed', '#e0d24b', 2.5);
+        this.rings.push({ x: ev.x, y: ev.y, radius: 80, t: 0, dur: 0.5, color: '#e0d24b' });
+        break;
+      case 'slam':
+        this.rings.push({ x: ev.x, y: ev.y, radius: ev.radius, t: 0, dur: 0.5, color: '#ff4d4d' });
+        this.shake(7);
+        for (let i = 0; i < 16; i++) {
+          const a = Math.random() * Math.PI * 2;
+          const d = Math.random() * ev.radius;
+          this.spawnParticle({
+            x: ev.x + Math.cos(a) * d, y: ev.y + Math.sin(a) * d, z: 6,
+            vx: rand(-100, 100), vy: rand(-100, 100), vz: rand(80, 280),
+            life: rand(0.3, 0.6), maxLife: 0.6, color: '#ff4d4d', size: rand(2, 5),
+          });
+        }
+        break;
+      case 'hardFreeze':
+        this.banner('❄ HARD FREEZE', 'it locked up — heavily armored; weather the blizzard', '#7adcff', 2.5);
+        this.rings.push({ x: ev.x, y: ev.y, radius: 110, t: 0, dur: 0.6, color: '#7adcff' });
+        this.shake(5);
+        break;
+      case 'thaw':
+        this.banner('THAWED', 'it is vulnerable — strike now', '#b8ffc9', 2.5);
+        this.rings.push({ x: ev.x, y: ev.y, radius: 90, t: 0, dur: 0.5, color: '#b8ffc9' });
+        break;
       case 'bossDie':
         this.banner('BUG RESOLVED', `${ev.name} — closed as fixed`, '#41d97f', 3);
         this.rewindMark = null; // loop terminated: a pending rewind dies with it

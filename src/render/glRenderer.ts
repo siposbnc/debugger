@@ -167,6 +167,19 @@ export class GlRenderer extends RendererBase {
       b.ring(sx, sy, z.radius, z.radius / 2, 1.5);
     }
 
+    // critical-exception slam telegraphs: red circle filling inward as the
+    // impact approaches — leave it before the fill completes
+    for (const s of run.slams) {
+      const sx = px(s.x, s.y), sy = py(s.x, s.y);
+      const p = 1 - clamp(s.t / s.maxT, 0, 1); // 0 → 1 toward impact
+      b.color(s.color, 0.12 + 0.18 * p);
+      b.ellipse(sx, sy, s.radius, s.radius / 2);
+      b.color(s.color, 0.85);
+      b.ring(sx, sy, s.radius, s.radius / 2, 2);
+      b.color('rgb(255, 230, 200)', 0.5 + 0.3 * p);
+      b.ring(sx, sy, s.radius * p, (s.radius * p) / 2, 2.5);
+    }
+
     // merge-conflict diff tether: a marching-dash beam between the split halves
     let halfA: { x: number; y: number } | null = null;
     let halfB: { x: number; y: number } | null = null;
@@ -334,7 +347,8 @@ export class GlRenderer extends RendererBase {
     b.color('#000', 0.35);
     b.ellipse(sx, sy, e.def.radius * (e.elite ? 1.4 : 1), e.def.radius / 2);
 
-    const sprite = e.isBoss
+    // race-condition afterimages are non-boss entities wearing the boss sprite
+    const sprite = e.isBoss || e.raceImage
       ? bossSprite(e.def.id, e.def.radius, (e.def as BossDef).color)
       : bugSprite((e.def as EnemyDef).shape, e.def.radius, (e.def as EnemyDef).color, e.elite);
     const w = sprite.width / 2, h = sprite.height / 2;
@@ -381,7 +395,12 @@ export class GlRenderer extends RendererBase {
     }
     if (e.enraged && e.hitFlash <= 0) { desat = -0.5; bright = 1.3; }
     if (e.critical && e.hitFlash <= 0 && e.frozenT <= 0) { desat = -0.6; bright = 1.2; }
-    b.alpha(e.isCopy ? 0.55 : 1);
+    if (e.raceImage) {
+      // ghostly, desaturated, and visibly burning down: flickers as the fuse runs out
+      desat = 0.6;
+      bright = 1.1 + 0.15 * Math.sin(this.t * (e.copyT < 1.2 ? 24 : 8));
+    }
+    b.alpha(e.isCopy || e.raceImage ? 0.55 : 1);
     b.sprite(this.reg(sprite), sx, sy - h / 2 + e.def.radius / 2, w, h, whiten, desat, bright);
     b.alpha(1);
 
@@ -392,8 +411,8 @@ export class GlRenderer extends RendererBase {
       b.rect(sx - bw / 2, sy - h - 4, bw, 5);
       b.color(e.isBoss ? '#ff5e5e' : '#ffc12e');
       b.rect(sx - bw / 2, sy - h - 4, bw * clamp(e.hp / e.maxHp, 0, 1), 5);
-      // stack overflow: one pip per live stack frame guarding it
-      if (e.isBoss && (e.def as BossDef).mechanic === 'summon' && (e.addsAlive ?? 0) > 0) {
+      // stack overflow / production incident: one pip per live stack frame guarding it
+      if (e.isBoss && ((e.def as BossDef).mechanic === 'summon' || (e.def as BossDef).mechanic === 'incident') && (e.addsAlive ?? 0) > 0) {
         b.color('#9db2c7');
         const np = Math.min(12, e.addsAlive!);
         for (let i = 0; i < np; i++) {

@@ -136,6 +136,20 @@ export class CanvasRenderer extends RendererBase {
       ctx.stroke();
     }
 
+    // critical-exception slam telegraphs (gameplay-critical: must be visible
+    // on this backend too, minimal styling)
+    for (const sl of run.slams) {
+      const s = this.proj(sl.x, sl.y);
+      const p = 1 - clamp(sl.t / sl.maxT, 0, 1);
+      ctx.fillStyle = `rgba(255, 77, 77, ${0.12 + 0.18 * p})`;
+      ctx.beginPath();
+      ctx.ellipse(s.x, s.y, sl.radius, sl.radius / 2, 0, 0, 7);
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(255, 77, 77, 0.85)';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+    }
+
     // merge-conflict diff tether: a marching-dash beam between the split halves
     const halves: { x: number; y: number }[] = [];
     for (const e of run.enemies) {
@@ -199,7 +213,7 @@ export class CanvasRenderer extends RendererBase {
           ctx.ellipse(s.x, s.y, e.def.radius * (e.elite ? 1.4 : 1), e.def.radius / 2, 0, 0, 7);
           ctx.fill();
 
-          const sprite = e.isBoss
+          const sprite = e.isBoss || e.raceImage // afterimages wear the boss sprite
             ? bossSprite(e.def.id, e.def.radius, (e.def as BossDef).color)
             : bugSprite((e.def as EnemyDef).shape, e.def.radius, (e.def as EnemyDef).color, e.elite);
           const w = sprite.width / 2, h = sprite.height / 2;
@@ -254,7 +268,7 @@ export class CanvasRenderer extends RendererBase {
           }
           if (e.enraged && e.hitFlash <= 0) ctx.filter = 'brightness(1.35) saturate(1.5)';
           if (e.critical && e.hitFlash <= 0 && e.frozenT <= 0) ctx.filter = 'brightness(1.25) saturate(1.6)';
-          if (e.isCopy) ctx.globalAlpha = 0.55;
+          if (e.isCopy || e.raceImage) ctx.globalAlpha = 0.55;
           ctx.drawImage(sprite, s.x - w / 2, s.y - h + e.def.radius / 2, w, h);
           ctx.restore();
 

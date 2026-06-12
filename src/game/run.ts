@@ -9,7 +9,7 @@ import { clamp, dist, mulberry32, pick, rand } from '../core/util';
 import { computeStats, type ComputedStats } from './stats';
 import { updateWeapons } from './combat';
 import { updateSpawner, makeCritical, SPAWN_RADIUS } from './spawner';
-import { updateBossSchedule, updateBossMechanics, crumblePillars } from './bossLogic';
+import { updateBossSchedule, updateBossMechanics, crumblePillars, fadeRaceImages } from './bossLogic';
 
 // ---------- entities ----------
 
@@ -48,6 +48,11 @@ export interface Enemy {
   popCdT?: number;        // stack-pop re-trigger cooldown
   stackFrame?: boolean;   // this enemy is a Stack Overflow stack frame (summoned mite)
   critical?: boolean;     // Crunch Time severity escalation (bug severity, not player crit)
+  mechT3?: number;        // third mechanic clock (incident: summon timer)
+  raceImage?: boolean;    // race-condition afterimage (boss-owned, expiry heals the boss)
+  panicState?: 'normal' | 'frozen' | 'thaw'; // kernel panic hard-freeze rhythm
+  panicT?: number;        // seconds left in the current frozen/thaw window
+  panicStage?: number;    // HP thresholds already consumed (0, 1, 2)
   facing: number;              // for rendering
   // difficulty-scaled values stamped at spawn time
   scaledSpeed?: number;
@@ -69,6 +74,8 @@ export interface EnemyShot {
   damage: number; radius: number; life: number; color: string;
   /** Memory-Leak glob: splash a short-lived leak puddle where the shot dies. */
   splash?: { radius: number; dps: number; life: number };
+  /** Kernel-Panic chill shard: a hit also lags the player for this long. */
+  chillDur?: number;
 }
 
 export interface Pickup {
@@ -93,6 +100,19 @@ export interface GroundZone {
 // inside — player and enemies alike. No damage; the hazard is positional:
 // crossing one while the horde flanks at full speed outside is the danger.
 export const LATENCY_SLOW = 0.6;
+// Kernel-Panic chill shards: a hit lags the player this hard while chillT runs.
+export const CHILL_SLOW = 0.5;
+
+/** Critical-Exception slam: telegraphed circle, detonates when t runs out.
+ *  Run-level (not boss-owned) so telegraphs persist through suspend/resume. */
+export interface Slam {
+  x: number; y: number;
+  radius: number;
+  t: number; maxT: number;   // countdown to impact (the telegraph window)
+  damage: number;
+  shards: number;            // radial shots scattered on impact
+  color: string;
+}
 
 // Overheating floor vents (Production Server hazard): fixed grates cycling
 // idle → warning glow → eruption. Damage only lands during the eruption window,
@@ -175,6 +195,11 @@ export type RunEvent =
   | { type: 'memoryFreed'; pools: { x: number; y: number }[] }  // memory leak died; pools reclaimed
   | { type: 'crunch' }                                          // 15:00 with bosses alive: crunch time
   | { type: 'vent'; x: number; y: number; radius: number }      // floor vent eruption near the player
+  | { type: 'teleport'; x: number; y: number }                  // race condition blinked here
+  | { type: 'raceResolved'; x: number; y: number }              // afterimage expired unkilled: boss healed
+  | { type: 'slam'; x: number; y: number; radius: number }      // critical exception impact landed
+  | { type: 'hardFreeze'; x: number; y: number }                // kernel panic locked up (armored blizzard)
+  | { type: 'thaw'; x: number; y: number }                      // kernel panic thawed (vulnerable window)
   | { type: 'chest'; x: number; y: number }
   | { type: 'mushiSpawn'; x: number; y: number }
   | { type: 'mushiCaught'; x: number; y: number }
@@ -272,6 +297,12 @@ export class Run {
   nextBossAt = 120;
   bossIndex = 0;
   bossWarned = false;
+  nextBossId: string | null = null;  // drawn once per slot (warning + spawn agree)
+  lastBossId: string | null = null;  // previous draw — pool avoids immediate repeats
+
+  // boss-mechanic transients
+  slams: Slam[] = [];   // critical-exception telegraphs (run-level: suspend-safe)
+  chillT = 0;           // kernel-panic chill debuff seconds left
 
   // character specials
   turretT = 6;
@@ -507,6 +538,7 @@ export class Run {
     updateWeapons(this, dt);
     this.updateProjectiles(dt);
     this.updateEnemyShots(dt);
+    this.updateSlams(dt);
     this.updateAllies(dt);
     this.updateZones(dt);
     this.updatePickups(dt);
@@ -530,8 +562,12 @@ export class Run {
     let wx = (mv.x + mv.y) * inv;
     let wy = (mv.y - mv.x) * inv;
 
-    // slow factors: deadlock scarab aura + marsh pools + latency fields
+    // slow factors: deadlock scarab aura + marsh pools + latency fields + chill
     this.playerSlow = 1;
+    if (this.chillT > 0) {
+      this.chillT -= dt;
+      this.playerSlow = CHILL_SLOW;
+    }
     this.grid.forEachInRadius(this.px, this.py, 150, (e) => {
       if (!e.isBoss && (e.def as EnemyDef).slowAura && e.frozenT <= 0) this.playerSlow = 0.55;
     });
@@ -695,6 +731,7 @@ export class Run {
       let remove = s.life <= 0;
       if (!remove && dist(s.x, s.y, this.px, this.py) < s.radius + 14) {
         this.hurtPlayer(s.damage);
+        if (s.chillDur) this.chillT = Math.max(this.chillT, s.chillDur);
         remove = true;
       }
       if (remove) {
@@ -709,6 +746,31 @@ export class Run {
         }
         this.enemyShots[i] = this.enemyShots[this.enemyShots.length - 1]; this.enemyShots.pop();
       }
+    }
+  }
+
+  /** Critical-Exception slams: the telegraph counts down, then the circle
+   *  detonates — damage only if the player is still inside (dodge-window
+   *  boss), plus a radial shard scatter from the impact point. */
+  private updateSlams(dt: number): void {
+    for (let i = this.slams.length - 1; i >= 0; i--) {
+      const s = this.slams[i];
+      s.t -= dt;
+      if (s.t > 0) continue;
+      if (dist(s.x, s.y, this.px, this.py) < s.radius + 14) {
+        this.hurtPlayer(s.damage);
+      }
+      for (let j = 0; j < s.shards; j++) {
+        const a = (Math.PI * 2 * j) / s.shards + Math.random() * 0.4;
+        this.enemyShots.push({
+          x: s.x, y: s.y,
+          vx: Math.cos(a) * 210, vy: Math.sin(a) * 210,
+          damage: s.damage * 0.35, radius: 8, life: 1.6, color: s.color,
+        });
+      }
+      this.emit({ type: 'slam', x: s.x, y: s.y, radius: s.radius });
+      this.slams[i] = this.slams[this.slams.length - 1];
+      this.slams.pop();
     }
   }
 
@@ -965,7 +1027,9 @@ export class Run {
       this.bossKills++;
       this.emit({ type: 'bossDie', x: e.x, y: e.y, name: boss.name });
       if (boss.mechanic === 'phase') crumblePillars(this); // died mid-armor: props fall with it
-      if (boss.mechanic === 'pools') {
+      if (boss.mechanic === 'teleport') fadeRaceImages(this); // races resolve in YOUR favor
+      if (boss.mechanic === 'slam') this.slams.length = 0; // pending slams die with it
+      if (boss.mechanic === 'pools' || boss.mechanic === 'incident') {
         // death frees all memory at once: every leak pool is reclaimed
         const pools = this.zones.filter((z) => z.kind === 'leak').map((z) => ({ x: z.x, y: z.y }));
         if (pools.length) {

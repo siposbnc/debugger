@@ -109,7 +109,12 @@ export interface EnemyDef {
   notABug?: boolean;
 }
 
-export type BossMechanic = 'split' | 'pools' | 'burst' | 'summon' | 'phase';
+export type BossMechanic =
+  | 'split' | 'pools' | 'burst' | 'summon' | 'phase'
+  | 'teleport'   // race condition: blink + afterimage races
+  | 'slam'       // critical exception: telegraphed AoE slams
+  | 'incident'   // production incident: pools + stack-frame guard combined
+  | 'panic';     // kernel panic: chill rings + hard-freeze/thaw rhythm
 
 export interface BossDef {
   id: string;
@@ -122,6 +127,9 @@ export interface BossDef {
   color: string;
   mechanic: BossMechanic;
   mechanicDesc: string;
+  /** standard = fills the every-2-min slots from the map's weighted pool;
+   *  unique = exactly one map's finale (fixed 12:00 slot, bigger kit). */
+  tier: 'standard' | 'unique';
 }
 
 export interface CharacterDef {
@@ -166,7 +174,11 @@ export interface MapDef {
    *  even on a good in-run build — see BALANCE.md §5. */
   enemyScale?: number;
   spawnPlan: SpawnPhase[];
-  bossOrder: string[];                   // boss ids, cycled with scaling after the list ends
+  /** Standard-boss weights for the every-2-min slots (weighted random draw,
+   *  no immediate repeat; the 2:00 opener draws only light bosses). */
+  bossPool: Record<string, number>;
+  /** This map's unique finale boss — spawns at the fixed 12:00 slot. */
+  uniqueBoss: string;
 }
 
 export interface MetaUpgradeDef {

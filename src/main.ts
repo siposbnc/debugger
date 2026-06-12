@@ -212,6 +212,11 @@ function drainEvents(): void {
       case 'memoryFreed': sound.play('resolve'); break;
       case 'crunch': sound.play('bossWarn'); break;
       case 'vent': sound.play('vent'); break;
+      case 'teleport': sound.play('fizz'); break;
+      case 'raceResolved': sound.play('bossWarn'); break;
+      case 'slam': sound.play('vent'); break;
+      case 'hardFreeze': sound.play('bossWarn'); break;
+      case 'thaw': sound.play('resolve'); break;
       case 'chest': sound.play('chest'); break;
       case 'mushiSpawn': sound.play('fizz'); break;
       case 'mushiCaught': sound.play('resolve'); break;

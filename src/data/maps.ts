@@ -19,7 +19,9 @@ export const MAPS: Record<string, MapDef> = {
       { fromMin: 10, interval: 0.55, weights: { nullWasp: 5, exceptionBeetle: 5, memoryLeech: 4, raceSpider: 5, deadlockScarab: 4, stackCentipede: 2 } },
       { fromMin: 12, interval: 0.48, weights: { nullWasp: 5, exceptionBeetle: 5, raceSpider: 5, deadlockScarab: 5, stackCentipede: 4 } },
     ],
-    bossOrder: ['mergeConflict', 'memoryLeak', 'infiniteLoop', 'stackOverflowBoss', 'legacyMonolith'],
+    // starter map keeps its iconic Merge Conflict opener most of the time
+    bossPool: { mergeConflict: 3, memoryLeak: 2, raceCondition: 2, infiniteLoop: 2, stackOverflowBoss: 1 },
+    uniqueBoss: 'legacyMonolith',
   },
 
   memoryMarsh: {
@@ -41,7 +43,9 @@ export const MAPS: Record<string, MapDef> = {
       { fromMin: 9, interval: 0.52, weights: { memoryLeech: 5, nullWasp: 5, exceptionBeetle: 5, raceSpider: 5, deadlockScarab: 5, stackCentipede: 3 } },
       { fromMin: 11, interval: 0.45, weights: { nullWasp: 5, exceptionBeetle: 6, raceSpider: 5, deadlockScarab: 5, stackCentipede: 5 } },
     ],
-    bossOrder: ['memoryLeak', 'mergeConflict', 'stackOverflowBoss', 'infiniteLoop', 'legacyMonolith'],
+    // leak country: the Memory Leak haunts its own swamp
+    bossPool: { memoryLeak: 3, mergeConflict: 2, raceCondition: 2, infiniteLoop: 2, stackOverflowBoss: 2 },
+    uniqueBoss: 'criticalException',
   },
 
   productionServer: {
@@ -67,7 +71,9 @@ export const MAPS: Record<string, MapDef> = {
       { fromMin: 9, interval: 0.5, weights: { exceptionBeetle: 5, nullWasp: 5, deadlockScarab: 5, raceSpider: 5, stackCentipede: 3 } },
       { fromMin: 11, interval: 0.44, weights: { exceptionBeetle: 5, nullWasp: 5, deadlockScarab: 6, raceSpider: 5, stackCentipede: 5 } },
     ],
-    bossOrder: ['infiniteLoop', 'mergeConflict', 'stackOverflowBoss', 'memoryLeak', 'legacyMonolith'],
+    // prod is where races and stack blowups page you at 3am
+    bossPool: { stackOverflowBoss: 3, raceCondition: 3, mergeConflict: 2, infiniteLoop: 2, memoryLeak: 1 },
+    uniqueBoss: 'productionIncident',
   },
   cyberGlacier: {
     id: 'cyberGlacier', name: 'Cyber Glacier',
@@ -92,7 +98,9 @@ export const MAPS: Record<string, MapDef> = {
       { fromMin: 9, interval: 0.52, weights: { memoryLeech: 5, deadlockScarab: 6, nullWasp: 5, stackCentipede: 4, exceptionBeetle: 4, raceSpider: 4 } },
       { fromMin: 11, interval: 0.46, weights: { deadlockScarab: 6, nullWasp: 5, stackCentipede: 6, exceptionBeetle: 4, raceSpider: 5 } },
     ],
-    bossOrder: ['stackOverflowBoss', 'memoryLeak', 'infiniteLoop', 'mergeConflict', 'legacyMonolith'],
+    // frozen processes: the slow heavyweights rule the glacier
+    bossPool: { stackOverflowBoss: 3, infiniteLoop: 3, memoryLeak: 2, mergeConflict: 2, raceCondition: 2 },
+    uniqueBoss: 'kernelPanic',
   },
 };
 

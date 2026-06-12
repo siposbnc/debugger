@@ -4,7 +4,7 @@ import { WEAPONS } from '../data/weapons';
 import { ENEMIES } from '../data/enemies';
 import { BOSSES } from '../data/bosses';
 import { CARD_BY_ID } from '../data/upgrades';
-import { Run, type Enemy, type Pickup, type GroundZone, type Ally, type Mushi } from './run';
+import { Run, type Enemy, type Pickup, type GroundZone, type Ally, type Mushi, type Slam } from './run';
 
 // Suspend & resume: a full-fidelity snapshot of a live run, stored inside
 // SaveData (suspendedRun) so a run survives closing the browser. Projectiles
@@ -45,6 +45,10 @@ export interface SuspendedRun {
   chestBonus: boolean;
   // spawning / boss schedule
   spawnTimer: number; nextBossAt: number; bossIndex: number; bossWarned: boolean;
+  // boss tier system — optional: older snapshots redraw the slot on resume
+  nextBossId?: string | null; lastBossId?: string | null;
+  // boss-mechanic transients — optional: default to none active
+  slams?: Slam[]; chillT?: number;
   // crunch time — optional: snapshots from before the mechanic existed restore inactive
   crunchStarted?: boolean; crunchT?: number;
   // character specials
@@ -68,7 +72,8 @@ function snapEnemy(e: Enemy): EnemySnap {
 
 function restoreEnemy(s: EnemySnap): Enemy {
   const { defId, ...rest } = s;
-  const def = s.isBoss ? BOSSES[defId] : ENEMIES[defId];
+  // race-condition afterimages are non-boss enemies wearing a boss def
+  const def = s.isBoss || s.raceImage ? BOSSES[defId] : ENEMIES[defId];
   if (!def) fail(s.isBoss ? 'boss' : 'enemy', defId);
   return { ...rest, def };
 }
@@ -99,6 +104,8 @@ export function snapshotRun(run: Run): SuspendedRun {
     objectivesThisRun: [...run.objectivesThisRun],
     chestBonus: run.chestBonus,
     spawnTimer: run.spawnTimer, nextBossAt: run.nextBossAt, bossIndex: run.bossIndex, bossWarned: run.bossWarned,
+    nextBossId: run.nextBossId, lastBossId: run.lastBossId,
+    slams: run.slams.map((s) => ({ ...s })), chillT: run.chillT,
     crunchStarted: run.crunchStarted, crunchT: run.crunchT,
     turretT: run.turretT, helperT: run.helperT,
     enemies: run.enemies.map(snapEnemy),
@@ -156,6 +163,12 @@ export function restoreRun(snap: SuspendedRun, doneObjectives: Set<string>): Run
   run.nextBossAt = snap.nextBossAt;
   run.bossIndex = snap.bossIndex;
   run.bossWarned = snap.bossWarned;
+  // unknown stored boss id (content drift) is tolerated: the scheduler
+  // validates and redraws the slot instead of failing the whole snapshot
+  run.nextBossId = snap.nextBossId ?? null;
+  run.lastBossId = snap.lastBossId ?? null;
+  run.slams = (snap.slams ?? []).map((s) => ({ ...s }));
+  run.chillT = snap.chillT ?? 0;
   run.crunchStarted = snap.crunchStarted ?? false;
   run.crunchT = snap.crunchT ?? 0;
   run.turretT = snap.turretT; run.helperT = snap.helperT;

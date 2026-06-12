@@ -340,6 +340,108 @@ export function bossSprite(id: string, radius: number, color: string): HTMLCanva
         eyes(ctx, 0, -r * 0.78, r * 0.22, r * 0.15);
         break;
       }
+      case 'raceCondition': {
+        // a body that can't decide where it is: two offset ghost copies + core
+        ctx.globalAlpha = 0.35;
+        ctx.fillStyle = color;
+        for (const ox of [-r * 0.55, r * 0.55]) {
+          ctx.beginPath(); ctx.ellipse(ox, 0, r * 0.7, r * 0.55, 0, 0, 7); ctx.fill();
+        }
+        ctx.globalAlpha = 1;
+        legs(ctx, color, r, 4);
+        withGlow(ctx, color, 12, () => {
+          ctx.fillStyle = color;
+          ctx.beginPath(); ctx.ellipse(0, 0, r * 0.8, r * 0.65, 0, 0, 7); ctx.fill();
+        });
+        eyes(ctx, 0, -r * 0.15, r * 0.2, r * 0.14);
+        // glitch squares trailing off the body
+        ctx.fillStyle = color;
+        ctx.globalAlpha = 0.55;
+        ctx.fillRect(-r * 1.15, -r * 0.5, r * 0.18, r * 0.18);
+        ctx.fillRect(r * 0.95, r * 0.3, r * 0.22, r * 0.22);
+        ctx.fillRect(-r * 0.9, r * 0.55, r * 0.14, r * 0.14);
+        ctx.globalAlpha = 1;
+        break;
+      }
+      case 'criticalException': {
+        // jagged warning-burst body with a huge exclamation core
+        withGlow(ctx, color, 14, () => {
+          ctx.fillStyle = color;
+          ctx.beginPath();
+          const spikes = 9;
+          for (let i = 0; i < spikes * 2; i++) {
+            const a = (Math.PI * i) / spikes - Math.PI / 2;
+            const rr = i % 2 === 0 ? r * 1.05 : r * 0.62;
+            ctx[i === 0 ? 'moveTo' : 'lineTo'](Math.cos(a) * rr, Math.sin(a) * rr);
+          }
+          ctx.closePath(); ctx.fill();
+        });
+        eyes(ctx, 0, -r * 0.3, r * 0.18, r * 0.13);
+        ctx.fillStyle = '#1a1d24';
+        ctx.font = `bold ${r * 0.85}px monospace`;
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.fillText('!', 0, r * 0.28);
+        break;
+      }
+      case 'productionIncident': {
+        // a screaming pager: rounded slab, alarm crown, SEV1 on the screen
+        withGlow(ctx, color, 12, () => {
+          ctx.fillStyle = color;
+          ctx.beginPath();
+          ctx.roundRect(-r * 0.85, -r * 0.7, r * 1.7, r * 1.5, r * 0.2);
+          ctx.fill();
+        });
+        // alarm horns radiating from the top
+        ctx.strokeStyle = color;
+        ctx.lineWidth = r * 0.1;
+        for (const s of [-1, 0, 1]) {
+          ctx.beginPath();
+          ctx.moveTo(s * r * 0.4, -r * 0.85);
+          ctx.lineTo(s * r * 0.6, -r * 1.25);
+          ctx.stroke();
+        }
+        // screen
+        ctx.fillStyle = '#1a1d24';
+        ctx.fillRect(-r * 0.6, -r * 0.45, r * 1.2, r * 0.55);
+        withGlow(ctx, '#ff5e5e', 8, () => {
+          ctx.fillStyle = '#ff5e5e';
+          ctx.font = `bold ${r * 0.38}px monospace`;
+          ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+          ctx.fillText('SEV-1', 0, -r * 0.17);
+        });
+        eyes(ctx, 0, r * 0.45, r * 0.2, r * 0.14);
+        break;
+      }
+      case 'kernelPanic': {
+        // a cracked ice slab wearing the BSOD sad face
+        withGlow(ctx, color, 14, () => {
+          ctx.fillStyle = color;
+          ctx.beginPath();
+          ctx.moveTo(-r * 0.9, -r * 0.55);
+          ctx.lineTo(-r * 0.35, -r * 1.05);
+          ctx.lineTo(r * 0.75, -r * 0.85);
+          ctx.lineTo(r * 0.95, r * 0.45);
+          ctx.lineTo(r * 0.2, r * 1.0);
+          ctx.lineTo(-r * 0.8, r * 0.7);
+          ctx.closePath(); ctx.fill();
+        });
+        // internal fracture lines
+        ctx.strokeStyle = 'rgba(16, 24, 40, 0.7)';
+        ctx.lineWidth = r * 0.06;
+        ctx.beginPath();
+        ctx.moveTo(-r * 0.5, -r * 0.6); ctx.lineTo(-r * 0.1, 0); ctx.lineTo(-r * 0.45, r * 0.55);
+        ctx.moveTo(r * 0.55, -r * 0.5); ctx.lineTo(r * 0.25, r * 0.1); ctx.lineTo(r * 0.6, r * 0.5);
+        ctx.stroke();
+        // :( — the universal stop screen
+        ctx.fillStyle = '#10182a';
+        ctx.font = `bold ${r * 0.62}px monospace`;
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.save();
+        ctx.rotate(Math.PI / 2);
+        ctx.fillText(':(', 0, 0);
+        ctx.restore();
+        break;
+      }
       case 'legacyMonolith': {
         withGlow(ctx, color, 10, () => {
           ctx.fillStyle = color;
