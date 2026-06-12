@@ -80,10 +80,19 @@ one-time, so no re-run inflation; the main growing faucet is boss kills, priced 
 Total shop cost: meta upgrades **9,425 ⌬** + characters 3,750 (v0.2's 1,400 + rex 350 /
 hexa 550 / dana 650 / cobol 800) + weapons 5,050 (v0.2's 1,550 + firewall 700 /
 forkBomb 800 / pingStorm 900 / sudoScroll 1,100) + maps 3,700 (500 + 1,200 + 2,000) =
-**21,925 ⌬** → the original 25–35-run window was set against the v0.2 12,875 ⌬ total;
-the v0.3 additions sit on top and are earned at the higher ×1.5-map bands — re-check
-the runs-to-clear window at the v0.3 band re-certification (roadmap "Meta shop depth
-check").
+**21,925 ⌬**.
+
+**Depth check (2026-06-12, v0.3 close-out):** the window holds. Staged model against
+the observed v0.3 bands (greenfield victory ~2,100; marsh ~2,400–2,800; production
+~3,000; glacier ~3,100–3,700 with first-clear stacks; early deaths 300–900; ~2,400 ⌬
+of one-time objectives): phase 1 (greenfield learning, ~6 runs × ~700) ≈ 4,200; phase
+2 (greenfield wins + marsh attempts, ~8 runs × ~1,500) ≈ cum 16,000; phase 3
+(marsh/production wins × ~2,500) clears 21,925 around run 17–19 by raw sum — with a
+realistic loss mix, a full clear lands **~20–28 runs**, at the fast edge of the 25–35
+window but inside it: the +9,050 ⌬ of v0.3 content is earned at ×1.25–1.5-map bands
+that grew in step with it. **Headroom for pillar 5 is certified directly**: the 9,425 ⌬
+meta shop posts ≥ 40% maxed-meta win rates on production AND glacier (§5). No tuning
+needed; re-check when v0.4 (endless mode, curses) changes the faucets.
 
 ## 5. Difficulty certification (mortal-bot win rates)
 
@@ -176,6 +185,12 @@ and stragglers were never recycled — survival needed no kill rate at all).
   swarm corner the kiter by ~min 4). *The earlier "build-gating, not meta-gating, by design"
   ruling is superseded (user directive 2026-06-12): marsh is now explicitly meta-gated via
   `enemyScale` 1.2 — a good zero-meta build wins only 12.5%, maxed meta 56% (§5 table).*
-- **linus under-scales with meta** (maxed-meta careless: 3/8 greenfield, 0/8 marsh vs
-  6–7/8 for others) — helpers don't benefit from most meta stats; check when characters
-  get a balance pass.
+- **linus under-scales with meta** — *re-measured 2026-06-12 (v0.3 close-out, from-zero
+  mortal greedy at maxed meta): linus 3/24 pooled vs ada 6/24; greenfield head-to-head
+  2/16 vs 5/16. The ~2× gap persists across the difficulty overhaul.* Root cause is
+  structural, not a number: the meta shop's stats are player-survival/economy (HP,
+  regen, armor, luck, XP) plus flat damage — helpers inherit only `damageMult`, so the
+  flat-power passive stops compounding exactly where ada's XP passive keeps scaling.
+  Any quick helper buff also buffs zero-meta linus (whose floor is fine). Deferred to a
+  character meta-scaling pass (tracked v0.4 P2) — candidate direction: allies inherit
+  more of the player's computed stats (crit, or an ally-keyed meta upgrade).
