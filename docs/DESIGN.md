@@ -19,6 +19,12 @@ meets a stand-up routine about production incidents.*
 2. **Readable chaos** — hundreds of enemies, always legible (isometric, strong color language).
 3. **One more run** — Bits, unlocks and objectives always leave a next goal.
 4. **Funny, not a joke game** — humor in names/flavor; numbers and mechanics stay serious.
+5. **Meta progression is mandatory, not optional** *(user directive 2026-06-12)* — the
+   meta shop is not a convenience layer: harder maps are tuned to be near-unwinnable at
+   zero meta *even on a good in-run build* (per-map `enemyScale`, certification in
+   BALANCE.md §5). The intended loop is lose → bank Bits → buy → come back measurably
+   stronger. This pillar is what the v0.5 infinite-meta/prestige endgame stands on —
+   there must always be a wall worth returning stronger for.
 
 ## 3. Target player experience
 
@@ -103,12 +109,30 @@ checks, soft enrages, interrupt thresholds. Rationale: pre-v0.3 bosses were
 a boss should be a challenge precisely when the build is weak. Tuning constants
 live at the top of `src/game/bossLogic.ts`.
 
+**Bullet heaven by default** *(user directive 2026-06-12)*: most bosses must
+fight through dodgeable projectile patterns — the Infinite Loop is the
+reference. A boss with no bullet layer is the *exception* and must buy its
+uniqueness with other pressure (speed, heavy melee, hard-to-avoid mechanics,
+bug spawning); the Legacy Monolith is the canonical one (pillars + breeding +
+bulk, zero shots).
+
+**Boss tiers** (v0.3 direction, lands with the +3 new bosses): bosses split into
+**standard** and **unique**. Standard bosses fill the every-2-minutes slots,
+drawn from a *shared pool with per-map filtering/weights* (replaces today's
+fixed per-map `bossOrder` — every map currently runs the same five in a
+different order, which reads as reskinned scheduling, not map identity). Each
+map gets exactly one **unique** finale boss that appears only there (bigger,
+late-run, full bullet-heaven kit). Provisional assignment: Legacy Monolith →
+Greenfield; The Critical Exception → Memory Marsh; The Production Incident →
+Production Server; Cyber Glacier's unique TBD with the map. The Race Condition
+joins the standard pool.
+
 | Boss | Layer 1: pattern | Layer 2: build test |
 |---|---|---|
-| The Merge Conflict | splits into two at 50% HP — both must die (each half starts at a full bar, 35% of the original pool) | halves linked by a damaging diff tether; >30% HP gap force-push enrages the stronger half (+50% dmg, +60% speed, "!!" marker + red ring) until the gap closes below 15% → spread your damage |
-| The Memory Leak | drips damage pools | pools never expire while it lives (cap 28, oldest paged out) — soft-enrage DPS check; death frees every pool at once |
+| The Merge Conflict | sprays aimed diff-hunk fans (3 shots whole, 4 per half once split, enraged half at ×0.55 period) and splits into two at 50% HP — both must die (each half starts at a full bar, **55%** of the original pool — at the old 35% the halves died before the enrage could ever matter; post-split is now the longer part of the fight) | halves linked by a damaging diff tether; >25% HP gap force-push enrages the stronger half (+50% dmg, +60% speed, denser volleys, "!!" marker + red ring) until the gap closes below 12% → spread your damage |
+| The Memory Leak | drips damage pools + lobs slow heap globs at your feet that splash short-lived puddles (bullet layer: dodge the lob, lose the ground it lands on) | pools never expire while it lives (cap 28, oldest paged out; glob splashes don't count) — soft-enrage DPS check; death frees every pool at once |
 | The Infinite Loop | radial bursts, faster each cycle | snapshots your position every 7s and rewinds you to it 2.5s later (marker shown) → plan positions, end the fight before the bursts compound |
-| The Stack Overflow | summons recursive mites + aimed triple shots | live mites are stack frames: 50% damage resist while any live (shield ring + one pip per frame over its HP bar); clearing the stack pops it — 2.5s stun at full vulnerability (10s pop cooldown) → add-clear/AoE check |
+| The Stack Overflow | summons recursive mites + aimed 5-shot fans | live mites are stack frames: 50% damage resist while any live (shield ring + one pip per frame over its HP bar); clearing the stack pops it — 2.5s stun at full vulnerability (10s pop cooldown) → add-clear/AoE check |
 | The Legacy Monolith | armored phase (75% resist) ↔ exposed core | armor spawns 3 Deprecated Dependency pillars that soak shots/auto-aim and **holds until all are destroyed** (no timer; 5s exposed core after). Pillars *orbit* the boss — they travel with it, so the boss advancing is what brings them into weapon range (stationary pillars left a kiting melee build unable to ever break armor — sim-caught). Also breeds bugs: pairs from the map's spawn pool hatch around it every 4.5s the whole fight — it's legacy code, touching it makes more bugs |
 
 A boss that is resistant *right now* always shows the rotating dashed shield
@@ -116,21 +140,31 @@ ring (+ desaturated sprite) — the armored state is never invisible.
 
 Tier scaling: HP ×(1+0.35·tier), DMG ×(1+0.15·tier); order cycles past 10:00.
 
-**Crunch Time** (v0.3): the release ships at 15:00 — any boss still alive then
-is a *release blocker*. Instead of a free victory, the run enters 30s of crunch:
-the trash swarm is descoped on the spot (removed, no rewards — P3s punted to the
-next sprint), the spawner freezes, and the player gets crunch adrenaline (+50%
-damage, +15% move speed). Kill every blocker before the timer ends → victory;
-any blocker outliving crunch → **the release slips and the run is failed**
-("RELEASE SLIPPED" summary). This makes ignoring bosses a real cost: pre-crunch
-they could simply be outlived. Constants: `CRUNCH_*` in `src/game/run.ts`.
+**Crunch Time** (v0.3, punishment rework 2026-06-12): the release ships at
+15:00 — any boss still alive then is a *release blocker*. Instead of a free
+victory, the run enters 30s of crunch — and crunch is a **punishment, not a
+rescue** (user directive: the original version descoped the trash on the spot,
+which made the overtime *easier* than the fight before it). Now: every live bug
+**goes critical** (+50% damage, +30% speed, pulsing red ring + saturated
+sprite) instead of despawning; anything hatched during overtime (Monolith
+breeding, stack frames) is born critical; only *new* spawns freeze (feature
+freeze) — and straggler recycling keeps running, so the critical horde cannot
+be kited off. The player still gets crunch adrenaline (+50% damage, +15% move
+speed) so a strong build has a real shot. Kill every blocker before the timer
+ends → victory; any blocker outliving crunch → **the release slips and the run
+is failed** ("RELEASE SLIPPED" summary). Constants: `CRUNCH_*` in
+`src/game/run.ts`, `CRITICAL_*` in `src/game/spawner.ts`.
 
 ## 14. Maps
 
-**Greenfield Repository** (starter): corrupted meadow, full pool, ×1.0 Bits.
-**Memory Marsh** (500 ⌬): leech-heavy, static toxic pools (slow + dps), ×1.25 Bits.
-Future biomes (post-MVP): Stack Canyon, Production Server, Cloud Citadel, Cyber Glacier,
-Firewall Bastion, Legacy Ruins, Nullwood Forest.
+**Greenfield Repository** (starter): corrupted meadow, full pool, ×1.0 Bits, enemyScale 1.0.
+**Memory Marsh** (500 ⌬): leech-heavy, static toxic pools (slow + dps), ×1.25 Bits, enemyScale 1.2.
+**Production Server** (1200 ⌬): overheating floor vents (telegraphed eruptions), beetle/scarab
+skew, ×1.5 Bits, enemyScale 1.35.
+Map price, Bits multiplier and `enemyScale` climb together: the meta-gating ladder
+(core pillar 5) — each next map is bought with the previous one's earnings and demands
+the meta power those earnings bought. Future biomes (post-MVP): Stack Canyon, Cloud
+Citadel, Cyber Glacier, Firewall Bastion, Legacy Ruins, Nullwood Forest.
 
 ## 15–16. Objectives & unlocks
 
@@ -140,8 +174,10 @@ Unlock surface = objectives (Bits) + shop (characters/weapons/maps/meta).
 
 ## 17. Difficulty scaling model
 
-See §5. Knobs live in `difficulty()` (`src/data/enemies.ts`) and per-map `spawnPlan`
-phase tables (interval + enemy weights per minute band). Enemy cap 380.
+See §5. Knobs live in `difficulty()` (`src/data/enemies.ts`), per-map `spawnPlan`
+phase tables (interval + enemy weights per minute band), and per-map `enemyScale`
+(flat enemy + boss HP/damage multiplier — the meta-gating lever, core pillar 5;
+certified values + win-rate targets in BALANCE.md §5). Enemy cap 380.
 
 ## 18. UI/UX
 
@@ -212,6 +248,13 @@ wand ~100 kills by 2:00). First boss TTK target 60–100s. Watch: Assertion Blad
 hardest with cooldown builds; Exception Beetle density above minute 10 (explosion
 stacking); Bits inflation from objective re-runs is impossible (one-time) — main faucet
 is boss kills, gated by bossRewardMult price.
+
+Card power is capped structurally (2026-06-12 card-tuning pass): rares stack ×3,
+epics ×2, legendaries ×1 — default-5 stacking on high tiers was the "stupidly strong"
+outlier (5× Compiler Blessing = +150% dmg). Joke downsides must be real downsides
+(Merge Conflict card −25 HP, Infinite Loop card −12% dmg). The **meta gap** is the
+core certification metric: on harder maps the zero-meta→maxed-meta win-rate spread
+must stay wide (BALANCE.md §5) — never tune it away.
 
 ## 28. Risks & design challenges
 

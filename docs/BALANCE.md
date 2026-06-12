@@ -84,41 +84,47 @@ Total shop cost: meta upgrades **9,425 ⌬** + characters 1,400 + weapons 1,550 
 ## 5. Difficulty certification (mortal-bot win rates)
 
 The matrix can run a **mortal** bot (`--mortal`, survival kiting + real death) with pick
-strategies (`--pick=first|greedy`) and meta power (`--meta=max`). Survival must be decided
-by power, not movement: straggler recycling (`spawner.ts`) makes the horde inescapable and
-heading-biased, and the quadratic enemy-damage term makes an uncleaned wall lethal past
-~min 8. Targets (zero meta unless stated, n ≥ 8 per config):
+strategies (`--pick=first|greedy`) and meta power (`--meta=max`, or `"meta": "max"` in a
+scenario preset). Survival must be decided by power, not movement: straggler recycling
+(`spawner.ts`) makes the horde inescapable and heading-biased, and the quadratic
+enemy-damage term makes an uncleaned wall lethal past ~min 8.
 
-> **Crunch Time caveat (2026-06-12):** v0.3 tightened the victory definition — bosses
-> alive at 15:00 trigger a 30s crunch overtime, and a surviving blocker now *fails* the
-> run ("RELEASE SLIPPED"). The win rates below were certified under the old
-> survive-to-15:00 rule; outlive-the-bosses kiting no longer counts as a win, so these
-> targets need re-certification (expect lower careless-bot numbers — that's intended:
-> crunch exists precisely to stop boss-ignoring play from winning).
+**Meta-gating is the core design (user directive 2026-06-12, DESIGN.md pillar 5):**
+harder maps must be near-unwinnable at zero meta *even with a good in-run build*; meta
+investment is what unlocks them. The lever is per-map `enemyScale` (enemy + boss
+HP/damage; greenfield 1.0, memoryMarsh 1.2, productionServer 1.35). The certification
+metric is the **meta gap**: zero-meta vs maxed-meta win rate on the same good-build
+scenario. The old "marsh is build-gated, not meta-gated, by design" ruling is
+**superseded** by this directive.
 
-| Bot | greenfield | memoryMarsh | Status (2026-06-11) |
+Certified 2026-06-12 (`build-good` / `build-good-meta` scenario presets — same lv 12 @
+6:00 focused build, only meta differs; greedy continuation; n = 16/arm), after the same-day
+card-tuning + boss-buff + crunch-punishment passes which lowered all absolute rates:
+
+| Map (enemyScale) | good build, zero meta | good build, maxed meta | Target |
 |---|---|---|---|
-| Careless (offer[0]), zero meta | **≤ 30%** win | ~0% | 28% / 0% ✓ |
-| Careless, maxed meta | **≥ 60%** win | ≥ 25% | 72% / 31% ✓ |
-| Synergy picks (greedy bot) | should beat careless | — | organic greedy ≈ careless (kiting bots are XP-starved, median lv 8–11 by 15:00 — a bot artifact, not the economy); certified via scenario A/B instead, below |
+| greenfield (1.0) | **38%** (careless onward: 6%) | **69%** (careless onward: 38%) | zero ~30–50%, meta ≥ 60% |
+| memoryMarsh (1.2) | **12.5%** | **56%** | zero ≤ 15%, meta ≥ 40% |
+| productionServer (1.35) | **0%** | **50%** | zero ~0%, meta ≥ 40% |
 
-**In-run build-quality separation** (certified 2026-06-12, n = 16/arm): the `build-good` /
-`build-scattered` / `build-none` scenario presets grant the *same* XP position (ada lv 12 @ 6:00
-= an 11-pick budget) and differ only in how the budget was spent — focused offense (wand lv 6 +
-dmg/CDR cards) vs unfocused eco/utility cards vs nothing. Mortal bot, zero meta, identical
-movement + careless continuation:
+Reading the ladder: on the starter map, *either* meta or build/skill buys a fair shot and
+both together make it comfortable; each next map shifts the requirement one notch toward
+"both, and more meta". Bot rates understate humans (careless continuation, orbit kiting),
+so absolute numbers are pessimistic — the gap shape is the target, not the exact values.
+Dominant failure mode at high meta is now release-slip (bosses outliving crunch), not
+death — boss TTK, not survival, is the late-game check. Re-run with:
+`node scripts/matrix.cjs 16 --scenario=build-good[-meta] [--map=...] [--pick=greedy]`.
 
-| Arm | greenfield | memoryMarsh |
-|---|---|---|
-| Good build, careless onward | **63%** win (10/16) | **44%** (7/16) |
-| Good build, greedy onward | **94%** (15/16) | — |
-| Scattered build | 0/16 (dies ~10:30, 0 bosses ever) | 0/16 (dies ~7:00) |
-| No build (control) | 0/16 (dies ~9:00) | — |
-
-Power, not movement, decides the run — the user directive ("good in-run builds should win much
-more") holds. Target for re-runs: good ≥ 50% on greenfield while scattered stays ≤ 10%.
+**In-run build-quality separation** (first certified 2026-06-12 pre-difficulty-overhaul,
+n = 16/arm): the `build-good` / `build-scattered` / `build-none` scenario presets grant the
+*same* XP position (ada lv 12 @ 6:00 = an 11-pick budget) and differ only in how the budget
+was spent — focused offense (wand lv 6 + dmg/CDR cards) vs unfocused eco/utility cards vs
+nothing. The original numbers (good 63% / greedy 94% on greenfield vs scattered & none 0%)
+predate the difficulty overhaul; post-overhaul good-build rates are in the meta-gap table
+above (38% / 6% greenfield zero-meta). The *separation* requirement stands: scattered and
+no-build arms must stay ≤ 10% wherever the good build posts a meaningfully higher rate.
 Caveat: lv 12 @ 6:00 sits slightly above the §2 invincible-bot curve (plausible for a skilled
-human, generous for an average one); both arms share it, so the comparison is fair.
+human, generous for an average one); all arms share it, so the comparison is fair.
 
 Re-run with:
 `node scripts/matrix.cjs 16 --scenario=build-good` (also `--pick=greedy`, `--map=memoryMarsh`,
@@ -130,8 +136,9 @@ and stragglers were never recycled — survival needed no kill rate at all).
 
 ## 6. Known outliers & open questions (re-check after every content change)
 
-- **Assertion Blades + cooldown stacking** — strongest known combo; needs a checked-in
-  scenario once the sim-scenarios tooling exists.
+- **Assertion Blades + cooldown stacking** — strongest known combo; the checked-in
+  `blades-cdr` scenario is the instrument (updated 2026-06-12 to the max *legal* CDR
+  build under the new stack caps: rares ×3, epics ×2).
 - **Exception Beetle density past 10:00** — explosion stacking.
 - **ada auto-pick variance** — *root-caused 2026-06-11 by the matrix*: the Syntax Wand was
   the only zero-pierce, single-target starter, and ada's passive (+10% XP) adds no combat
@@ -145,10 +152,9 @@ and stragglers were never recycled — survival needed no kill rate at all).
   zero-meta runs (others 12–37%); turret life cut 10 s → 7 s brought him to 50% — still the
   strongest floor, watch after any turret/hammer change.
 - **memoryMarsh at zero meta** is a 0%-win wall for careless mortal bots (hazard pools +
-  swarm corner the kiter by ~min 4). Maxed meta reaches 31%. *Resolved 2026-06-12 by the
-  build-quality A/B: the wall is build-gating, not meta-gating — a good zero-meta build wins
-  44% (7/16, `build-good --map=memoryMarsh`) while the same XP spent badly dies by ~7:00.
-  The second map demanding an actual build is by design; left as-is.*
+  swarm corner the kiter by ~min 4). *The earlier "build-gating, not meta-gating, by design"
+  ruling is superseded (user directive 2026-06-12): marsh is now explicitly meta-gated via
+  `enemyScale` 1.2 — a good zero-meta build wins only 12.5%, maxed meta 56% (§5 table).*
 - **linus under-scales with meta** (maxed-meta careless: 3/8 greenfield, 0/8 marsh vs
   6–7/8 for others) — helpers don't benefit from most meta stats; check when characters
   get a balance pass.
