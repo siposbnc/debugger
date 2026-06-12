@@ -112,8 +112,10 @@ export interface Pickup {
 
 /** Impassable terrain blocker (server rack &c.) — a static collision circle.
  *  Blocks player + regular enemy movement via push-out (slide-along falls out
- *  of removing only the penetration component); bosses and stationary enemies
- *  are exempt, projectiles and shots fly over. */
+ *  of removing only the penetration component) AND flat-flying projectiles
+ *  from both sides (user ruling 2026-06-12 — racks are real cover). Exempt:
+ *  bosses + stationary enemies (movement), lobbed arcs (Fork Bombs, splash
+ *  globs), and instant effects (chains, smites, columns, sweeps). */
 export interface Obstacle {
   x: number; y: number; r: number;
 }
@@ -436,6 +438,15 @@ export class Run {
         }
       }
     }
+  }
+
+  /** Is this point inside a terrain blocker (+pad)? Hot loop: squared early-out. */
+  obstacleAt(x: number, y: number, pad = 0): boolean {
+    for (const o of this.obstacles) {
+      const dx = x - o.x, dy = y - o.y, r = o.r + pad;
+      if (dx * dx + dy * dy < r * r) return true;
+    }
+    return false;
   }
 
   /** Push a moving body of radius `br` out of every obstacle it penetrates.
@@ -892,6 +903,12 @@ export class Run {
       }
       if (p.bomb) continue; // bombs are lobbed OVER the field: no contact damage in flight
 
+      // racks stop flat-flying shots (user ruling 2026-06-12); lobbed bombs
+      // above arc over them. Homing packets included — racks are real cover.
+      if (this.obstacles.length > 0 && this.obstacleAt(p.x, p.y)) {
+        this.projectiles[i] = this.projectiles[this.projectiles.length - 1]; this.projectiles.pop(); continue;
+      }
+
       let dead = false;
       this.grid.forEachInRadius(p.x, p.y, p.radius + 26, (e) => {
         if (dead || p.hit.has(e)) return;
@@ -967,6 +984,12 @@ export class Run {
       s.x += s.vx * dt; s.y += s.vy * dt;
       s.life -= dt;
       let remove = s.life <= 0;
+      // cover works both ways: racks eat flat enemy shots too. Splash globs
+      // (Memory Leak) are lobbed and arc over — they die by the life timer,
+      // landing their puddle wherever it runs out, racks or not.
+      if (!remove && !s.splash && this.obstacles.length > 0 && this.obstacleAt(s.x, s.y)) {
+        this.enemyShots[i] = this.enemyShots[this.enemyShots.length - 1]; this.enemyShots.pop(); continue;
+      }
       if (!remove && dist(s.x, s.y, this.px, this.py) < s.radius + 14) {
         this.hurtPlayer(s.damage);
         if (s.chillDur) this.chillT = Math.max(this.chillT, s.chillDur);

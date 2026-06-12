@@ -50,6 +50,39 @@ check('slide-along: tangential progress survives', slider.y > start.y + 80,
 check('slide-along: never inside the rack',
   Math.hypot(slider.x - o0.x, slider.y - o0.y) >= o0.r + 13 - 1e-6);
 
+// --- projectile blocking (user ruling: racks stop flat-flying shots) ---
+const o1 = run.obstacles[0];
+run.projectiles.push({
+  x: o1.x - o1.r - 30, y: o1.y, vx: 600, vy: 0, // flying straight at the rack
+  damage: 10, radius: 4, pierce: 1, life: 5, slow: 0, slowDur: 0, freeze: 0,
+  color: '#fff', kind: 'bolt', hit: new Set(),
+});
+run.projectiles.push({
+  x: o1.x - o1.r - 30, y: o1.y, vx: 600, vy: 0, // lobbed bomb on the same path
+  damage: 10, radius: 4, pierce: 1, life: 5, slow: 0, slowDur: 0, freeze: 0,
+  color: '#fff', kind: 'bomb', hit: new Set(),
+  bomb: { explodeRadius: 60, split: 0, gen: 0, maxLife: 5 },
+});
+run.enemyShots.push({
+  x: o1.x + o1.r + 30, y: o1.y, vx: -500, vy: 0, // enemy shot from the far side
+  damage: 5, radius: 5, life: 5, color: '#f00',
+});
+run.enemyShots.push({
+  x: o1.x + o1.r + 30, y: o1.y, vx: -500, vy: 0, // lobbed splash glob, same path
+  damage: 5, radius: 5, life: 5, color: '#f00',
+  splash: { radius: 40, dps: 5, life: 3 },
+});
+for (let t = 0; t < 30; t++) run.update(1 / 60); // 0.5s: enough to cross the rack
+check('flat player shot stopped by the rack',
+  !run.projectiles.some((p) => p.kind === 'bolt' && p.life > 4));
+check('lobbed bomb arcs over the rack',
+  run.projectiles.some((p) => p.bomb && p.x > o1.x + o1.r));
+check('flat enemy shot stopped by the rack',
+  !run.enemyShots.some((s) => !s.splash && s.life > 4));
+check('lobbed splash glob arcs over the rack',
+  run.enemyShots.some((s) => s.splash && s.x < o1.x - o1.r));
+run.projectiles.length = 0; run.enemyShots.length = 0; run.events.length = 0;
+
 // --- simulation: a minute of production with racks, nothing tunnels ---
 run.invincible = true;
 for (let t = 0; t < 60 * 60; t++) {

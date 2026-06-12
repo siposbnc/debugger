@@ -166,7 +166,10 @@ baseline; only further drops are regressions.
 production zero **6%** (2/32, gate intact at the baseline reading), production meta
 **41%** (13/32, floor 40%, baseline 47% within noise). 14 rack blockers neither shelter
 the zero-meta bot nor wall the maxed bot off its boss queue. Other maps have no
-obstacles — no other arm touched.
+obstacles — no other arm touched. **Re-certified same day after the projectile-blocking
+ruling** (racks stop flat-flying shots both ways; lobbed arcs pass): zero 1/32 (3%),
+meta 13/32 (41%) — both arms hold even with the bot wasting blocked shots (auto-aim has
+no line-of-sight concept yet; if LOS targeting lands later, expect these to tick UP).
 
 **Post-equalization re-cert (2026-06-12, §8 weapon pass — final wand, n=64/32):**
 greenfield zero **23%** (15/64), greenfield meta **69%** (22/32). The ~6-pt zero-arm
