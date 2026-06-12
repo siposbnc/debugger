@@ -37,6 +37,14 @@ html, body {
   touch-action: none; /* virtual stick owns all gestures on the playfield */
 }
 
+/* HUD/text overlay above the (WebGL) world canvas, below the DOM UI so pause
+   and level-up backdrops still cover it */
+#hud {
+  position: fixed; inset: 0;
+  pointer-events: none;
+  z-index: 5;
+}
+
 /* touch-only pause button (main.ts shows it during runs once touch is used) */
 #touch-pause {
   position: fixed; top: 24px; left: 14px;

@@ -7,18 +7,19 @@ import { DEFAULT_WEAPON_POOL } from './data/weapons';
 import { Run } from './game/run';
 import { snapshotRun, restoreRun } from './game/runSave';
 import { grantChestCard, makeOffer, applyOffer } from './game/levelup';
-import { Renderer } from './render/draw';
+import { createRenderer } from './render';
 import { UI } from './ui/menus';
 import { sound } from './audio/sound';
 
 type GameState = 'menu' | 'run' | 'levelup' | 'paused' | 'summary';
 
 const canvas = document.getElementById('game') as HTMLCanvasElement;
+const hudCanvas = document.getElementById('hud') as HTMLCanvasElement;
 const bannerCanvas = document.getElementById('banners') as HTMLCanvasElement;
 const uiRoot = document.getElementById('ui') as HTMLElement;
 
 const save = loadSave();
-const renderer = new Renderer(canvas, bannerCanvas);
+const renderer = createRenderer(canvas, hudCanvas, bannerCanvas);
 const ui = new UI(uiRoot, save);
 
 let state: GameState = 'menu';
