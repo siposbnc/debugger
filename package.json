@@ -8,6 +8,7 @@
     "build": "tsc && vite build",
     "build:dev": "tsc && vite build --mode dev",
     "preview": "vite preview",
+    "play": "tsc && vite build --mode dev --outDir dist-play && vite preview --outDir dist-play --port 4180 --open",
     "check": "tsc --noEmit",
     "deploy:test": "node scripts/deployTest.mjs",
     "prepare": "git config core.hooksPath .githooks"

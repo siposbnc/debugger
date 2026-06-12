@@ -25,6 +25,8 @@ npm run dev          # Vite dev server → http://localhost:5173
 npm run build        # tsc (type check) && vite build → dist/ (prod: dev console excluded)
 npm run build:dev    # dev-configured build (--mode dev): window.dbg dev console compiled in
 npm run deploy:test  # test-server deploy: local build:dev + netlify CLI upload (user-triggered)
+npm run play         # user's isolated play server: build:dev → dist-play/ + preview on :4180
+                     # (frozen snapshot — no HMR, untouched by Claude's dist/ rebuilds)
 ```
 
 There are no unit tests or linter; `tsc` via `npm run build` is the static check. Verification is simulation-based:

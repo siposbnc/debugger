@@ -1,5 +1,6 @@
 node_modules/
 dist/
+dist-play/
 scripts/*.cjs
 scripts/*.png
 *.local
