@@ -5,7 +5,11 @@ into [ROADMAP.md](../ROADMAP.md), and moves them to **Processed** below.
 
 ## Draft ideas
 
-*(empty)*
+- full mobile support - v0.6 could be focusing on this entirely
+    - ui currently not fully compatible with mobile (especially in card selections in a run)
+    - spawning and combat for ranged characters and weapons happens mostly off-screen
+        - how to solve this??
+    - main menu footer hints are compressed and incorrect for mobile
 
 ## Dev env ideas
 
@@ -16,21 +20,6 @@ into [ROADMAP.md](../ROADMAP.md), and moves them to **Processed** below.
 *(empty)*
 
 ---
-
-## Processed → ROADMAP.md (2026-06-12, batch 13)
-
-- Little Mishu easter egg → **v0.3 Cards & enemies, P2 (S) "Easter egg: the visiting chemist"** — user clarified the draft's flipped wording: the friend *is* a chemist, *not* a developer, and that became the joke's engine — in a game where every entity is a software defect, the reference is the one entity that isn't a bug at all, just something little from the wet lab that wandered into prod. 4 concept candidates proposed for the user to pick from (rare neutral critter **The Precipitate** recommended; **Free Radical** elite; **Catalyst** card; **Elixir** pickup); hidden layers regardless of pick: internal id `mushi` (anagram of Mishu, Japanese for "bug" — for the one entity that isn't one), Avogadro numbers (602 XP), "the littlest issue on record" flavor. Implementation via the `design-entity` skill after the pick — his name never appears explicitly
-
-<details>
-<summary>Batch 13 — original notes (kept for reference)</summary>
-
-### Draft ideas
-
-- easter egg
-    - my friend is called Little Mishu (he is not a chemist, developer), i need an entity (any type that fits) that makes a funny reference to him (not explicitly)
-    - keep it in the game style's scope and culture
-
-</details>
 
 ## Processed → ROADMAP.md (2026-06-12, batch 12)
 

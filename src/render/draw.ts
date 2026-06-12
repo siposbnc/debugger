@@ -29,6 +29,12 @@ export class Renderer {
   shakeMag = 0;
   shakeEnabled = true;
   playerHpBarEnabled = true;
+  fpsCounterEnabled = false;
+  // FPS counter: EMA of the rAF delta, snapshotted to the display 4×/s so the
+  // text is readable. dt is main-loop-clamped at 100ms — irrelevant above 10fps.
+  private frameMs = 0;
+  private fpsDispMs = 0;
+  private fpsDispT = 0;
   flash = 0; // screen flash on level up
   healGlow = 0; // green player glow while HP restores
 
@@ -224,6 +230,12 @@ export class Renderer {
 
   update(dt: number): void {
     this.t += dt;
+    this.frameMs = this.frameMs === 0 ? dt * 1000 : lerp(this.frameMs, dt * 1000, 0.08);
+    this.fpsDispT -= dt;
+    if (this.fpsDispT <= 0) {
+      this.fpsDispT = 0.25;
+      this.fpsDispMs = this.frameMs;
+    }
     this.shakeMag *= Math.pow(0.0001, dt);
     this.flash = Math.max(0, this.flash - dt * 1.6);
     this.healGlow = Math.max(0, this.healGlow - dt);
@@ -286,6 +298,7 @@ export class Renderer {
       this.drawBossIndicators(run);
       this.drawTouchStick();
     }
+    if (this.fpsCounterEnabled) this.drawFpsCounter();
     this.drawBanners();
 
     if (this.flash > 0) {
@@ -887,6 +900,24 @@ export class Renderer {
       ctx.textAlign = 'center';
       ctx.fillText((boss.def as BossDef).name, this.w / 2, 92);
     }
+    ctx.textAlign = 'left';
+  }
+
+  /** FPS + frame-time readout (settings toggle, default off). The ms figure is
+   *  the reference for the planned FPS safeguard, which trips at >20ms. */
+  private drawFpsCounter(): void {
+    const ctx = this.ctx;
+    const ms = this.fpsDispMs;
+    if (ms <= 0) return;
+    const fps = Math.round(1000 / ms);
+    ctx.font = '17px VT323, monospace';
+    ctx.textAlign = 'right';
+    ctx.fillStyle = ms > 20 ? '#ff5e5e' : ms > 17.5 ? '#ffc12e' : '#53e8a8';
+    ctx.strokeStyle = 'rgba(0,0,0,0.7)';
+    ctx.lineWidth = 3;
+    const text = `${fps} FPS · ${ms.toFixed(1)} ms`;
+    ctx.strokeText(text, this.w - 16, this.h - 14);
+    ctx.fillText(text, this.w - 16, this.h - 14);
     ctx.textAlign = 'left';
   }
 

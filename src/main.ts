@@ -39,6 +39,7 @@ function applySettings(): void {
   sound.applyVolumes();
   renderer.shakeEnabled = save.settings.shake;
   renderer.playerHpBarEnabled = save.settings.playerHpBar;
+  renderer.fpsCounterEnabled = save.settings.fpsCounter;
 }
 applySettings();
 ui.onSettingsChanged = applySettings;

@@ -420,6 +420,10 @@ export class UI {
           <label>Player health bar</label>
           <button class="toggle ${st.playerHpBar ? '' : 'off'}" id="hpbar">${st.playerHpBar ? 'ON' : 'OFF'}</button>
         </div>
+        <div class="setting-row">
+          <label>FPS counter</label>
+          <button class="toggle ${st.fpsCounter ? '' : 'off'}" id="fps">${st.fpsCounter ? 'ON' : 'OFF'}</button>
+        </div>
         ${onBack ? '' : `
         <div class="setting-row">
           <label>Save data</label>
@@ -445,6 +449,12 @@ export class UI {
     });
     s.querySelector('#hpbar')!.addEventListener('click', () => {
       st.playerHpBar = !st.playerHpBar;
+      this.persist();
+      this.onSettingsChanged();
+      this.showSettings(onBack);
+    });
+    s.querySelector('#fps')!.addEventListener('click', () => {
+      st.fpsCounter = !st.fpsCounter;
       this.persist();
       this.onSettingsChanged();
       this.showSettings(onBack);

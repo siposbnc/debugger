@@ -25,7 +25,7 @@ export interface SaveData {
   lastCharacter: string;
   lastMap: string;
   lifetime: LifetimeStats;
-  settings: { sfx: number; music: number; shake: boolean; playerHpBar: boolean };
+  settings: { sfx: number; music: number; shake: boolean; playerHpBar: boolean; fpsCounter: boolean };
   /** Mid-run snapshot from "suspend & exit" — consumed on resume. */
   suspendedRun: SuspendedRun | null;
 }
@@ -67,7 +67,7 @@ function defaults(): SaveData {
     lastCharacter: 'ada',
     lastMap: 'greenfield',
     lifetime: { runs: 0, kills: 0, bossKills: 0, bitsEarned: 0, bestTimeSec: 0, bestLevel: 0, victories: 0, uptimeSec: 0, weaponDamage: {} },
-    settings: { sfx: 0.7, music: 0.5, shake: true, playerHpBar: true },
+    settings: { sfx: 0.7, music: 0.5, shake: true, playerHpBar: true, fpsCounter: false },
     suspendedRun: null,
   };
 }
