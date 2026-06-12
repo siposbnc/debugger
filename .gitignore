@@ -5,3 +5,6 @@ scripts/*.png
 *.local
 .DS_Store
 .idea/
+
+# Local Netlify folder
+.netlify
