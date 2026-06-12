@@ -210,6 +210,7 @@ function drainEvents(): void {
       case 'coreExposed': sound.play('resolve'); break;
       case 'memoryFreed': sound.play('resolve'); break;
       case 'crunch': sound.play('bossWarn'); break;
+      case 'vent': sound.play('vent'); break;
       case 'chest': sound.play('chest'); break;
       case 'mushiSpawn': sound.play('fizz'); break;
       case 'mushiCaught': sound.play('resolve'); break;

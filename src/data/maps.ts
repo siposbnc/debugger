@@ -4,7 +4,7 @@ export const MAPS: Record<string, MapDef> = {
   greenfield: {
     id: 'greenfield', name: 'Greenfield Repository',
     desc: 'A fresh meadow of clean code — already sprouting bug nests, broken terminals and buried cables. They grow up so fast.',
-    bitsMult: 1.0, cost: 0,
+    icon: '🌱', bitsMult: 1.0, cost: 0,
     palette: {
       ground1: '#1d3324', ground2: '#22402b',
       grid: '#2f5538', accent: '#53e8a8', fog: '#0a1410',
@@ -25,7 +25,7 @@ export const MAPS: Record<string, MapDef> = {
   memoryMarsh: {
     id: 'memoryMarsh', name: 'Memory Marsh',
     desc: 'A swamp of leaked allocations. Toxic heap-pools slow your step, and everything here hits harder. ×1.25 Bits.',
-    bitsMult: 1.25, cost: 500,
+    icon: '🪵', bitsMult: 1.25, cost: 500,
     palette: {
       ground1: '#1f2b33', ground2: '#26343d',
       grid: '#33505c', accent: '#54e06b', fog: '#0a1014',
@@ -41,6 +41,31 @@ export const MAPS: Record<string, MapDef> = {
       { fromMin: 11, interval: 0.45, weights: { nullWasp: 5, exceptionBeetle: 6, raceSpider: 5, deadlockScarab: 5, stackCentipede: 5 } },
     ],
     bossOrder: ['memoryLeak', 'mergeConflict', 'stackOverflowBoss', 'infiniteLoop', 'legacyMonolith'],
+  },
+
+  productionServer: {
+    id: 'productionServer', name: 'Production Server',
+    desc: 'The room nobody enters without a change ticket. Floor vents cycle from warm to incandescent — step off the glow before it blows. ×1.5 Bits.',
+    icon: '🏭', bitsMult: 1.5, cost: 1200,
+    palette: {
+      ground1: '#241f22', ground2: '#2b2528',
+      grid: '#4a3835', accent: '#ff9b3d', fog: '#120d0e',
+    },
+    hazardVents: true,
+    // Skew: exception beetles from minute 0, deadlock scarabs early — uptime
+    // pressure (explosions to dodge, locks slowing the escape) on hot floors.
+    // Late beetle weight stays ≤5: explosion stacking past min 10 is a known
+    // watchlist concern (Backlog), don't feed it.
+    spawnPlan: [
+      { fromMin: 0, interval: 1.2, weights: { syntaxMite: 8, exceptionBeetle: 3 } },
+      { fromMin: 1, interval: 1.0, weights: { syntaxMite: 8, exceptionBeetle: 4, cacheTick: 4 } },
+      { fromMin: 3, interval: 0.75, weights: { syntaxMite: 6, exceptionBeetle: 5, cacheTick: 4, nullWasp: 4, deadlockScarab: 2 } },
+      { fromMin: 5, interval: 0.65, weights: { exceptionBeetle: 5, cacheTick: 4, nullWasp: 5, deadlockScarab: 4, raceSpider: 3 } },
+      { fromMin: 7, interval: 0.58, weights: { exceptionBeetle: 5, nullWasp: 5, deadlockScarab: 5, raceSpider: 4, memoryLeech: 3 } },
+      { fromMin: 9, interval: 0.5, weights: { exceptionBeetle: 5, nullWasp: 5, deadlockScarab: 5, raceSpider: 5, stackCentipede: 3 } },
+      { fromMin: 11, interval: 0.44, weights: { exceptionBeetle: 5, nullWasp: 5, deadlockScarab: 6, raceSpider: 5, stackCentipede: 5 } },
+    ],
+    bossOrder: ['infiniteLoop', 'mergeConflict', 'stackOverflowBoss', 'memoryLeak', 'legacyMonolith'],
   },
 };
 

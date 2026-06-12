@@ -148,6 +148,7 @@ export interface MapDef {
   id: string;
   name: string;
   desc: string;
+  icon: string;                          // map-select card emoji
   bitsMult: number;
   cost: number;                          // Bits to unlock (0 = starter)
   palette: {
@@ -158,6 +159,7 @@ export interface MapDef {
     fog: string;
   };
   hazardPools?: boolean;                 // toxic slow pools scattered on the field
+  hazardVents?: boolean;                 // overheating floor vents (periodic damage zones)
   spawnPlan: SpawnPhase[];
   bossOrder: string[];                   // boss ids, cycled with scaling after the list ends
 }

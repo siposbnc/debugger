@@ -1,4 +1,4 @@
-import type { Run, RunEvent } from '../game/run';
+import { ventPhase, type GroundZone, type Run, type RunEvent } from '../game/run';
 import { ENEMIES } from '../data/enemies';
 import type { BossDef, EnemyDef, MapDef } from '../data/types';
 import { bladePositions, petPositions } from '../game/combat';
@@ -220,6 +220,22 @@ export class Renderer {
         this.banner('🚨 CRUNCH TIME', 'ship date reached — resolve all release blockers in 30s', '#ff5e5e', 5);
         this.shake(8);
         break;
+      case 'vent': {
+        // eruption kick: a brief fire column + ember burst (ongoing embers come
+        // from drawVent while the erupt phase lasts)
+        this.columns.push({ x: ev.x, y: ev.y, radius: ev.radius * 0.6, t: 0, dur: 0.45, color: '#ff8232' });
+        for (let i = 0; i < 10; i++) {
+          const a = Math.random() * Math.PI * 2;
+          const d = Math.random() * ev.radius * 0.7;
+          this.spawnParticle({
+            x: ev.x + Math.cos(a) * d, y: ev.y + Math.sin(a) * d, z: 6,
+            vx: rand(-40, 40), vy: rand(-40, 40), vz: rand(200, 420),
+            life: rand(0.4, 0.8), maxLife: 0.8,
+            color: Math.random() < 0.4 ? '#ffe6aa' : '#ff8232', size: rand(2, 5),
+          });
+        }
+        break;
+      }
       case 'bossDie':
         this.banner('BUG RESOLVED', `${ev.name} — closed as fixed`, '#41d97f', 3);
         this.rewindMark = null; // loop terminated: a pending rewind dies with it
@@ -462,6 +478,10 @@ export class Renderer {
     // ground zones
     for (const z of run.zones) {
       const s = this.proj(z.x, z.y);
+      if (z.kind === 'vent') {
+        this.drawVent(z, s.x, s.y);
+        continue;
+      }
       const alpha = z.kind === 'marsh' ? 0.3 : 0.4 * clamp(z.life / 2, 0.3, 1);
       ctx.fillStyle = z.kind === 'marsh' ? `rgba(60, 140, 90, ${alpha})` : `rgba(84, 224, 107, ${alpha})`;
       ctx.beginPath();
@@ -1097,6 +1117,58 @@ export class Renderer {
     ctx.lineWidth = 1.5;
     ctx.stroke();
     ctx.restore();
+  }
+
+  /** Overheating floor vent: dark grate when idle, orange glow ramping through
+   *  the warning telegraph, white-hot flicker + rising embers while erupting. */
+  private drawVent(z: GroundZone, sx: number, sy: number): void {
+    const ctx = this.ctx;
+    const { phase, p } = ventPhase(z);
+    // grate base — always visible so the hazard layout is learnable
+    ctx.fillStyle = 'rgba(14, 10, 11, 0.55)';
+    ctx.beginPath();
+    ctx.ellipse(sx, sy, z.radius, z.radius / 2, 0, 0, 7);
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(120, 90, 80, 0.4)';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+    // slats
+    ctx.strokeStyle = 'rgba(120, 90, 80, 0.25)';
+    ctx.lineWidth = 1;
+    for (let i = -2; i <= 2; i++) {
+      const r = z.radius * (1 - Math.abs(i) * 0.18) * 0.85;
+      ctx.beginPath();
+      ctx.moveTo(sx - r, sy + i * z.radius / 9);
+      ctx.lineTo(sx + r, sy + i * z.radius / 9);
+      ctx.stroke();
+    }
+    if (phase === 'warn') {
+      ctx.fillStyle = `rgba(255, 116, 56, ${0.08 + 0.3 * p})`;
+      ctx.beginPath();
+      ctx.ellipse(sx, sy, z.radius * (0.5 + 0.5 * p), z.radius * (0.5 + 0.5 * p) / 2, 0, 0, 7);
+      ctx.fill();
+    } else if (phase === 'erupt') {
+      const flicker = 0.85 + 0.15 * Math.sin(this.t * 31 + z.x);
+      ctx.fillStyle = `rgba(255, 130, 50, ${0.5 * flicker})`;
+      ctx.beginPath();
+      ctx.ellipse(sx, sy, z.radius, z.radius / 2, 0, 0, 7);
+      ctx.fill();
+      ctx.fillStyle = `rgba(255, 230, 170, ${0.45 * flicker})`;
+      ctx.beginPath();
+      ctx.ellipse(sx, sy, z.radius * 0.55, z.radius * 0.28, 0, 0, 7);
+      ctx.fill();
+      if (Math.random() < 0.35) {
+        const a = Math.random() * Math.PI * 2;
+        const d = Math.random() * z.radius * 0.8;
+        this.spawnParticle({
+          x: z.x + Math.cos(a) * d, y: z.y + Math.sin(a) * d, z: 4,
+          vx: rand(-25, 25), vy: rand(-25, 25), vz: rand(140, 320),
+          life: rand(0.35, 0.7), maxLife: 0.7,
+          color: Math.random() < 0.4 ? '#ffe6aa' : '#ff8232',
+          size: rand(2, 4),
+        });
+      }
+    }
   }
 
   private drawBanners(): void {

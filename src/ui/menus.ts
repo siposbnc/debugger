@@ -299,7 +299,7 @@ export class UI {
         <div class="select-card ${unlocked ? '' : 'locked'} ${selected ? 'selected' : ''}"
              data-id="${m.id}" style="--accent:${m.palette.accent}">
           ${selected ? '<span class="selected-tag">▶ SELECTED</span>' : ''}
-          <div class="icon">${m.id === 'greenfield' ? '🌱' : '🪵'}</div>
+          <div class="icon">${m.icon}</div>
           <h3>${m.name}</h3>
           <div class="arch">bits ×${m.bitsMult.toFixed(2)}</div>
           <p>${m.desc}</p>

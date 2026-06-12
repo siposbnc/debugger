@@ -3,7 +3,7 @@
 type SfxName =
   | 'shoot' | 'hit' | 'kill' | 'levelup' | 'pickup' | 'hurt' | 'chest'
   | 'bossWarn' | 'bossDie' | 'evolve' | 'click' | 'buy' | 'victory' | 'death' | 'objective'
-  | 'fizz' | 'resolve';
+  | 'fizz' | 'resolve' | 'vent';
 
 class Sound {
   private ctx: AudioContext | null = null;
@@ -18,7 +18,7 @@ class Sound {
   private lastPlayed = new Map<string, number>();
   /** Minimum seconds between repeats of spammy SFX. */
   private static THROTTLE: Partial<Record<SfxName, number>> = {
-    shoot: 0.07, kill: 0.06, pickup: 0.05, hit: 0.05, hurt: 0.15,
+    shoot: 0.07, kill: 0.06, pickup: 0.05, hit: 0.05, hurt: 0.15, vent: 0.6,
   };
 
   private ensure(): AudioContext | null {
@@ -148,6 +148,10 @@ class Sound {
         this.tone(660, 0.12, 'triangle', 0.18);
         this.tone(990, 0.14, 'triangle', 0.18, undefined, 0.1);
         this.tone(1320, 0.22, 'triangle', 0.18, undefined, 0.2);
+        break;
+      case 'vent': // pressurized steam blast from a floor grate
+        this.noise(0.32, 0.13, 1600);
+        this.tone(110, 0.22, 'sawtooth', 0.08, 60);
         break;
     }
   }

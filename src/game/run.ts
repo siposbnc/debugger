@@ -78,12 +78,30 @@ export interface Pickup {
 }
 
 export interface GroundZone {
-  kind: 'leak' | 'marsh';
+  kind: 'leak' | 'marsh' | 'vent';
   x: number; y: number;
   radius: number; maxRadius: number;
-  life: number; maxLife: number;   // marsh + boss leak zones: life = Infinity
-  dps: number;
-  age?: number;                    // leak zones grow with age (life can be Infinity)
+  life: number; maxLife: number;   // marsh + boss leak zones + vents: life = Infinity
+  dps: number;                     // vents: applied only while erupting
+  age?: number;                    // leak zones grow with age; vents: cycle clock
+}
+
+// Overheating floor vents (Production Server hazard): fixed grates cycling
+// idle → warning glow → eruption. Damage only lands during the eruption window,
+// so the warning is a real dodge telegraph. Phases are staggered per vent.
+export const VENT_CYCLE = 9;       // seconds, full cycle
+export const VENT_WARN = 1.6;      // glow telegraph before the blast
+export const VENT_ERUPT = 2.2;     // damaging window at the end of the cycle
+export const VENT_DPS = 26;
+
+/** Where a vent is in its cycle; p = 0→1 progress within the phase. */
+export function ventPhase(z: GroundZone): { phase: 'idle' | 'warn' | 'erupt'; p: number } {
+  const t = (z.age ?? 0) % VENT_CYCLE;
+  const warnAt = VENT_CYCLE - VENT_ERUPT - VENT_WARN;
+  const eruptAt = VENT_CYCLE - VENT_ERUPT;
+  if (t < warnAt) return { phase: 'idle', p: t / warnAt };
+  if (t < eruptAt) return { phase: 'warn', p: (t - warnAt) / VENT_WARN };
+  return { phase: 'erupt', p: (t - eruptAt) / VENT_ERUPT };
 }
 
 export interface Ally {
@@ -148,6 +166,7 @@ export type RunEvent =
   | { type: 'coreExposed'; x: number; y: number }               // monolith armor broken early (pillar down)
   | { type: 'memoryFreed'; pools: { x: number; y: number }[] }  // memory leak died; pools reclaimed
   | { type: 'crunch' }                                          // 15:00 with bosses alive: crunch time
+  | { type: 'vent'; x: number; y: number; radius: number }      // floor vent eruption near the player
   | { type: 'chest'; x: number; y: number }
   | { type: 'mushiSpawn'; x: number; y: number }
   | { type: 'mushiCaught'; x: number; y: number }
@@ -284,6 +303,18 @@ export class Run {
         this.zones.push({
           kind: 'marsh', x: Math.cos(a) * d, y: Math.sin(a) * d,
           radius: r, maxRadius: r, life: Infinity, maxLife: Infinity, dps: 3,
+        });
+      }
+    }
+    if (map.hazardVents) {
+      for (let i = 0; i < 24; i++) {
+        const a = this.rng() * Math.PI * 2;
+        const d = 200 + this.rng() * 1500;
+        const r = 60 + this.rng() * 40;
+        this.zones.push({
+          kind: 'vent', x: Math.cos(a) * d, y: Math.sin(a) * d,
+          radius: r, maxRadius: r, life: Infinity, maxLife: Infinity,
+          dps: VENT_DPS, age: this.rng() * VENT_CYCLE, // stagger the cycles
         });
       }
     }
@@ -712,6 +743,18 @@ export class Run {
         }
         // grow to full size over ~6s of age (boss pools are permanent: life = Infinity)
         z.radius = z.maxRadius * Math.min(1, 0.35 + 0.65 * (z.age / 6));
+      }
+      if (z.kind === 'vent') {
+        const before = ventPhase(z).phase;
+        z.age = (z.age ?? 0) + dt;
+        const now = ventPhase(z).phase;
+        if (now === 'erupt' && before !== 'erupt' && dist(this.px, this.py, z.x, z.y) < 600) {
+          this.emit({ type: 'vent', x: z.x, y: z.y, radius: z.radius });
+        }
+        if (now === 'erupt' && dist(this.px, this.py, z.x, z.y) < z.radius) {
+          this.hurtPlayer(z.dps * dt);
+        }
+        continue; // idle/warn phases never damage
       }
       if (dist(this.px, this.py, z.x, z.y) < z.radius) {
         this.hurtPlayer(z.dps * dt);

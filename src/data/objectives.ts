@@ -16,6 +16,8 @@ export const OBJECTIVES: ObjectiveDef[] = [
   { id: 'evolve', name: 'Major Version Bump', desc: 'Evolve a weapon', check: (s) => s.evolvedWeapons >= 1 },
   { id: 'xp500', name: 'Knowledge Base', desc: 'Collect 500 XP in one run', check: (s) => s.xpCollected >= 500 },
   { id: 'marshWin', name: 'Drained the Swamp', desc: 'Survive 10 minutes in Memory Marsh', check: (s) => s.mapId === 'memoryMarsh' && s.timeSec >= 600 },
+  { id: 'prodSoak', name: 'Change Ticket Approved', desc: 'Survive 10 minutes in Production Server', check: (s) => s.mapId === 'productionServer' && s.timeSec >= 600 },
+  { id: 'prodWin', name: 'Five Nines', desc: 'Survive the full 15 minutes in Production Server', check: (s) => s.mapId === 'productionServer' && s.victory },
   { id: 'mushiCatch', name: 'Cabal of Two', desc: 'Walk into a very rare visitor before it evaporates', check: (s) => s.mushiCaught },
 ];
 
