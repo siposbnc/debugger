@@ -459,7 +459,7 @@ export abstract class RendererBase {
     }
     if (run) {
       this.drawHud(ctx, run);
-      this.drawBossIndicators(ctx, run);
+      this.drawEdgeRadar(ctx, run);
       this.drawTouchStick(ctx);
     }
     if (this.fpsCounterEnabled) this.drawFpsCounter(ctx);
@@ -503,84 +503,72 @@ export abstract class RendererBase {
   }
 
   /** Edge arrows pointing at bosses that are alive but out of view. */
-  private drawBossIndicators(ctx: CanvasRenderingContext2D, run: Run): void {
-    const slack = 40;   // boss counts as visible until this far past the edge
-    const margin = 34;  // arrow inset from the screen edge
-    for (const e of run.enemies) {
-      if (!e.isBoss) continue;
-      const p = this.proj(e.x, e.y);
-      const sx = p.x - this.camX + this.w / 2;
-      const sy = p.y - this.camY + this.h / 2;
-      if (sx > -slack && sx < this.w + slack && sy > -slack && sy < this.h + slack) continue;
+  /** One edge-radar marker: ringed glyph clamped to the screen edge with an
+   *  arrowhead pointing at the off-screen target. Returns false if the target
+   *  is actually visible (no marker drawn). */
+  private edgeMarker(
+    ctx: CanvasRenderingContext2D, wx: number, wy: number,
+    r: number, color: string, glyph: string, alpha: number,
+  ): boolean {
+    const slack = 40;   // counts as visible until this far past the edge
+    const margin = 34;  // marker inset from the screen edge
+    const p = this.proj(wx, wy);
+    const sx = p.x - this.camX + this.w / 2;
+    const sy = p.y - this.camY + this.h / 2;
+    if (sx > -slack && sx < this.w + slack && sy > -slack && sy < this.h + slack) return false;
 
-      const ax = clamp(sx, margin, this.w - margin);
-      const ay = clamp(sy, margin + 44, this.h - margin); // stay below the XP bar
-      const ang = Math.atan2(sy - ay, sx - ax);
-      const pulse = 0.75 + 0.25 * Math.sin(this.t * 7);
+    const ax = clamp(sx, margin, this.w - margin);
+    const ay = clamp(sy, margin + 44, this.h - margin); // stay below the XP bar
+    const ang = Math.atan2(sy - ay, sx - ax);
+    ctx.save();
+    ctx.translate(ax, ay);
+    ctx.globalAlpha = alpha;
+    ctx.fillStyle = 'rgba(8, 12, 18, 0.7)';
+    ctx.beginPath();
+    ctx.arc(0, 0, r, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 1.4;
+    ctx.stroke();
+    ctx.font = `${r + 1}px VT323, monospace`;
+    ctx.textAlign = 'center';
+    ctx.fillStyle = color;
+    ctx.fillText(glyph, 0, r * 0.33);
+    // arrowhead on the rim, pointing at the target
+    ctx.rotate(ang);
+    ctx.beginPath();
+    ctx.moveTo(r + 10, 0);
+    ctx.lineTo(r, -6);
+    ctx.lineTo(r, 6);
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+    return true;
+  }
 
-      ctx.save();
-      ctx.translate(ax, ay);
-      ctx.globalAlpha = pulse;
-      ctx.fillStyle = 'rgba(8, 12, 18, 0.75)';
-      ctx.beginPath();
-      ctx.arc(0, 0, 16, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.strokeStyle = e.def.color;
-      ctx.lineWidth = 1.5;
-      ctx.stroke();
-      ctx.font = '15px VT323, monospace';
-      ctx.textAlign = 'center';
-      ctx.fillStyle = e.def.color;
-      ctx.fillText('⚠', 0, 5);
-      // arrowhead on the rim, pointing at the boss
-      ctx.rotate(ang);
-      ctx.fillStyle = e.def.color;
-      ctx.beginPath();
-      ctx.moveTo(26, 0);
-      ctx.lineTo(16, -6);
-      ctx.lineTo(16, 6);
-      ctx.closePath();
-      ctx.fill();
-      ctx.restore();
+  /** Edge radar: off-screen bosses (⚠, pulsing, their color), elites (gold !),
+   *  chests (gold $) and the Precipitate (faint gold ?) as edge markers —
+   *  the v0.4 in-run events will reuse this surface. */
+  private drawEdgeRadar(ctx: CanvasRenderingContext2D, run: Run): void {
+    for (const p of run.pickups) {
+      if (p.kind !== 'chest') continue;
+      this.edgeMarker(ctx, p.x, p.y, 11, '#ffc12e', '$', 0.7);
     }
-
-    // The Precipitate: faint gold shimmer at the edge — curiosity, not threat
-    // (no ⚠; gold = reward in the color language).
-    if (run.mushi) {
-      const m = run.mushi;
-      const p = this.proj(m.x, m.y);
-      const sx = p.x - this.camX + this.w / 2;
-      const sy = p.y - this.camY + this.h / 2;
-      if (sx <= -slack || sx >= this.w + slack || sy <= -slack || sy >= this.h + slack) {
-        const ax = clamp(sx, margin, this.w - margin);
-        const ay = clamp(sy, margin + 44, this.h - margin);
-        const ang = Math.atan2(sy - ay, sx - ax);
-        const pulse = 0.35 + 0.25 * Math.sin(this.t * 4);
-        const urgency = m.t < 8 ? 1.4 : 1; // brightens as the window closes
-        ctx.save();
-        ctx.translate(ax, ay);
-        ctx.globalAlpha = Math.min(1, pulse * urgency);
-        ctx.fillStyle = 'rgba(8, 12, 18, 0.6)';
-        ctx.beginPath();
-        ctx.arc(0, 0, 13, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.strokeStyle = '#ffc12e';
-        ctx.lineWidth = 1.2;
-        ctx.stroke();
-        ctx.font = '14px VT323, monospace';
-        ctx.textAlign = 'center';
-        ctx.fillStyle = '#ffc12e';
-        ctx.fillText('?', 0, 5);
-        ctx.rotate(ang);
-        ctx.fillStyle = '#ffc12e';
-        ctx.beginPath();
-        ctx.moveTo(22, 0);
-        ctx.lineTo(13, -5);
-        ctx.lineTo(13, 5);
-        ctx.closePath();
-        ctx.fill();
-        ctx.restore();
+    for (const e of run.enemies) {
+      if (e.elite && !e.isBoss) {
+        this.edgeMarker(ctx, e.x, e.y, 11, '#ffc12e', '!', 0.75);
       }
+    }
+    const pulse = 0.75 + 0.25 * Math.sin(this.t * 7);
+    for (const e of run.enemies) {
+      if (e.isBoss) this.edgeMarker(ctx, e.x, e.y, 16, e.def.color, '⚠', pulse);
+    }
+    // The Precipitate: faint gold shimmer — curiosity, not threat (no ⚠;
+    // gold = reward in the color language). Brightens as the window closes.
+    if (run.mushi) {
+      const shimmer = 0.35 + 0.25 * Math.sin(this.t * 4);
+      const urgency = run.mushi.t < 8 ? 1.4 : 1;
+      this.edgeMarker(ctx, run.mushi.x, run.mushi.y, 13, '#ffc12e', '?', Math.min(1, shimmer * urgency));
     }
     ctx.globalAlpha = 1;
   }
