@@ -32,6 +32,10 @@ const BIND_ACTIONS: { action: BindAction; label: string }[] = [
   { action: 'pause', label: 'Pause' },
 ];
 
+// Reverse evolution lookup for the codex arsenal tab (evolved id → base id).
+const EVOLVED_FROM: Record<string, string> = {};
+for (const w of Object.values(WEAPONS)) if (w.evolveTo) EVOLVED_FROM[w.evolveTo] = w.id;
+
 /** Human label for a KeyboardEvent.code ("KeyW" → "W", "ArrowUp" → "↑"). */
 function keyLabel(code: string): string {
   const arrows: Record<string, string> = { ArrowUp: '↑', ArrowDown: '↓', ArrowLeft: '←', ArrowRight: '→' };
@@ -203,6 +207,10 @@ export class UI {
     return [
       ...Object.keys(ENEMIES).map((id) => `bug:${id}`).filter((id) => enc.has(id)),
       ...Object.keys(BOSSES).map((id) => `boss:${id}`).filter((id) => enc.has(id)),
+      // Arsenal rows badge under their own namespace: the shop already claims
+      // `wpn:` in seenIds for license rows, and the two screens must not
+      // clear each other's NEW badges. Encounters still use `wpn:`.
+      ...Object.keys(WEAPONS).filter((id) => enc.has(`wpn:${id}`)).map((id) => `ars:${id}`),
     ];
   }
 
@@ -611,12 +619,35 @@ export class UI {
       </div>`;
     }).join('');
 
+    const weapons = Object.values(WEAPONS).map((w) => {
+      if (!enc.has(`wpn:${w.id}`)) {
+        return UI.lockedCodexRow(`wpn:${w.id}`, w.name, `${w.desc} ${w.flavor}`, false);
+      }
+      const first = w.levels[0], last = w.levels[w.levels.length - 1];
+      const dmg = first.damage === last.damage ? `dmg ${first.damage}` : `dmg ${first.damage}→${last.damage}`;
+      const cd = first.cooldown <= 0 ? ''
+        : first.cooldown === last.cooldown ? ` · cd ${first.cooldown}s` : ` · cd ${first.cooldown}s→${last.cooldown}s`;
+      const chain = w.evolveTo ? ` · ⮕ evolves into ${WEAPONS[w.evolveTo].name}`
+        : EVOLVED_FROM[w.id] ? ` · ⮑ evolved from ${WEAPONS[EVOLVED_FROM[w.id]].name}` : '';
+      const dealt = lt.weaponDamage[w.id] ? ` · Σ ${Math.round(lt.weaponDamage[w.id]).toLocaleString()} dmg dealt` : '';
+      return `
+      <div class="codex-entry with-thumb">
+        <div class="codex-thumb wpn-thumb" style="color:${w.color}">${w.icon}</div>
+        <div class="codex-body">
+          <b>${w.name}${UI.newBadge(fresh, `ars:${w.id}`)}</b>
+          <span>${w.desc} <em>${w.flavor}</em></span>
+          <span class="wpn-stats">${dmg}${cd}${chain}${dealt}</span>
+        </div>
+      </div>`;
+    }).join('');
+
     const s = this.screen(`
       <div class="screen-heading">SELECT * FROM bug_database</div>
       <div class="codex-cols">
         <div class="codex-panel"><h3>~/stats</h3>${stats}</div>
         <div class="codex-panel"><h3>~/known_bugs</h3>${bugs}</div>
         <div class="codex-panel"><h3>~/incidents</h3>${bosses}</div>
+        <div class="codex-panel"><h3>~/arsenal</h3>${weapons}</div>
       </div>
       <button class="btn" data-act="back">BACK</button>
     `, () => this.showMainMenu());

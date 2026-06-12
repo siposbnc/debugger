@@ -35,8 +35,9 @@ export interface SaveData {
    *  Objectives use `obj:<id>:done` once completed so finishing one re-badges it. */
   seenIds: string[];
   /** Progressive codex unlocks: `bug:`/`boss:` ids the player has actually met
-   *  in a run (spawned on their field). Unmet entries render locked/glitched;
-   *  the Precipitate stays unlisted entirely until collected. */
+   *  in a run (spawned on their field) and `wpn:` ids ever wielded (arsenal
+   *  tab). Unmet entries render locked/glitched; the Precipitate stays
+   *  unlisted entirely until collected. */
   encountered: string[];
   /** Progressive meta-shop unlocks: upgrade ids revealed by play — taking a
    *  card of the matching stat, or using the matching mechanic (reroll/banish/
@@ -126,6 +127,11 @@ export function loadSave(): SaveData {
     // generous, but never hides a map a veteran could already see and buy.
     if (!data.mapVictories && out.lifetime.victories > 0) {
       for (const id of out.unlockedMaps) out.mapVictories[id] = 1;
+    }
+    // Weapons with lifetime damage on record were certainly wielded — derives
+    // arsenal-tab encounters for saves predating the tab (and self-heals).
+    for (const id of Object.keys(out.lifetime.weaponDamage)) {
+      if (!out.encountered.includes(`wpn:${id}`)) out.encountered.push(`wpn:${id}`);
     }
     return out;
   } catch {

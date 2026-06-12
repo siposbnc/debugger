@@ -408,6 +408,9 @@ html, body {
 /* progressive unlocks: not-yet-encountered entries are dimmed, glitched records */
 .codex-entry.locked { opacity: 0.45; }
 .codex-thumb.locked-thumb { display: flex; align-items: center; justify-content: center; font-size: 22px; color: var(--dim); border: 1px dashed var(--line); border-radius: 4px; }
+.codex-thumb.wpn-thumb { display: flex; align-items: center; justify-content: center; font-size: 26px; border: 1px solid var(--line); border-radius: 4px; }
+.codex-body .wpn-stats { color: var(--dim); font-size: 11px; }
+.codex-body em { color: var(--dim); }
 .codex-entry .glitch-text { letter-spacing: 1px; color: var(--dim); }
 /* progressive meta-shop unlocks: silhouetted ??? rows */
 .shop-row.locked { opacity: 0.45; }

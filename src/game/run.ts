@@ -644,6 +644,7 @@ export class Run {
       petTimers: [], hitMemo: new Map(),
       totalDamage: 0, acquiredAt: this.time,
     });
+    this.spawnedKinds.add(`wpn:${id}`); // arsenal codex discovery (progressive unlocks)
   }
 
   applyCard(card: UpgradeCard): void {
@@ -659,6 +660,7 @@ export class Run {
     w.level = 1;
     w.hitMemo.clear();
     this.evolvedCount++;
+    this.spawnedKinds.add(`wpn:${evolved.id}`); // arsenal codex discovery
   }
 
   xpForLevel(l: number): number {
