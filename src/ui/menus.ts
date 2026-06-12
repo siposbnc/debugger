@@ -9,10 +9,10 @@ import { BOSSES } from '../data/bosses';
 import { OBJECTIVES } from '../data/objectives';
 import { CARD_BY_ID } from '../data/upgrades';
 import { PATCH_NOTES } from '../data/patchNotes';
-import { RARITY_COLOR, RARITY_ORDER, type StatMods, type EnemyDef, type BossDef } from '../data/types';
+import { RARITY_COLOR, RARITY_ORDER, type StatMods, type EnemyDef, type BossDef, type MetaUpgradeDef } from '../data/types';
 import { bugSprite, bossSprite } from '../render/sprites';
 import { computeStats, type ComputedStats } from '../game/stats';
-import { formatTime, formatDuration } from '../core/util';
+import { formatTime, formatDuration, mulberry32 } from '../core/util';
 import { DEFAULT_BINDINGS, type BindAction } from '../core/input';
 import { sound } from '../audio/sound';
 import { makeOffer, applyOffer, offerOdds, type OfferItem } from '../game/levelup';
@@ -129,20 +129,34 @@ export class UI {
 
   // ---------- NEW badges (unseen codex/shop entries) ----------
 
-  /** Everything the shop screen lists, as namespaced seen-ids. */
+  /** Is this meta upgrade revealed? Purchased always counts; the two specials
+   *  derive from objectives; the rest come from play (save.unlockedMeta). */
+  private metaUnlocked(m: MetaUpgradeDef): boolean {
+    if ((this.save.metaLevels[m.id] ?? 0) > 0) return true;
+    if (this.save.unlockedMeta.includes(m.id)) return true;
+    if (m.special === 'bossReward') return this.save.completedObjectives.includes('boss1');
+    if (m.special === 'weaponSlot') return this.save.completedObjectives.includes('evolve');
+    return false;
+  }
+
+  /** Everything the shop screen lists, as namespaced seen-ids. Locked "???"
+   *  meta rows are excluded so they badge NEW when they actually reveal. */
   private shopIds(): string[] {
     return [
-      ...META_UPGRADES.map((m) => `meta:${m.id}`),
+      ...META_UPGRADES.filter((m) => this.metaUnlocked(m)).map((m) => `meta:${m.id}`),
       ...SHOP_WEAPONS.map((w) => `wpn:${w.id}`),
     ];
   }
 
   /** Everything the codex lists. Completed objectives get a distinct id so
-   *  finishing one shows NEW once even after the base entry was seen. */
+   *  finishing one shows NEW once even after the base entry was seen.
+   *  Progressive unlocks: bug/boss entries only count once ENCOUNTERED —
+   *  locked (glitched) rows neither badge nor get marked seen. */
   private codexIds(): string[] {
+    const enc = new Set(this.save.encountered);
     return [
-      ...Object.keys(ENEMIES).map((id) => `bug:${id}`),
-      ...Object.keys(BOSSES).map((id) => `boss:${id}`),
+      ...Object.keys(ENEMIES).map((id) => `bug:${id}`).filter((id) => enc.has(id)),
+      ...Object.keys(BOSSES).map((id) => `boss:${id}`).filter((id) => enc.has(id)),
       ...OBJECTIVES.map((o) => `obj:${o.id}${this.save.completedObjectives.includes(o.id) ? ':done' : ''}`),
     ];
   }
@@ -166,6 +180,31 @@ export class UI {
 
   private static newBadge(fresh: Set<string>, id: string): string {
     return fresh.has(id) ? ' <span class="new-badge">NEW</span>' : '';
+  }
+
+  /** Deterministic glitch-scramble of codex copy (progressive unlocks):
+   *  letters/digits become corruption glyphs, spaces and punctuation keep the
+   *  text shape readable-as-text-but-not-as-words. Seeded by the entry id, so
+   *  the garbage is stable across visits — it reads like a corrupted record,
+   *  not a slot machine. */
+  private static scramble(text: string, seedId: string): string {
+    let h = 0;
+    for (let i = 0; i < seedId.length; i++) h = (h * 31 + seedId.charCodeAt(i)) | 0;
+    const rng = mulberry32(h);
+    const glyphs = '▓▒░#@$%?!/\\|=+~^*'; // no <>& — this lands in innerHTML
+    return text.replace(/[A-Za-z0-9]/g, () => glyphs[Math.floor(rng() * glyphs.length)]);
+  }
+
+  /** A locked (not yet encountered) codex row: dimmed, "?" thumb, glitched copy. */
+  static lockedCodexRow(id: string, name: string, desc: string, boss: boolean): string {
+    return `
+      <div class="codex-entry with-thumb locked">
+        <div class="codex-thumb locked-thumb${boss ? ' boss' : ''}">?</div>
+        <div class="codex-body">
+          <b class="glitch-text">${UI.scramble(name, id)}</b>
+          <span class="glitch-text">${UI.scramble(desc, `${id}:desc`)}</span>
+        </div>
+      </div>`;
   }
 
   // ---------- main menu ----------
@@ -343,6 +382,17 @@ export class UI {
   showShop(fresh?: Set<string>): void {
     fresh ??= this.takeUnseen(this.shopIds());
     const metaRows = META_UPGRADES.map((m) => {
+      if (!this.metaUnlocked(m)) {
+        // progressive unlocks: silhouetted ??? row, cost hidden — discover it
+        // by playing (matching stat card / mechanic use / objective)
+        return `
+        <div class="shop-row locked">
+          <div class="icon">?</div>
+          <div class="info"><h4>???</h4><p class="glitch-text">${UI.scramble(m.desc, `meta:${m.id}`)}</p></div>
+          <div class="pips"></div>
+          <button class="btn small" disabled>🔒</button>
+        </div>`;
+      }
       const lvl = this.save.metaLevels[m.id] ?? 0;
       const maxed = lvl >= m.maxLevel;
       const cost = metaCost(m, lvl);
@@ -446,23 +496,36 @@ export class UI {
       <div class="codex-entry"><b>Total bits earned <span>${lt.bitsEarned}</span></b></div>
       <div class="codex-entry"><b>Favorite weapon <span>${favWeapon}</span></b></div>`;
 
-    const bugs = Object.values(ENEMIES).map((e) => `
+    const enc = new Set(this.save.encountered);
+    const bugs = Object.values(ENEMIES).map((e) => {
+      if (!enc.has(`bug:${e.id}`)) {
+        // The Precipitate is a secret: not even a locked row until collected
+        if (e.notABug && e.id === 'mushi') return '';
+        return UI.lockedCodexRow(`bug:${e.id}`, e.name, e.codexDesc, false);
+      }
+      return `
       <div class="codex-entry with-thumb">
         <img class="codex-thumb" src="${UI.entityThumb(e, false)}" alt="">
         <div class="codex-body">
           <b>${e.name}${e.notABug ? ' <span class="codex-tag">NOT A BUG</span>' : ''}${UI.newBadge(fresh, `bug:${e.id}`)}</b>
           <span>${e.codexDesc}</span>
         </div>
-      </div>`).join('');
+      </div>`;
+    }).join('');
 
-    const bosses = Object.values(BOSSES).map((b) => `
+    const bosses = Object.values(BOSSES).map((b) => {
+      if (!enc.has(`boss:${b.id}`)) {
+        return UI.lockedCodexRow(`boss:${b.id}`, b.name, `${b.codexDesc} ${b.mechanicDesc}`, true);
+      }
+      return `
       <div class="codex-entry with-thumb">
         <img class="codex-thumb boss" src="${UI.entityThumb(b, true)}" alt="">
         <div class="codex-body">
           <b>${b.name}${UI.newBadge(fresh, `boss:${b.id}`)}</b>
           <span>${b.codexDesc}<br>⚠ ${b.mechanicDesc}</span>
         </div>
-      </div>`).join('');
+      </div>`;
+    }).join('');
 
     const objectives = OBJECTIVES.map((o) => {
       const done = this.save.completedObjectives.includes(o.id);
@@ -626,6 +689,17 @@ export class UI {
     let offer = makeOffer(run);
     if (offer.length === 0) { onDone(); return; }
 
+    // progressive meta unlocks: cards whose stat still hides a "???" shop row
+    // get a small hint — the pick is also a discovery
+    const unlockHint = (item: OfferItem): string => {
+      if (item.kind !== 'card') return '';
+      const mods = CARD_BY_ID[item.id]?.mods ?? {};
+      const reveals = META_UPGRADES.some((m) =>
+        !this.metaUnlocked(m) &&
+        Object.keys(m.modsPerLevel ?? {}).some((k) => k in mods));
+      return reveals ? '<div class="unlock-hint">🔓 unlocks a meta upgrade</div>' : '';
+    };
+
     const render = () => {
       const cards = offer.map((item, i) => {
         const preview = item.kind === 'card'
@@ -641,6 +715,7 @@ export class UI {
           <div class="desc">${item.desc}</div>
           ${preview.fullyCapped ? '<div class="cap-warning">⚠ ALREADY AT CAP — NO EFFECT</div>' : ''}
           ${preview.html}
+          ${unlockHint(item)}
           <div class="flavor">${item.flavor}</div>
         </div>`;
       }).join('');

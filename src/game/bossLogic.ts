@@ -169,6 +169,7 @@ export function spawnBoss(run: Run, def: BossDef, tier: number): void {
     scaledDamage: def.damage * scale * (1 + tier * BOSS_TIER_DMG_MULT),
   };
   run.enemies.push(boss);
+  run.spawnedKinds.add(`boss:${def.id}`); // codex discovery (progressive unlocks)
   run.emit({ type: 'bossSpawn', name: def.name });
 }
 

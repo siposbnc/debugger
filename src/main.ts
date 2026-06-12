@@ -7,6 +7,8 @@ import { DEFAULT_WEAPON_POOL } from './data/weapons';
 import { Run } from './game/run';
 import { snapshotRun, restoreRun } from './game/runSave';
 import { grantChestCard, makeOffer, applyOffer } from './game/levelup';
+import { CARD_BY_ID } from './data/upgrades';
+import { META_UPGRADES } from './data/meta';
 import { createRenderer } from './render';
 import { UI } from './ui/menus';
 import { sound } from './audio/sound';
@@ -95,6 +97,7 @@ ui.onResumeRun = () => {
 
 function suspendRun(): void {
   if (!run) return;
+  recordEncounters(run); // codex discoveries survive suspend & exit
   save.suspendedRun = snapshotRun(run);
   persistSave(save);
   run = null;
@@ -114,10 +117,39 @@ function openLevelUp(): void {
   });
 }
 
+/** Stat key → meta upgrade id, derived from the upgrade defs themselves. */
+const STAT_TO_META: Record<string, string> = {};
+for (const m of META_UPGRADES) {
+  for (const key of Object.keys(m.modsPerLevel ?? {})) STAT_TO_META[key] = m.id;
+}
+
+/** Merge the run's discoveries into the save (progressive unlocks): codex
+ *  encounters (everything that spawned + a collected Precipitate) and meta-
+ *  shop reveals (stats touched by taken cards; reroll/banish/defer used). */
+function recordEncounters(r: Run): void {
+  const enc = new Set(save.encountered);
+  for (const id of r.spawnedKinds) enc.add(id);
+  if (r.mushiCaught) enc.add('bug:mushi');
+  save.encountered = [...enc];
+
+  const meta = new Set(save.unlockedMeta);
+  for (const [cardId] of r.takenCards) {
+    for (const key of Object.keys(CARD_BY_ID[cardId]?.mods ?? {})) {
+      const m = STAT_TO_META[key];
+      if (m) meta.add(m);
+    }
+  }
+  if (r.rerollsLeft < r.stats.rerolls) meta.add('reroll');
+  if (r.banishesLeft < r.stats.banishes) meta.add('banish');
+  if (r.skipsLeft < r.stats.skips) meta.add('skip');
+  save.unlockedMeta = [...meta];
+}
+
 function endRun(): void {
   if (!run) return;
   const results = run.computeBits();
   // persist: bits, lifetime stats, objectives
+  recordEncounters(run);
   save.bits += results.bits;
   const lt = save.lifetime;
   lt.runs++;

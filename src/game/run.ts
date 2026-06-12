@@ -312,6 +312,10 @@ export class Run {
   // scoring
   kills = 0;
   bossKills = 0;
+  /** Codex discovery: namespaced ids (`bug:`/`boss:`) of everything that
+   *  spawned this run — merged into the save's `encountered` set at run
+   *  end/suspend (progressive codex unlocks). */
+  spawnedKinds = new Set<string>();
   allyDamage = 0;            // turret/helper damage (character specials)
   evolvedCount = 0;
   objectivesThisRun: string[] = [];

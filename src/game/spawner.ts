@@ -70,6 +70,7 @@ export function makeEnemy(run: Run, def: EnemyDef, x: number, y: number, elite: 
   };
   // anything hatched during overtime (Monolith breeding, stack frames) is born critical
   if (run.crunchStarted) makeCritical(e);
+  run.spawnedKinds.add(`bug:${def.id}`); // codex discovery (progressive unlocks)
   return e;
 }
 

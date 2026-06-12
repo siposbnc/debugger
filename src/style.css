@@ -389,6 +389,14 @@ html, body {
 .codex-thumb { width: 42px; height: 42px; object-fit: contain; flex-shrink: 0; }
 .codex-thumb.boss { width: 52px; height: 52px; }
 .codex-tag { color: var(--gold); font-size: 9px; letter-spacing: 0.12em; border: 1px solid currentColor; padding: 1px 5px; border-radius: 3px; align-self: center; white-space: nowrap; }
+/* progressive unlocks: not-yet-encountered entries are dimmed, glitched records */
+.codex-entry.locked { opacity: 0.45; }
+.codex-thumb.locked-thumb { display: flex; align-items: center; justify-content: center; font-size: 22px; color: var(--dim); border: 1px dashed var(--line); border-radius: 4px; }
+.codex-entry .glitch-text { letter-spacing: 1px; color: var(--dim); }
+/* progressive meta-shop unlocks: silhouetted ??? rows */
+.shop-row.locked { opacity: 0.45; }
+.shop-row.locked .glitch-text { letter-spacing: 1px; }
+.unlock-hint { font-size: 10px; color: var(--gold); margin-top: 6px; letter-spacing: 0.06em; }
 
 /* ---------- what's new (patch notes) ---------- */
 
