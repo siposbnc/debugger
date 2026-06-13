@@ -5,11 +5,7 @@ into [ROADMAP.md](../ROADMAP.md), and moves them to **Processed** below.
 
 ## Draft ideas
 
-- new meta upgrades:
-    - projectiles
-    - cdr
-    - token drop rate (from elites)
-    - token drop amount
+*(empty)*
 
 ## Dev env ideas
 
@@ -20,6 +16,24 @@ into [ROADMAP.md](../ROADMAP.md), and moves them to **Processed** below.
 *(empty)*
 
 ---
+
+## Processed → ROADMAP.md (2026-06-13, batch 22)
+
+- New meta upgrades (projectiles, cdr) → **v0.4 Progression & economy, P2 (S)** — pure data rows in `meta.ts`, but balance-flagged three ways: blades-cdr tripwire re-run (CDR meta), §5 meta-gap arms re-run (maxed-meta ceiling rises), full-shop cost curve re-check (25–35-run target). Projectiles priced steep at 1–2 levels (weaponSlot precedent); progressive unlock works as-is via `STAT_TO_META`
+- New meta upgrades (token drop rate from elites, token drop amount) → **folded into the v0.4 P2 "API Tokens" item** (they're meaningless before the currency exists and ship with it); open detail solved in-item: no card stat matches tokens, so the ??? reveal triggers on the first token ever picked up instead of a card pick
+
+<details>
+<summary>Batch 22 — original notes (kept for reference)</summary>
+
+### Draft ideas
+
+- new meta upgrades:
+    - projectiles
+    - cdr
+    - token drop rate (from elites)
+    - token drop amount
+
+</details>
 
 ## Processed → ROADMAP.md (2026-06-13, batch 21)
 
