@@ -10,6 +10,7 @@ import { computeStats, type ComputedStats } from './stats';
 import { updateWeapons } from './combat';
 import { updateSpawner, makeCritical, SPAWN_RADIUS } from './spawner';
 import { updateBossSchedule, updateBossMechanics, crumblePillars, fadeRaceImages } from './bossLogic';
+import { updateFieldEvents, EVENT_FIRST_AT, type FieldEvent } from './events';
 
 // ---------- entities ----------
 
@@ -251,6 +252,9 @@ export type RunEvent =
   | { type: 'slam'; x: number; y: number; radius: number }      // critical exception impact landed
   | { type: 'hardFreeze'; x: number; y: number }                // kernel panic locked up (armored blizzard)
   | { type: 'thaw'; x: number; y: number }                      // kernel panic thawed (vulnerable window)
+  | { type: 'eventSpawn'; x: number; y: number; kind: 'nest' | 'terminal'; name: string }
+  | { type: 'eventDone'; x: number; y: number; kind: 'nest' | 'terminal'; name: string }
+  | { type: 'eventExpired'; x: number; y: number; kind: 'nest' | 'terminal' }
   | { type: 'chest'; x: number; y: number }
   | { type: 'mushiSpawn'; x: number; y: number }
   | { type: 'mushiCaught'; x: number; y: number }
@@ -382,6 +386,12 @@ export class Run {
     : Infinity;
   mushiCaught = false;
 
+  // in-run field events (game/events.ts): the active event + next-spawn clock
+  fieldEvent: FieldEvent | null = null;
+  eventAt = EVENT_FIRST_AT;
+  /** false under noTerrain — events never run in balance sims (user policy). */
+  eventsEnabled = true;
+
   objectiveCheckT = 0;
   rng = mulberry32(Date.now() & 0xffffffff);
 
@@ -397,6 +407,7 @@ export class Run {
      *  invalidates win-rate baselines; terrain is validated by its own tests. */
     private opts: { noTerrain?: boolean } = {},
   ) {
+    this.eventsEnabled = !opts.noTerrain;
     this.stats = computeStats(character, metaLevels, this.cardMods);
     this.hp = this.stats.maxHp;
     this.shield = this.stats.shieldMax;
@@ -802,6 +813,7 @@ export class Run {
     this.updateZones(dt);
     this.updatePickups(dt);
     this.updateMushi(dt);
+    updateFieldEvents(this, dt);
 
     // regen
     if (this.stats.regen > 0) this.healPlayer(this.stats.regen * dt);

@@ -69,6 +69,9 @@ export interface SuspendedRun {
   mushi?: Mushi | null;
   mushiAt?: number | null;
   mushiCaught?: boolean;
+  /** field-event spawn clock — optional: pre-events snapshots re-arm on resume.
+   *  Infinity (= an event was live; it isn't serialized) → null (JSON). */
+  eventAt?: number | null;
 }
 
 function snapEnemy(e: Enemy): EnemySnap {
@@ -115,7 +118,9 @@ export function snapshotRun(run: Run): SuspendedRun {
     slams: run.slams.map((s) => ({ ...s })), chillT: run.chillT,
     crunchStarted: run.crunchStarted, crunchT: run.crunchT,
     turretT: run.turretT, helperT: run.helperT,
-    enemies: run.enemies.map(snapEnemy),
+    // a live field event is dropped wholesale (its nest with it): resuming
+    // re-arms the spawn clock instead — simpler than serializing the entity ref
+    enemies: run.enemies.filter((e) => e !== run.fieldEvent?.nest).map(snapEnemy),
     pickups: run.pickups.map((p) => ({ ...p })),
     obstacles: run.obstacles.map((o) => ({ ...o })),
     patches: run.patches.map((p) => ({ ...p })),
@@ -128,6 +133,7 @@ export function snapshotRun(run: Run): SuspendedRun {
     mushi: run.mushi ? { ...run.mushi } : null,
     mushiAt: Number.isFinite(run.mushiAt) ? run.mushiAt : null,
     mushiCaught: run.mushiCaught,
+    eventAt: Number.isFinite(run.eventAt) ? run.eventAt : null,
   };
 }
 
@@ -193,6 +199,10 @@ export function restoreRun(snap: SuspendedRun, doneObjectives: Set<string>): Run
   run.mushi = snap.mushi ? { ...snap.mushi } : null;
   run.mushiAt = snap.mushiAt ?? Infinity; // pre-Precipitate snapshot: don't re-roll mid-run
   run.mushiCaught = snap.mushiCaught ?? false;
+  // eventAt was Infinity iff an event was live at suspend (it was dropped from
+  // the snapshot) — re-arm a fresh spawn a beat after resuming. Pre-events
+  // snapshots get the same treatment.
+  run.eventAt = snap.eventAt ?? run.time + 30;
 
   run.hp = Math.min(snap.hp, run.stats.maxHp);
   run.shield = Math.min(snap.shield ?? run.stats.shieldMax, run.stats.shieldMax);

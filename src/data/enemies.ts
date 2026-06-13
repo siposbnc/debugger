@@ -66,6 +66,18 @@ export const ENEMIES: Record<string, EnemyDef> = {
     hp: 60, speed: 44, damage: 11, radius: 15, xp: 4, bits: 3,
     color: '#67e8c8', shape: 'crab', behavior: 'chase', frontShield: true,
   },
+  // Field-event structure — spawned only by in-run events (game/events.ts),
+  // never in spawn plans. A stationary hatcher: breeds bugs from the map's
+  // current spawn phase every few seconds until destroyed. The kill pays the
+  // usual xp/bits; the bounty chest comes from the event resolution.
+  bugNest: {
+    id: 'bugNest', name: 'Bug Nest',
+    codexDesc: '99 little bugs in the code. Take one down, patch it around — '
+      + 'the nest files new ones faster than you can read them. Torch it at '
+      + 'the source and collect the bounty.',
+    hp: 90, speed: 0, damage: 0, radius: 22, xp: 6, bits: 4,
+    color: '#d65a3c', shape: 'nest', behavior: 'chase', stationary: true,
+  },
   // Boss adjunct — spawned only by the Legacy Monolith's armored phase, never in
   // spawn plans. Inert (0 contact damage) shot-soak: auto-aim and projectiles hit
   // it like any enemy, which is exactly the mechanic. Destroying one mid-armor

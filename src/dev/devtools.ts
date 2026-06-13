@@ -14,6 +14,7 @@ import { META_UPGRADES } from '../data/meta';
 import { persistSave, type SaveData } from '../save/save';
 import type { Run } from '../game/run';
 import type { ComputedStats } from '../game/stats';
+import { spawnFieldEvent } from '../game/events';
 
 const BANNER = 'Debugger dev console';
 
@@ -46,6 +47,7 @@ const HELP: [call: string, what: string][] = [
   ['dbg.time(min)', 'jump the run clock to minute min (bosses/spawn phases follow)'],
   ['dbg.speed(mult?)', 'sim speed / tick rate: 6 = turbo, 0.5 = slow-mo, 1 = normal; no args reads it'],
   ['dbg.mushi()', 'precipitate the very rare visitor now (spawns on the next sim frame)'],
+  ["dbg.event(kind?, near?)", "spawn a field event now: 'nest' | 'terminal' (default random); near=true drops it in view instead of at excursion range"],
   ["dbg.unlock(what='all')", "reveal progressive unlocks: 'codex' (all bug/boss entries), 'meta' (all ??? shop rows), or 'all' (persisted)"],
   ['dbg.help()', 'this text'],
 ];
@@ -176,6 +178,29 @@ function buildApi(ctx: DevContext) {
       if (run.mushi) return '[dbg] it is already here — look for the gold ? marker';
       run.mushiAt = run.time;
       return '[dbg] precipitating… (23s window; walk into it — weapons pass through)';
+    },
+
+    event(kind?: 'nest' | 'terminal', near = false): string {
+      const run = needRun();
+      if (!run) return '';
+      if (kind !== undefined && kind !== 'nest' && kind !== 'terminal') {
+        return "[dbg] usage: dbg.event('nest' | 'terminal', near?)";
+      }
+      if (run.fieldEvent) return '[dbg] an event is already live — resolve or outwait it first';
+      spawnFieldEvent(run, kind ?? (Math.random() < 0.5 ? 'nest' : 'terminal'));
+      const ev = run.fieldEvent!;
+      if (near) {
+        // pull it into view for visual checks: the terminal lands with the
+        // player already inside its ring (reboot starts at once), the nest a
+        // short hop away (the entity moves with it)
+        if (ev.nest) {
+          ev.x = run.px + 220; ev.y = run.py - 80;
+          ev.nest.x = ev.x; ev.nest.y = ev.y;
+        } else {
+          ev.x = run.px + 50; ev.y = run.py - 20;
+        }
+      }
+      return `[dbg] ${ev.kind} spawned ${near ? 'nearby' : 'at excursion range — follow the marker'} (${Math.round(ev.t)}s window)`;
     },
 
     god(on?: boolean): string {

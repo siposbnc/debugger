@@ -47,6 +47,13 @@ check('give() applies a card', (await dbg(() => window.dbg.give('coffeeBreak')))
 check('give(id, n) stacks a card n times', (await dbg(() => window.dbg.give('coffeeBreak', 3))).includes('×4'));
 check('give(id, n) grants a weapon at level n', (await dbg(() => window.dbg.give('stackStaff', 4))).includes('level 4'));
 
+// event(): field-event spawn hook (v0.4 in-run events). Must run BEFORE any
+// time() jump — a clock past 75s triggers the natural spawn, after which
+// further spawn attempts legitimately refuse.
+check('event() spawns a chosen kind', (await dbg(() => window.dbg.event('terminal'))).includes('terminal spawned'));
+check('event() refuses while one is live', (await dbg(() => window.dbg.event('nest'))).includes('already live'));
+check('event(junk) rejected', (await dbg(() => window.dbg.event('party'))).includes('usage'));
+
 check('xp() reports gain', /level \d+, \d+ pending/.test(await dbg(() => window.dbg.xp(5))));
 check('time() moves the clock', (await dbg(() => window.dbg.time(5))).includes('5:00'));
 

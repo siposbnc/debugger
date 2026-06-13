@@ -99,6 +99,26 @@ const BUG_DRAWERS: Record<string, BugDrawer> = {
     ctx.beginPath(); ctx.arc(r * 1.15, -r * 0.35, r * 0.32, 0, 7); ctx.fill();
     eyes(ctx, 0, r * 0.15, r * 0.3, r * 0.2);
   },
+  nest: (ctx, r, color) => {
+    // field-event hatchery: layered mound over dark brood holes, hatchlings
+    // crawling the slopes — a structure, not a face (no eyes, no legs)
+    withGlow(ctx, color, 8, () => {
+      ctx.fillStyle = color;
+      ctx.beginPath(); ctx.ellipse(0, r * 0.3, r * 1.2, r * 0.55, 0, 0, 7); ctx.fill();
+      ctx.beginPath(); ctx.ellipse(0, -r * 0.05, r * 0.92, r * 0.55, 0, 0, 7); ctx.fill();
+      ctx.beginPath(); ctx.ellipse(0, -r * 0.42, r * 0.58, r * 0.38, 0, 0, 7); ctx.fill();
+    });
+    // brood holes (the main vent on top + two side burrows)
+    ctx.fillStyle = 'rgba(0,0,0,0.55)';
+    ctx.beginPath(); ctx.ellipse(0, -r * 0.52, r * 0.26, r * 0.17, 0, 0, 7); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(-r * 0.58, r * 0.08, r * 0.17, r * 0.11, 0, 0, 7); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(r * 0.52, r * 0.34, r * 0.15, r * 0.1, 0, 0, 7); ctx.fill();
+    // hatchlings on the slopes
+    ctx.fillStyle = 'rgba(26,29,36,0.9)';
+    for (const [dx, dy] of [[-0.32, -0.28], [0.42, -0.1], [-0.12, 0.5], [0.18, -0.55]]) {
+      ctx.beginPath(); ctx.arc(dx * r, dy * r, r * 0.09, 0, 7); ctx.fill();
+    }
+  },
   mite: (ctx, r, color) => {
     legs(ctx, color, r, 3);
     withGlow(ctx, color, 6, () => {

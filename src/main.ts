@@ -265,6 +265,9 @@ function drainEvents(): void {
       case 'hardFreeze': sound.play('bossWarn'); break;
       case 'thaw': sound.play('resolve'); break;
       case 'chest': sound.play('chest'); break;
+      case 'eventSpawn': sound.play('fizz'); break;
+      case 'eventDone': sound.play('resolve'); break;
+      case 'eventExpired': sound.play('fizz'); break;
       case 'mushiSpawn': sound.play('fizz'); break;
       case 'mushiCaught': sound.play('resolve'); break;
       case 'mushiGone': sound.play('fizz'); break;

@@ -99,7 +99,7 @@ export interface EnemyDef {
   xp: number;
   bits: number;
   color: string;
-  shape: 'mite' | 'tick' | 'wasp' | 'leech' | 'spider' | 'beetle' | 'scarab' | 'centipede' | 'flask' | 'pillar' | 'tracer' | 'crab';
+  shape: 'mite' | 'tick' | 'wasp' | 'leech' | 'spider' | 'beetle' | 'scarab' | 'centipede' | 'flask' | 'pillar' | 'tracer' | 'crab' | 'nest';
   behavior: EnemyBehavior;
   /** spawn in clusters of N (Cache Tick) */
   cluster?: number;

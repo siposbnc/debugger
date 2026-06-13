@@ -1,4 +1,5 @@
 import type { Run, RunEvent } from '../game/run';
+import { TERMINAL_RADIUS } from '../game/events';
 import type { BossDef, MapDef } from '../data/types';
 import { clamp, formatTime, lerp, rand } from '../core/util';
 import { touchStick } from '../core/input';
@@ -328,6 +329,27 @@ export abstract class RendererBase {
           });
         }
         break;
+      case 'eventSpawn':
+        this.banner(
+          ev.kind === 'nest' ? '⚠ BUG NEST SIGHTED' : 'HUNG TERMINAL DETECTED',
+          ev.kind === 'nest'
+            ? 'torch it before the backlog compounds — follow the # marker'
+            : 'tty not responding — stand by it to reboot (follow the > marker)',
+          ev.kind === 'nest' ? '#ff7438' : '#7df9ff', 4);
+        this.rings.push({ x: ev.x, y: ev.y, radius: 70, t: 0, dur: 0.7, color: ev.kind === 'nest' ? '#ff7438' : '#7df9ff' });
+        break;
+      case 'eventDone':
+        this.banner(
+          ev.kind === 'nest' ? 'NEST CLEARED' : 'TERMINAL REBOOTED',
+          'bounty secured — grab the chest', '#41d97f', 2.5);
+        this.rings.push({ x: ev.x, y: ev.y, radius: 90, t: 0, dur: 0.5, color: '#41d97f' });
+        break;
+      case 'eventExpired':
+        this.banner('EVENT MISSED',
+          ev.kind === 'nest' ? 'the nest scattered back into the noise' : 'the terminal gave up waiting',
+          '#8d99ae', 2);
+        this.rings.push({ x: ev.x, y: ev.y, radius: 60, t: 0, dur: 0.6, color: '#8d99ae' });
+        break;
       case 'mushiSpawn':
         // precipitates out of solution: a soft teal fizz at the pop-in point
         this.rings.push({ x: ev.x, y: ev.y, radius: 50, t: 0, dur: 0.6, color: '#9fe8dc' });
@@ -477,6 +499,7 @@ export abstract class RendererBase {
     }
     if (run) {
       this.drawHud(ctx, run);
+      this.drawFieldEvent(ctx, run);
       this.drawEdgeRadar(ctx, run);
       this.drawTouchStick(ctx);
     }
@@ -588,7 +611,61 @@ export abstract class RendererBase {
       const urgency = run.mushi.t < 8 ? 1.4 : 1;
       this.edgeMarker(ctx, run.mushi.x, run.mushi.y, 13, '#ffc12e', '?', Math.min(1, shimmer * urgency));
     }
+    // Field events: # = nest (its threat color), > = terminal (friendly cyan);
+    // blinks faster as the despawn window closes.
+    const fe = run.fieldEvent;
+    if (fe) {
+      const wave = fe.t < 12 ? 0.65 + 0.35 * Math.sin(this.t * 9) : 0.75 + 0.2 * Math.sin(this.t * 4);
+      this.edgeMarker(ctx, fe.x, fe.y, 13,
+        fe.kind === 'nest' ? '#ff7438' : '#7df9ff',
+        fe.kind === 'nest' ? '#' : '>', wave);
+    }
     ctx.globalAlpha = 1;
+  }
+
+  /** The Hung Terminal drawn as a HUD overlay (flat floor ring + dead screen +
+   *  reboot progress) — works on both world-pass backends without touching
+   *  them. The nest needs nothing here: it's a real enemy, the world pass
+   *  draws its sprite. */
+  private drawFieldEvent(ctx: CanvasRenderingContext2D, run: Run): void {
+    const fe = run.fieldEvent;
+    if (!fe || fe.kind !== 'terminal') return;
+    const p = this.proj(fe.x, fe.y);
+    const sx = p.x - this.camX + this.w / 2;
+    const sy = p.y - this.camY + this.h / 2;
+    if (sx < -180 || sx > this.w + 180 || sy < -180 || sy > this.h + 180) return;
+    const blink = fe.t < 10 ? 0.5 + 0.4 * Math.sin(this.t * 9) : 0.85;
+    ctx.save();
+    ctx.globalAlpha = blink;
+    // reboot range: dashed iso ring on the floor
+    ctx.strokeStyle = '#7df9ff';
+    ctx.lineWidth = 1.5;
+    ctx.setLineDash([7, 7]);
+    ctx.beginPath();
+    ctx.ellipse(sx, sy, TERMINAL_RADIUS, TERMINAL_RADIUS / 2, 0, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    // the terminal: a dead screen on a pedestal, cursor stuck
+    ctx.fillStyle = 'rgba(8, 12, 18, 0.85)';
+    ctx.fillRect(sx - 17, sy - 36, 34, 25);
+    ctx.strokeStyle = '#7df9ff';
+    ctx.strokeRect(sx - 17, sy - 36, 34, 25);
+    ctx.fillRect(sx - 2, sy - 11, 4, 9);
+    ctx.fillStyle = '#7df9ff';
+    ctx.font = '15px VT323, monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText(fe.progress > 0 && Math.sin(this.t * 12) > 0 ? '>_' : '>', sx, sy - 18);
+    // reboot progress: green arc filling the ring clockwise
+    if (fe.progress > 0) {
+      ctx.globalAlpha = 1;
+      ctx.strokeStyle = '#41d97f';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.ellipse(sx, sy, TERMINAL_RADIUS, TERMINAL_RADIUS / 2, 0,
+        -Math.PI / 2, -Math.PI / 2 + fe.progress * Math.PI * 2);
+      ctx.stroke();
+    }
+    ctx.restore();
   }
 
   private drawHud(ctx: CanvasRenderingContext2D, run: Run): void {
