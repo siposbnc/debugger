@@ -23,37 +23,50 @@ const clickBtn = async (sel) => { await page.click(sel); await page.waitForTimeo
 await page.goto(BASE);
 await page.waitForSelector('[data-act="start"]');
 
-// --- fresh save: menu dots on both buttons ---
-check('menu dot on UPGRADES (fresh save)', await dotOn('shop'));
-check('menu dot on BUG DATABASE (fresh save)', await dotOn('codex'));
+// --- fresh save: dots reflect progressive unlocks (codex has NOTHING to
+// badge before anything is encountered — objectives moved to their own menu
+// 2026-06-12, so the codex dot starts dark) ---
+check('menu dot on SHOP (fresh save)', await dotOn('shop'));
+check('no codex dot on a fresh save (nothing encountered)', !(await dotOn('codex')));
+check('menu dot on OBJECTIVES (fresh save)', await dotOn('objectives'));
 
-// --- first codex visit: everything badged; second visit: nothing ---
+// --- fresh codex: every entry locked/glitched → no badges ---
 await clickBtn('[data-act="codex"]');
-const codexBadges = await badgeCount();
-check('first codex visit shows NEW badges', codexBadges > 10, `${codexBadges} badges`);
+check('fresh codex shows no badges (all locked)', (await badgeCount()) === 0);
 await clickBtn('[data-act="back"]');
-check('codex menu dot cleared after visit', !(await dotOn('codex')));
 check('shop menu dot still on', await dotOn('shop'));
-await clickBtn('[data-act="codex"]');
-check('second codex visit shows none', (await badgeCount()) === 0);
-await clickBtn('[data-act="back"]');
 
-// --- shop: badges on first visit, survive a purchase re-render ---
+// --- shop tabs: badges per tab on first VIEW, survive purchase re-renders,
+// menu dot holds until every tab has been opened (tabs added 2026-06-13) ---
 await page.evaluate(() => { window.dbg.bits(500); });
 await clickBtn('[data-act="shop"]');
-const shopBadges = await badgeCount();
-check('first shop visit shows NEW badges', shopBadges > 5, `${shopBadges} badges`);
-await page.click('.shop-row button:not([disabled])'); // buy the first affordable upgrade
+// default tab = stat upgrades: on a fresh save every meta row is a locked ???
+// (excluded from badge ids), so nothing badges here
+check('meta tab (default): no badges on a fresh save', (await badgeCount()) === 0);
+const tabDot = (t) => page.evaluate((x) => !!document.querySelector(`[data-tab="${x}"] .new-dot`), t);
+check('unviewed tabs carry dots', (await tabDot('weapons')) && (await tabDot('chars')));
+await clickBtn('[data-tab="weapons"]');
+const wpnBadges = await badgeCount();
+check('license tab badges on first view', wpnBadges > 0, `${wpnBadges} badges`);
+await clickBtn('[data-tab="chars"]');
+const chrBadges = await badgeCount();
+check('character tab badges on first view', chrBadges > 5, `${chrBadges} badges`);
+await page.click('.shop-row button:not([disabled])'); // hire the first affordable character
 await page.waitForTimeout(200);
 const afterBuy = await badgeCount();
-check('badges survive purchase re-render', afterBuy === shopBadges, `${shopBadges} → ${afterBuy}`);
+check('badges survive purchase re-render', afterBuy === chrBadges, `${chrBadges} → ${afterBuy}`);
+check('viewed tabs dropped their dots', !(await tabDot('weapons')) && !(await tabDot('chars')));
 await clickBtn('[data-act="back"]');
-check('shop menu dot cleared after visit', !(await dotOn('shop')));
+check('shop menu dot cleared after all tabs viewed', !(await dotOn('shop')));
 await clickBtn('[data-act="shop"]');
+await clickBtn('[data-tab="weapons"]');
+await clickBtn('[data-tab="chars"]');
 check('second shop visit shows none', (await badgeCount()) === 0);
 await clickBtn('[data-act="back"]');
 
-// --- completing an objective re-badges just that entry ---
+// --- completing an objective re-badges just that entry (objectives menu) ---
+await clickBtn('[data-act="objectives"]'); // first visit marks obj: ids seen
+await clickBtn('[data-act="back"]');
 await page.evaluate(() => {
   const save = JSON.parse(localStorage.getItem('debugger-save-v1'));
   const objId = save.seenIds.find((id) => id.startsWith('obj:') && !id.endsWith(':done')).slice(4);
@@ -62,8 +75,8 @@ await page.evaluate(() => {
 });
 await page.reload();
 await page.waitForSelector('[data-act="start"]');
-check('completed objective re-arms the codex dot', await dotOn('codex'));
-await clickBtn('[data-act="codex"]');
+check('completed objective re-arms the OBJECTIVES dot', await dotOn('objectives'));
+await clickBtn('[data-act="objectives"]');
 const objBadges = await badgeCount();
 const badgedDone = await page.evaluate(() =>
   !!document.querySelector('.codex-entry b.done .new-badge'));

@@ -5,7 +5,11 @@ into [ROADMAP.md](../ROADMAP.md), and moves them to **Processed** below.
 
 ## Draft ideas
 
-*(empty)*
+- new meta upgrades:
+    - projectiles
+    - cdr
+    - token drop rate (from elites)
+    - token drop amount
 
 ## Dev env ideas
 

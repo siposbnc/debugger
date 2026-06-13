@@ -339,6 +339,14 @@ html, body {
 
 /* ---------- shop ---------- */
 
+.shop-tabs { display: flex; gap: 6px; max-width: 760px; width: 100%; }
+.shop-tab {
+  flex: 1; background: var(--panel); border: 1px solid var(--line);
+  padding: 9px 6px; font-family: var(--font-display); font-size: 17px;
+  letter-spacing: 0.06em; color: var(--dim); cursor: pointer;
+}
+.shop-tab:hover { color: var(--text); border-color: var(--cyan); }
+.shop-tab.active { color: var(--cyan); border-color: var(--cyan); background: var(--panel2); }
 .shop-list { display: flex; flex-direction: column; gap: 10px; max-width: 760px; width: 100%; }
 .shop-row {
   display: flex; align-items: center; gap: 14px;

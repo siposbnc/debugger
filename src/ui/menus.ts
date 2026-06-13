@@ -189,14 +189,17 @@ export class UI {
     return false;
   }
 
-  /** Everything the shop screen lists, as namespaced seen-ids. Locked "???"
-   *  meta rows are excluded so they badge NEW when they actually reveal. */
+  /** One shop tab's rows as namespaced seen-ids. Locked "???" meta rows are
+   *  excluded so they badge NEW when they actually reveal. */
+  private shopTabIds(tab: 'meta' | 'weapons' | 'chars'): string[] {
+    if (tab === 'meta') return META_UPGRADES.filter((m) => this.metaUnlocked(m)).map((m) => `meta:${m.id}`);
+    if (tab === 'weapons') return SHOP_WEAPONS.map((w) => `wpn:${w.id}`);
+    return CHARACTER_LIST.map((c) => `chr:${c.id}`);
+  }
+
+  /** Everything the shop screen lists (all tabs) — drives the main-menu dot. */
   private shopIds(): string[] {
-    return [
-      ...META_UPGRADES.filter((m) => this.metaUnlocked(m)).map((m) => `meta:${m.id}`),
-      ...SHOP_WEAPONS.map((w) => `wpn:${w.id}`),
-      ...CHARACTER_LIST.map((c) => `chr:${c.id}`),
-    ];
+    return [...this.shopTabIds('meta'), ...this.shopTabIds('weapons'), ...this.shopTabIds('chars')];
   }
 
   /** Everything the codex lists. Progressive unlocks: bug/boss entries only
@@ -445,10 +448,17 @@ export class UI {
 
   // ---------- meta shop ----------
 
-  /** `fresh` carries the badge set through self re-renders (purchases), so
-   *  NEW tags survive buying — they clear on the next visit. */
+  /** Which shop tab is up — survives purchase/tab re-renders within a session. */
+  private shopTab: 'meta' | 'weapons' | 'chars' = 'meta';
+
+  /** `fresh` carries the badge set through self re-renders (purchases, tab
+   *  switches), so NEW tags survive buying — they clear on the next visit. */
   showShop(fresh?: Set<string>): void {
-    fresh ??= this.takeUnseen(this.shopIds());
+    // Badges are taken per tab as it is actually VIEWED: opening the shop no
+    // longer marks the other tabs' rows seen, so their tab dots (and the
+    // main-menu dot) stay honest until each tab is opened.
+    fresh ??= new Set();
+    for (const id of this.takeUnseen(this.shopTabIds(this.shopTab))) fresh.add(id);
     const metaRows = META_UPGRADES.map((m) => {
       if (!this.metaUnlocked(m)) {
         // progressive unlocks: silhouetted ??? row, cost hidden — discover it
@@ -502,16 +512,24 @@ export class UI {
         </div>`;
     }).join('');
 
+    const TAB_DEF = [
+      ['meta', 'STAT UPGRADES', '# Stat upgrades'],
+      ['weapons', 'LICENSES', '# Weapon licenses (adds to in-run card pool)'],
+      ['chars', 'CHARACTERS', '# Characters (adds to the character select)'],
+    ] as const;
+    const tabBar = TAB_DEF.map(([id, label]) => `
+      <button class="shop-tab ${id === this.shopTab ? 'active' : ''}" data-tab="${id}">${label}${
+        id !== this.shopTab && this.anyUnseen(this.shopTabIds(id)) ? '<span class="new-dot">●</span>' : ''}</button>`).join('');
+    const rows = this.shopTab === 'meta' ? metaRows : this.shopTab === 'weapons' ? weaponRows : charRows;
+    const section = TAB_DEF.find(([id]) => id === this.shopTab)![2];
+
     const s = this.screen(`
       <div class="screen-heading">npm install --save permanent-upgrades</div>
       <div class="bits-display">⌬ ${this.save.bits} bits</div>
+      <div class="shop-tabs">${tabBar}</div>
       <div class="shop-list">
-        <div class="shop-section"># Stat upgrades</div>
-        ${metaRows}
-        <div class="shop-section"># Weapon licenses (adds to in-run card pool)</div>
-        ${weaponRows}
-        <div class="shop-section"># Characters (adds to the character select)</div>
-        ${charRows}
+        <div class="shop-section">${section}</div>
+        ${rows}
       </div>
       <button class="btn" data-act="back">BACK</button>
     `, () => this.showMainMenu());
@@ -519,6 +537,11 @@ export class UI {
       const btn = (e.target as HTMLElement).closest('button');
       if (!btn) return;
       if (btn.dataset.act === 'back') { this.showMainMenu(); return; }
+      if (btn.dataset.tab) {
+        this.shopTab = btn.dataset.tab as 'meta' | 'weapons' | 'chars';
+        this.showShop(fresh);
+        return;
+      }
       if (btn.dataset.meta) {
         const m = META_UPGRADES.find((x) => x.id === btn.dataset.meta)!;
         const lvl = this.save.metaLevels[m.id] ?? 0;
