@@ -722,6 +722,10 @@ export class UI {
           <label>FPS counter</label>
           <button class="toggle ${st.fpsCounter ? '' : 'off'}" id="fps">${st.fpsCounter ? 'ON' : 'OFF'}</button>
         </div>
+        <div class="setting-row">
+          <label>Minimap</label>
+          <button class="toggle ${st.minimap ? '' : 'off'}" id="minimap">${st.minimap ? 'ON' : 'OFF'}</button>
+        </div>
         ${BIND_ACTIONS.map(({ action, label }) => `
         <div class="setting-row">
           <label>${label}</label>
@@ -770,6 +774,12 @@ export class UI {
     });
     s.querySelector('#fps')!.addEventListener('click', () => {
       st.fpsCounter = !st.fpsCounter;
+      this.persist();
+      this.onSettingsChanged();
+      this.showSettings(onBack);
+    });
+    s.querySelector('#minimap')!.addEventListener('click', () => {
+      st.minimap = !st.minimap;
       this.persist();
       this.onSettingsChanged();
       this.showSettings(onBack);

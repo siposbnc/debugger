@@ -34,6 +34,7 @@ export abstract class RendererBase {
   reduceFlashEnabled = false; // photosensitivity: attenuates full-screen flashes + shake
   playerHpBarEnabled = true;
   fpsCounterEnabled = false;
+  minimapEnabled = true;
   // FPS counter: EMA of the rAF delta, snapshotted to the display 4×/s so the
   // text is readable. dt is main-loop-clamped at 100ms — irrelevant above 10fps.
   protected frameMs = 0;
@@ -501,6 +502,7 @@ export abstract class RendererBase {
       this.drawHud(ctx, run);
       this.drawFieldEvent(ctx, run);
       this.drawEdgeRadar(ctx, run);
+      if (this.minimapEnabled) this.drawMinimap(ctx, run);
       this.drawTouchStick(ctx);
     }
     if (this.fpsCounterEnabled) this.drawFpsCounter(ctx);
@@ -540,6 +542,104 @@ export abstract class RendererBase {
       ctx.strokeText(txt, sx, sy - 30);
       ctx.fillText(txt, sx, sy - 30);
     }
+    ctx.globalAlpha = 1;
+  }
+
+  /** Minimap (settings toggle, default on — deferred from v0.2, promoted with
+   *  the in-run events): a fixed-range overview radar in the bottom-right
+   *  corner, projected through the same iso transform as the camera so
+   *  directions on it agree with the screen and the edge-radar arrows.
+   *  Contacts: horde dots (their colors), elites/chests gold, bosses large in
+   *  their color (rim-clamped when out of range — direction still reads),
+   *  field-event glyphs (# / >), the Precipitate, and the player center pip.
+   *  The world is unbounded, so this is a radar, not a map. */
+  private drawMinimap(ctx: CanvasRenderingContext2D, run: Run): void {
+    const R = 74;
+    const cx = this.w - R - 18, cy = this.h - R - 18;
+    // view radius in projected screen px: the event spawn band (≤950 world
+    // units ≈ ≤1350 px after iso projection) must land inside the rim
+    const VIEW = 1450;
+    const k = (R - 4) / VIEW;
+    const pc = this.proj(run.px, run.py);
+    /** world → minimap, rim-clamped. */
+    const plot = (wx: number, wy: number): { x: number; y: number; clamped: boolean } => {
+      const p = this.proj(wx, wy);
+      let vx = (p.x - pc.x) * k, vy = (p.y - pc.y) * k;
+      const m = Math.hypot(vx, vy);
+      const clamped = m > R - 5;
+      if (clamped) { vx *= (R - 5) / m; vy *= (R - 5) / m; }
+      return { x: cx + vx, y: cy + vy, clamped };
+    };
+
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(cx, cy, R, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(8, 12, 18, 0.55)';
+    ctx.fill();
+    ctx.clip();
+
+    // horde + elites (out-of-range bugs aren't worth a rim dot)
+    for (const e of run.enemies) {
+      if (e.isBoss) continue;
+      const q = plot(e.x, e.y);
+      if (q.clamped) continue;
+      if (e.elite) {
+        ctx.globalAlpha = 0.95;
+        ctx.fillStyle = '#ffc12e';
+        ctx.fillRect(q.x - 1.5, q.y - 1.5, 3, 3);
+      } else {
+        ctx.globalAlpha = 0.6;
+        ctx.fillStyle = e.def.color;
+        ctx.fillRect(q.x - 1, q.y - 1, 2, 2);
+      }
+    }
+    // chests
+    ctx.fillStyle = '#ffc12e';
+    for (const p of run.pickups) {
+      if (p.kind !== 'chest') continue;
+      const q = plot(p.x, p.y);
+      ctx.globalAlpha = q.clamped ? 0.5 : 1;
+      ctx.fillRect(q.x - 1.5, q.y - 1.5, 3, 3);
+    }
+    // the Precipitate (same shimmer language as its edge marker)
+    if (run.mushi) {
+      const q = plot(run.mushi.x, run.mushi.y);
+      ctx.globalAlpha = 0.5 + 0.3 * Math.sin(this.t * 4);
+      ctx.fillStyle = '#9fe8dc';
+      ctx.fillRect(q.x - 1.5, q.y - 1.5, 3, 3);
+    }
+    // bosses: big, their color, rim-clamped so the direction still reads
+    for (const e of run.enemies) {
+      if (!e.isBoss) continue;
+      const q = plot(e.x, e.y);
+      ctx.globalAlpha = q.clamped ? 0.6 : 0.75 + 0.25 * Math.sin(this.t * 7);
+      ctx.fillStyle = e.def.color;
+      ctx.fillRect(q.x - 2.5, q.y - 2.5, 5, 5);
+    }
+    // field event: the same glyph as its edge marker, blinking near despawn
+    const fe = run.fieldEvent;
+    if (fe) {
+      const q = plot(fe.x, fe.y);
+      ctx.globalAlpha = fe.t < 12 ? 0.55 + 0.45 * Math.sin(this.t * 9) : 0.95;
+      ctx.fillStyle = fe.kind === 'nest' ? '#ff7438' : '#7df9ff';
+      ctx.font = '11px VT323, monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText(fe.kind === 'nest' ? '#' : '>', q.x, q.y + 3.5);
+    }
+    // player: center pip
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = '#53e8a8';
+    ctx.beginPath();
+    ctx.arc(cx, cy, 2.5, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+
+    ctx.globalAlpha = 0.45;
+    ctx.strokeStyle = '#7df9ff';
+    ctx.lineWidth = 1.2;
+    ctx.beginPath();
+    ctx.arc(cx, cy, R, 0, Math.PI * 2);
+    ctx.stroke();
     ctx.globalAlpha = 1;
   }
 

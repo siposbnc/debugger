@@ -55,6 +55,7 @@ function applySettings(): void {
   renderer.reduceFlashEnabled = save.settings.reduceFlash;
   renderer.playerHpBarEnabled = save.settings.playerHpBar;
   renderer.fpsCounterEnabled = save.settings.fpsCounter;
+  renderer.minimapEnabled = save.settings.minimap;
   setKeyBindings(save.settings.keys);
 }
 applySettings();

@@ -28,6 +28,7 @@ export interface SaveData {
   settings: {
     master: number; sfx: number; music: number;
     shake: boolean; reduceFlash: boolean; playerHpBar: boolean; fpsCounter: boolean;
+    minimap: boolean;
     /** Custom key bindings (action → KeyboardEvent.code); missing = default. */
     keys: Record<string, string>;
   };
@@ -92,7 +93,7 @@ function defaults(): SaveData {
     lastCharacter: 'ada',
     lastMap: 'greenfield',
     lifetime: { runs: 0, kills: 0, bossKills: 0, bitsEarned: 0, bestTimeSec: 0, bestLevel: 0, victories: 0, uptimeSec: 0, weaponDamage: {} },
-    settings: { master: 1, sfx: 0.7, music: 0.5, shake: true, reduceFlash: false, playerHpBar: true, fpsCounter: false, keys: {} },
+    settings: { master: 1, sfx: 0.7, music: 0.5, shake: true, reduceFlash: false, playerHpBar: true, fpsCounter: false, minimap: true, keys: {} },
     seenIds: [],
     encountered: [],
     unlockedMeta: [],
