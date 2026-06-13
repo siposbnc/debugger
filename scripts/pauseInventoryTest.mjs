@@ -1,6 +1,7 @@
-// One-off check for the pause-screen weapons inventory: per-weapon blocks
-// (name/level + damage tallies, desc, resolved stat chips) and proof the
-// chips show effective() values (global mults applied), not raw table rows.
+// Check for the pause-screen inventory (primary-pane redesign 2026-06-13):
+// per-weapon cards (name, level pips/EVO tag, damage tally, desc, resolved
+// stat chips), open-slot placeholders up to weaponSlots, and proof the chips
+// show effective() values (global mults applied), not raw table rows.
 // Needs a served build:dev output (dbg required):
 //   npx vite build --mode dev && npx vite preview   then   node scripts/pauseInventoryTest.mjs [url]
 import { chromium } from 'playwright';
@@ -33,9 +34,12 @@ await page.evaluate(() => {
 
 const readWeapons = async () => {
   await page.keyboard.press('Escape');
-  await page.waitForSelector('.pause-cols .wpn', { timeout: 4000 });
-  return page.$$eval('.pause-panel .wpn', (els) => els.map((el) => ({
-    head: el.querySelector('.wpn-head')?.textContent?.trim() ?? '',
+  await page.waitForSelector('.pause-inventory .inv-card', { timeout: 4000 });
+  return page.$$eval('.pause-inventory .inv-card:not(.empty)', (els) => els.map((el) => ({
+    name: el.querySelector('.inv-title b')?.textContent?.trim() ?? '',
+    level: el.querySelector('.inv-title .pips')?.textContent?.trim() ?? '',
+    pipsOn: el.querySelectorAll('.pip.on').length,
+    dmg: el.querySelector('.inv-dmg')?.textContent?.trim() ?? '',
     desc: el.querySelector('.wpn-desc')?.textContent?.trim() ?? '',
     chips: [...el.querySelectorAll('.wpn-stats .wstat')].map((c) => c.textContent.trim()),
   })));
@@ -47,13 +51,15 @@ const chipNum = (w, label) => {
 
 // --- pass 1: structure at neutral mults ---
 const w1 = await readWeapons();
-check(w1.length === 3, `3 weapon blocks rendered (starter + 2 given) — got ${w1.length}`);
-check(w1.every((w) => w.desc.length > 0), 'every block has a description');
-const fork1 = w1.find((w) => w.head.includes('Fork Bomb'));
-const zip = w1.find((w) => w.head.includes('Zip Bomb'));
-check(!!fork1 && fork1.head.includes('Lv 3'), 'Fork Bomb block shows Lv 3');
-check(!!zip && zip.head.includes('EVO'), 'Zip Bomb block shows EVO tag');
-check(!!fork1 && /\/s\)/.test(fork1.head), 'damage/DPS tally present in header');
+check(w1.length === 3, `3 weapon cards rendered (starter + 2 given) — got ${w1.length}`);
+check(w1.every((w) => w.desc.length > 0), 'every card has a description');
+const empties = await page.$$eval('.pause-inventory .inv-card.empty', (els) => els.length);
+check(empties === 1, `open-slot placeholder fills to weaponSlots (4 slots − 3 weapons = 1, got ${empties})`);
+const fork1 = w1.find((w) => w.name.includes('Fork Bomb'));
+const zip = w1.find((w) => w.name.includes('Zip Bomb'));
+check(!!fork1 && fork1.level.includes('Lv 3') && fork1.pipsOn === 3, 'Fork Bomb card shows Lv 3 with 3 pips lit');
+check(!!zip && zip.level.includes('EVO'), 'Zip Bomb card shows EVO tag');
+check(!!fork1 && /\/s/.test(fork1.dmg), 'damage/DPS tally present on the card');
 check(w1.every((w) => w.chips.some((c) => c.startsWith('Damage')) && w.chips.some((c) => c.startsWith('Cooldown'))), 'Damage + Cooldown chips on every weapon');
 check(!!fork1 && !fork1.chips.some((c) => c.startsWith('Slow')), 'zero-valued fields omitted (no Slow chip on Fork Bomb)');
 
@@ -70,7 +76,7 @@ await page.evaluate(() => {
   window.dbg.stat('cooldownFactor', 0.5);
 });
 const w2 = await readWeapons();
-const fork2 = w2.find((w) => w.head.includes('Fork Bomb'));
+const fork2 = w2.find((w) => w.name.includes('Fork Bomb'));
 const d2 = chipNum(fork2, 'Damage');
 const c2 = parseFloat((fork2.chips.find((t) => t.startsWith('Cooldown')) ?? '').replace('Cooldown', ''));
 check(Math.abs(d2 - d1 * 2) <= 1, `damageMult ×2 doubles the Damage chip (${d1} → ${d2})`);
