@@ -43,6 +43,7 @@ const HELP: [call: string, what: string][] = [
   ['dbg.give(id, n=1)', 'grant a weapon at level n (or apply a card n times) immediately'],
   ['dbg.level(id, n)', `set an owned weapon's level (1–${MAX_WEAPON_LEVEL}; grants it if missing)`],
   ['dbg.god(on?)', 'toggle invincibility'],
+  ['dbg.pos()', 'read the player world position {x,y}'],
   ['dbg.stat(id?, value?)', 'no args: table of current stats · (id): read one · (id, n): override it (survives card pickups) · (id, null): clear the override'],
   ['dbg.time(min)', 'jump the run clock to minute min (bosses/spawn phases follow)'],
   ['dbg.speed(mult?)', 'sim speed / tick rate: 6 = turbo, 0.5 = slow-mo, 1 = normal; no args reads it'],
@@ -232,6 +233,13 @@ function buildApi(ctx: DevContext) {
       if (!run) return '';
       run.invincible = on ?? !run.invincible;
       return `[dbg] invincible: ${run.invincible}`;
+    },
+
+    /** Player world position — handy for input/movement debugging. */
+    pos(): { x: number; y: number } | null {
+      const run = needRun();
+      if (!run) return null;
+      return { x: Math.round(run.px), y: Math.round(run.py) };
     },
 
     stat(id?: string, value?: number | null): string {

@@ -89,10 +89,14 @@ export function padRequireNeutral(): void {
 export function pollGamepad(dt: number): void {
   menuDir = null;
   const pads = typeof navigator !== 'undefined' && navigator.getGamepads ? navigator.getGamepads() : [];
+  // Only trust STANDARD-mapping pads: we read axes[0/1] and buttons[12-15] by
+  // the standard layout, so a non-standard device (wheels, HOTAS, generic HID
+  // dongles) would have its resting axis/button misread as held movement —
+  // the classic "character drifts in one direction" phantom. Such devices are
+  // ignored entirely rather than fed through the standard indices.
   let gp: Gamepad | null = null;
   for (const p of pads) {
-    if (p && (!gp || p.mapping === 'standard')) gp = p;
-    if (gp && gp.mapping === 'standard') break;
+    if (p && p.mapping === 'standard') { gp = p; break; }
   }
   if (!gp) {
     padX = padY = 0;
