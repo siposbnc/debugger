@@ -658,7 +658,7 @@ export class UI {
       <div class="codex-entry with-thumb">
         <img class="codex-thumb" src="${UI.entityThumb(e, false)}" alt="">
         <div class="codex-body">
-          <b>${e.name}${e.notABug ? ' <span class="codex-tag">NOT A BUG</span>' : ''}${UI.newBadge(fresh, `bug:${e.id}`)}</b>
+          <b>${e.name}${e.notABug ? ' <span class="codex-tag">NOT A BUG</span>' : ''}${e.variantOf && ENEMIES[e.variantOf] ? ` <span class="codex-tag">VARIANT · ${ENEMIES[e.variantOf].name}</span>` : ''}${UI.newBadge(fresh, `bug:${e.id}`)}</b>
           <span>${e.codexDesc}</span>
         </div>
       </div>`;

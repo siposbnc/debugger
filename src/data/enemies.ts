@@ -108,6 +108,68 @@ export const ENEMIES: Record<string, EnemyDef> = {
   },
 };
 
+// ---------- Map-identity variants (v0.4) ----------
+// A variant re-skins a base archetype: it inherits the base's shape, behavior
+// and flags, then overrides a palette colour, some stats and (at most) one
+// flag. Cheap to add — no new sprite — and gives each map its own roster so no
+// two maps field the exact same enemy id. See ROADMAP "Per-map enemy pools".
+
+/** Build a variant of `baseId`, inheriting everything not overridden. */
+function variant(baseId: string, over: Partial<EnemyDef> & Pick<EnemyDef, 'id' | 'name' | 'codexDesc' | 'color'>): EnemyDef {
+  return { ...ENEMIES[baseId], ...over, variantOf: baseId };
+}
+
+// Memory Marsh — leaked, decaying swamp life. Murky-green palette; everything
+// here is a touch SLOWER than its Greenfield cousin (the waterlogged feel) but
+// HP stays at base — tankier bodies sink boss-window DPS and dropped the maxed-
+// meta cert below the §5 floor (the recurring "durable bodies eat the boss
+// budget" lesson). The map's identity is its roster (drain-heavy, no explosion
+// or shield types) + the ×1.2 enemyScale, not per-enemy bulk.
+const MARSH_VARIANTS: EnemyDef[] = [
+  variant('syntaxMite', {
+    id: 'bogMite', name: 'Bog Mite', color: '#6f9e4a',
+    codexDesc: 'A typo that fell in the swamp and waterlogged. Slower than the original, '
+      + 'soggier, and it brought friends that also fell in.',
+    speed: 52,
+  }),
+  variant('cacheTick', {
+    id: 'dripTick', name: 'Drip Tick', color: '#9aa83c',
+    codexDesc: 'Leaks one stale byte at a time, in identical drips. The puddle is the problem.',
+    speed: 66,
+  }),
+  variant('nullWasp', {
+    id: 'mireWasp', name: 'Mire Wasp', color: '#7fa86a',
+    codexDesc: 'Dereferences out of the reeds in heavy, waterlogged charges. '
+      + 'Points at nothing; lands in muck.',
+    speed: 86,
+  }),
+  variant('memoryLeech', {
+    id: 'heapLeech', name: 'Heap Leech', color: '#5fbf6b',
+    codexDesc: 'The marsh native. Sits in the leaked allocations it caused and drinks '
+      + 'your health to grow its own — right at home in the swamp it made.',
+    speed: 32,
+  }),
+  variant('raceSpider', {
+    id: 'forkSpider', name: 'Fork Spider', color: '#b6c24b',
+    codexDesc: 'Forks a copy whenever you blink. In the fog you can never be sure how '
+      + 'many there really are.',
+    speed: 80,
+  }),
+  variant('deadlockScarab', {
+    id: 'sludgeScarab', name: 'Sludge Scarab', color: '#4f7d5b',
+    codexDesc: 'Holds a lock on the mud itself. Everything near it wades; you most of all.',
+    speed: 36,
+  }),
+  variant('stackCentipede', {
+    id: 'rotCentipede', name: 'Rot Centipede', color: '#7e8f3a',
+    codexDesc: 'A recursion that decomposed mid-call and kept calling. Each rotting '
+      + 'segment invokes the next; there is no base case, only compost.',
+    speed: 42,
+  }),
+];
+
+for (const v of MARSH_VARIANTS) ENEMIES[v.id] = v;
+
 export const ELITE = {
   /** chance per spawn = base + perMin * minutes, after eliteFromMin */
   fromMin: 4,

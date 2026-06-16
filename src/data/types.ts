@@ -115,6 +115,11 @@ export interface EnemyDef {
   /** Not a software defect at all (The Precipitate): never in spawn plans or the
    *  enemies array — run.ts drives it as its own entity; codex tags it NOT A BUG. */
   notABug?: boolean;
+  /** Map-identity variants (v0.4): a re-skinned archetype that reuses a base
+   *  enemy's shape + behavior with a palette swap, stat shifts and at most one
+   *  flag tweak. Holds the base enemy id — the sprite/behavior are inherited,
+   *  the codex tags it as a variant of that base. */
+  variantOf?: string;
 }
 
 export type BossMechanic =

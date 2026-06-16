@@ -39,15 +39,24 @@ export const MAPS: Record<string, MapDef> = {
     // blockers: petrified parents of long-defunct children.
     obstacles: { kind: 'stump', count: 10, rMin: 24, rMax: 36 },
     patches: { kind: 'swap', count: 6 },
-    enemyScale: 1.2,  // meta-gating: a fresh save shouldn't clear this on build alone
+    // meta-gating: a fresh save shouldn't clear this on build alone. Trimmed
+    // 1.2 → 1.15 when the per-map variant roster (drain + slow-aura heavy, no
+    // explosion/shield) proved a harder late-game attrition than the old shared
+    // roster — the scale lever restores the §5 maxed-meta band; zero-meta keeps
+    // ample headroom under the 15% ceiling.
+    enemyScale: 1.15,
+    // Per-map roster (v0.4): marsh variants only — drain + tank identity, no
+    // explosion/shield types (those belong to the prod/glacier rosters).
     spawnPlan: [
-      { fromMin: 0, interval: 1.2, weights: { syntaxMite: 8, memoryLeech: 4 } },
-      { fromMin: 1, interval: 1.0, weights: { syntaxMite: 8, memoryLeech: 5, cacheTick: 4 } },
-      { fromMin: 3, interval: 0.75, weights: { syntaxMite: 6, memoryLeech: 6, cacheTick: 4, nullWasp: 4, exceptionBeetle: 3 } },
-      { fromMin: 5, interval: 0.68, weights: { memoryLeech: 6, cacheTick: 4, nullWasp: 5, exceptionBeetle: 4, raceSpider: 4 } },
-      { fromMin: 7, interval: 0.6, weights: { memoryLeech: 6, nullWasp: 5, exceptionBeetle: 5, raceSpider: 4, deadlockScarab: 4 } },
-      { fromMin: 9, interval: 0.52, weights: { memoryLeech: 5, nullWasp: 5, exceptionBeetle: 5, raceSpider: 5, deadlockScarab: 5, stackCentipede: 3, checksumCrab: 3 } },
-      { fromMin: 11, interval: 0.45, weights: { nullWasp: 5, exceptionBeetle: 6, raceSpider: 5, deadlockScarab: 5, stackCentipede: 5, checksumCrab: 3 } },
+      { fromMin: 0, interval: 1.2, weights: { bogMite: 8, heapLeech: 4 } },
+      { fromMin: 1, interval: 1.0, weights: { bogMite: 8, heapLeech: 5, dripTick: 4 } },
+      { fromMin: 3, interval: 0.75, weights: { bogMite: 6, heapLeech: 6, dripTick: 4, mireWasp: 4, forkSpider: 3 } },
+      { fromMin: 5, interval: 0.68, weights: { heapLeech: 6, dripTick: 4, mireWasp: 5, forkSpider: 4, sludgeScarab: 3 } },
+      { fromMin: 7, interval: 0.6, weights: { heapLeech: 6, mireWasp: 5, forkSpider: 5, sludgeScarab: 3, rotCentipede: 2 } },
+      { fromMin: 9, interval: 0.52, weights: { heapLeech: 5, mireWasp: 5, forkSpider: 5, sludgeScarab: 4, rotCentipede: 3 } },
+      // finale slow-aura kept modest: a wall of player-slowing scarabs in the
+      // 12:00 DPS window is what sank the maxed-meta cert (the slow-grind death)
+      { fromMin: 11, interval: 0.45, weights: { mireWasp: 6, forkSpider: 5, sludgeScarab: 4, rotCentipede: 5 } },
     ],
     // leak country: the Memory Leak haunts its own swamp
     bossPool: { memoryLeak: 3, mergeConflict: 2, raceCondition: 2, infiniteLoop: 2, stackOverflowBoss: 2 },
