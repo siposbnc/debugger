@@ -33,6 +33,7 @@ export const EVENT_DIST_MAX = 950;     // …but a short, deliberate trip
 export const NEST_HATCH_INTERVAL = 3;  // s per bug bred while the nest stands
 export const TERMINAL_RADIUS = 80;     // stand-within reboot range
 export const TERMINAL_REPAIR_TIME = 4; // s inside the ring to reboot
+export const TERMINAL_DECAY_TIME = 6;  // s to bleed full progress back to 0 when you step out
 
 const EVENT_NAME: Record<FieldEventKind, string> = {
   nest: ENEMIES.bugNest.name,
@@ -103,11 +104,15 @@ export function updateFieldEvents(run: Run, dt: number): void {
           ev.x + Math.cos(a) * 34, ev.y + Math.sin(a) * 34, false));
       }
     }
-  } else if (dist(ev.x, ev.y, run.px, run.py) < TERMINAL_RADIUS) {
-    ev.progress += dt / TERMINAL_REPAIR_TIME;
-    if (ev.progress >= 1) {
-      resolve(run, ev);
-      return;
+  } else { // terminal: charge while standing inside, bleed back out when you leave
+    if (dist(ev.x, ev.y, run.px, run.py) < TERMINAL_RADIUS) {
+      ev.progress = Math.min(1, ev.progress + dt / TERMINAL_REPAIR_TIME);
+      if (ev.progress >= 1) {
+        resolve(run, ev);
+        return;
+      }
+    } else if (ev.progress > 0) {
+      ev.progress = Math.max(0, ev.progress - dt / TERMINAL_DECAY_TIME);
     }
   }
 

@@ -123,10 +123,14 @@ function openLevelUp(): void {
 function openRegistry(): void {
   if (!run || state !== 'run' || TURBO) return;
   state = 'registry';
-  ui.showRegistry(run, () => {
-    state = 'run';
-    ui.hide();
-  });
+  ui.showRegistry(run, closeRegistry);
+}
+
+/** Close the registry and resume. Owns the 'registry' Esc/B path (the modal's
+ *  kbnav has no onBack) so closing can't also toggle pause in the same frame. */
+function closeRegistry(): void {
+  state = 'run';
+  ui.hide();
 }
 
 /** Stat key → meta upgrade id, derived from the upgrade defs themselves. */
@@ -369,8 +373,11 @@ function frame(now: number): void {
   if (wasPressed('Escape') || wasPressed(binding('pause')) || padWasPressed(PAD.START)) {
     if (state === 'run') pause();
     else if (state === 'paused') pauseBack();
+    else if (state === 'registry') closeRegistry();
   } else if (state === 'paused' && padWasPressed(PAD.B)) {
     pauseBack();
+  } else if (state === 'registry' && padWasPressed(PAD.B)) {
+    closeRegistry();
   }
   consumePressed();
 

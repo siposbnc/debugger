@@ -342,7 +342,7 @@ html, body {
 /* package registry buy modal (in-run credits sink) */
 .registry-title { color: var(--cyan); }
 .registry-list { max-width: 620px; }
-.credit-balance { color: var(--cyan); font-family: var(--font-display); font-size: 17px; }
+.credit-balance { color: #ffd23f; font-family: var(--font-display); font-size: 17px; }
 
 .shop-tabs { display: flex; gap: 6px; max-width: 760px; width: 100%; }
 .shop-tab {

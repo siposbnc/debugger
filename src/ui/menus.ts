@@ -852,40 +852,40 @@ export class UI {
 
   /** Package Registry (in-run credits sink): a buy modal opened by walking
    *  into the post-boss terminal. The sim is frozen while it's up (main.ts
-   *  'registry' state); Esc/B/CLOSE resumes. Pure DOM — purchases go through
-   *  Run.buyRegistryItem so the headless rule holds. */
+   *  'registry' state). One-use: a purchase consumes the registry and closes
+   *  the modal; CLOSE/Esc/B leave it intact to return to before it expires.
+   *  Esc/B are owned by the main loop (null kbnav onBack) so closing can't
+   *  also pause. Pure DOM — purchases go through Run.buyRegistryItem. */
   showRegistry(run: Run, onDone: () => void): void {
-    const render = () => {
-      const rows = REGISTRY_ITEMS.map((it) => `
-        <div class="shop-row">
-          <div class="icon">${it.icon}</div>
-          <div class="info"><h4>${it.name}</h4><p>${it.desc}</p></div>
-          <button class="btn small" data-buy="${it.id}" ${run.credits < it.cost ? 'disabled' : ''}>${it.cost} ©</button>
-        </div>`).join('');
-      this.root.innerHTML = `
-        <div class="levelup-wrap">
-          <div class="levelup-title registry-title">⬡ PACKAGE REGISTRY</div>
-          <div class="hint">npm install --save-run &nbsp;·&nbsp; balance: <b class="credit-balance">© ${run.credits}</b> &nbsp;·&nbsp; unspent credits expire with the process</div>
-          <div class="shop-list registry-list">${rows}</div>
-          <div class="levelup-actions">
-            <button class="btn" data-act="close">CLOSE (ESC)</button>
-          </div>
-        </div>`;
-      const wrap = this.root.firstElementChild as HTMLElement;
-      wrap.querySelectorAll('button').forEach((b) =>
-        b.addEventListener('mousedown', () => sound.play('click')));
-      this.nav.attach(wrap, onDone);
-      wrap.addEventListener('click', (e) => {
-        const btn = (e.target as HTMLElement).closest('button');
-        if (!btn) return;
-        if (btn.dataset.act === 'close') { onDone(); return; }
-        if (btn.dataset.buy && run.buyRegistryItem(btn.dataset.buy)) {
-          sound.play('buy');
-          render();
-        }
-      });
-    };
-    render();
+    const rows = REGISTRY_ITEMS.map((it) => `
+      <div class="shop-row">
+        <div class="icon">${it.icon}</div>
+        <div class="info"><h4>${it.name}</h4><p>${it.desc}</p></div>
+        <button class="btn small" data-buy="${it.id}" ${run.credits < it.cost ? 'disabled' : ''}>${it.cost}©</button>
+      </div>`).join('');
+    this.root.innerHTML = `
+      <div class="levelup-wrap">
+        <div class="levelup-title registry-title">⬡ PACKAGE REGISTRY</div>
+        <div class="hint">npm install --save-run &nbsp;·&nbsp; balance: <b class="credit-balance">${run.credits}©</b> &nbsp;·&nbsp; one purchase per registry — unspent credits expire with the process</div>
+        <div class="shop-list registry-list">${rows}</div>
+        <div class="levelup-actions">
+          <button class="btn" data-act="close">CLOSE (ESC)</button>
+        </div>
+      </div>`;
+    const wrap = this.root.firstElementChild as HTMLElement;
+    wrap.querySelectorAll('button').forEach((b) =>
+      b.addEventListener('mousedown', () => sound.play('click')));
+    this.nav.attach(wrap, null); // main loop owns Esc/B for the 'registry' state
+    wrap.addEventListener('click', (e) => {
+      const btn = (e.target as HTMLElement).closest('button');
+      if (!btn) return;
+      if (btn.dataset.act === 'close') { onDone(); return; }
+      if (btn.dataset.buy && run.buyRegistryItem(btn.dataset.buy)) {
+        sound.play('buy');
+        run.registry = null; // one-use: the registry is spent on a purchase
+        onDone();
+      }
+    });
   }
 
   showLevelUp(run: Run, onDone: () => void): void {

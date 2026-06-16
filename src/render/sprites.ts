@@ -637,16 +637,16 @@ export function chestSprite(): HTMLCanvasElement {
 }
 
 export function creditSprite(): HTMLCanvasElement {
-  // in-run currency token: cyan coin with a © glyph (registry theme)
+  // in-run currency: a gold coin with a © glyph — deliberately NOT cyan, so it
+  // never reads as an XP orb (the tier-0 gem is cyan)
   return bake('credit', 32, 32, (ctx) => {
-    withGlow(ctx, '#7df9ff', 8, () => {
-      ctx.fillStyle = '#15384a';
+    withGlow(ctx, '#ffd23f', 9, () => {
+      ctx.fillStyle = '#caa024';
       ctx.beginPath(); ctx.arc(0, 0, 8, 0, 7); ctx.fill();
-      ctx.strokeStyle = '#7df9ff';
-      ctx.lineWidth = 2;
-      ctx.beginPath(); ctx.arc(0, 0, 8, 0, 7); ctx.stroke();
+      ctx.fillStyle = '#ffd23f';
+      ctx.beginPath(); ctx.arc(0, 0, 6.5, 0, 7); ctx.fill();
     });
-    ctx.fillStyle = '#7df9ff';
+    ctx.fillStyle = '#7a5c12';
     ctx.font = 'bold 10px monospace';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';

@@ -402,8 +402,9 @@ export class Run {
   credits = 0;
   creditsCollected = 0; // lifetime within the run — drives the meta-row reveal
   registry: { x: number; y: number; t: number } | null = null;
-  /** armed while the player stands in the registry ring — one prompt per entry */
-  private registryLatch = false;
+  /** armed while the player stands in the registry ring — one prompt per entry.
+   *  Reset whenever a registry is (re)created so a fresh one always prompts. */
+  registryLatch = false;
   buffDmgT = 0;   // Overclock seconds remaining
   buffSpeedT = 0; // Hot Reload seconds remaining
 
