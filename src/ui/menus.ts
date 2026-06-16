@@ -890,40 +890,43 @@ export class UI {
    *  'registry' state). One-use: a purchase consumes the registry and closes
    *  the modal; CLOSE/Esc/B leave it intact to return to before it expires.
    *  Esc/B are owned by the main loop (null kbnav onBack) so closing can't
-   *  also pause. Pure DOM — purchases go through Run.buyRegistryItem.
-   *  `onRandomStat` opens the Lint Pass picker after a randomStat buy. */
+   *  also pause. One *use*: a single visit may buy multiple items; the registry
+   *  is consumed when closed (main loop checks `registry.used`). Pure DOM —
+   *  purchases go through Run.buyRegistryItem. `onRandomStat` opens the Lint
+   *  Pass picker after a randomStat buy. */
   showRegistry(run: Run, onDone: () => void, onRandomStat: () => void): void {
-    const rows = REGISTRY_ITEMS.map((it) => `
-      <div class="shop-row">
-        <div class="icon">${it.icon}</div>
-        <div class="info"><h4>${it.name}</h4><p>${it.desc}</p></div>
-        <button class="btn small" data-buy="${it.id}" ${run.credits < it.cost ? 'disabled' : ''}>${it.cost} ©</button>
-      </div>`).join('');
-    this.root.innerHTML = `
-      <div class="levelup-wrap">
-        <div class="levelup-title registry-title">⬡ PACKAGE REGISTRY</div>
-        <div class="hint">npm install --save-run &nbsp;·&nbsp; balance: <b class="credit-balance">${run.credits} ©</b> &nbsp;·&nbsp; one purchase per registry — unspent credits expire with the process</div>
-        <div class="shop-list registry-list">${rows}</div>
-        <div class="levelup-actions">
-          <button class="btn" data-act="close">CLOSE (ESC)</button>
-        </div>
-      </div>`;
-    const wrap = this.root.firstElementChild as HTMLElement;
-    wrap.querySelectorAll('button').forEach((b) =>
-      b.addEventListener('mousedown', () => sound.play('click')));
-    this.nav.attach(wrap, null); // main loop owns Esc/B for the 'registry' state
-    wrap.addEventListener('click', (e) => {
-      const btn = (e.target as HTMLElement).closest('button');
-      if (!btn) return;
-      if (btn.dataset.act === 'close') { onDone(); return; }
-      if (btn.dataset.buy && run.buyRegistryItem(btn.dataset.buy)) {
-        sound.play('buy');
-        const effect = REGISTRY_BY_ID[btn.dataset.buy].effect;
-        run.registry = null; // one-use: the registry is spent on a purchase
-        if (effect === 'randomStat') onRandomStat(); // hand off to the picker
-        else onDone();
-      }
-    });
+    const render = () => {
+      const rows = REGISTRY_ITEMS.map((it) => `
+        <div class="shop-row">
+          <div class="icon">${it.icon}</div>
+          <div class="info"><h4>${it.name}</h4><p>${it.desc}</p></div>
+          <button class="btn small" data-buy="${it.id}" ${run.credits < it.cost ? 'disabled' : ''}>${it.cost} ©</button>
+        </div>`).join('');
+      this.root.innerHTML = `
+        <div class="levelup-wrap">
+          <div class="levelup-title registry-title">⬡ PACKAGE REGISTRY</div>
+          <div class="hint">npm install --save-run &nbsp;·&nbsp; balance: <b class="credit-balance">${run.credits} ©</b> &nbsp;·&nbsp; buy all you can afford — it closes for good when you leave</div>
+          <div class="shop-list registry-list">${rows}</div>
+          <div class="levelup-actions">
+            <button class="btn" data-act="close">CLOSE (ESC)</button>
+          </div>
+        </div>`;
+      const wrap = this.root.firstElementChild as HTMLElement;
+      wrap.querySelectorAll('button').forEach((b) =>
+        b.addEventListener('mousedown', () => sound.play('click')));
+      this.nav.attach(wrap, null); // main loop owns Esc/B for the 'registry' state
+      wrap.addEventListener('click', (e) => {
+        const btn = (e.target as HTMLElement).closest('button');
+        if (!btn) return;
+        if (btn.dataset.act === 'close') { onDone(); return; }
+        if (btn.dataset.buy && run.buyRegistryItem(btn.dataset.buy)) {
+          sound.play('buy');
+          if (REGISTRY_BY_ID[btn.dataset.buy].effect === 'randomStat') onRandomStat();
+          else render(); // stay open for more purchases (updated balance/affordability)
+        }
+      });
+    };
+    render();
   }
 
   /** Lint Pass picker: 3 rolled stat upgrades shown as cards (the level-up

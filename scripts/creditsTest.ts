@@ -151,6 +151,20 @@ const creditPickups = (run: Run) => run.pickups.filter((p) => p.kind === 'credit
   check('stat boost is NOT tracked as a card', run.takenCards.size === 0);
 }
 
+// --- 4c. one use, many purchases: buying marks `used` but doesn't consume the
+// registry (consumption happens on close, UI-side) ---
+{
+  const run = freshRun();
+  spawnBoss(run, BOSSES.mergeConflict, 1);
+  run.killEnemy(run.enemies.find((e) => e.isBoss)!);
+  run.credits = 20;
+  run.buyRegistryItem('spareCi');
+  run.buyRegistryItem('hotReload');
+  check('multiple purchases allowed in one visit', run.credits === 16, `credits=${run.credits}`);
+  check('registry survives purchases (consumed only on close)', run.registry !== null);
+  check('purchase marks the registry used', run.registry?.used === true);
+}
+
 // --- 5. buffs tick down over time ---
 {
   const run = freshRun();

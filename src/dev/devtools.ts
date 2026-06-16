@@ -224,7 +224,7 @@ function buildApi(ctx: DevContext) {
       // next frame; otherwise at normal post-boss trek range
       const a = Math.random() * Math.PI * 2;
       const d = near ? 30 : 500;
-      run.registry = { x: run.px + Math.cos(a) * d, y: run.py + Math.sin(a) * d, t: 60 };
+      run.registry = { x: run.px + Math.cos(a) * d, y: run.py + Math.sin(a) * d, t: 60, used: false };
       run.registryLatch = false; // a fresh registry must prompt even if one was just used here
       return `[dbg] package registry online ${near ? '— opening now' : 'at trek range — walk in to shop'}`;
     },

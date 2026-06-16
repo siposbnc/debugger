@@ -286,6 +286,11 @@ export interface RunResults {
 
 // ---------- the run ----------
 
+/** Global knockback scale. 0 = disabled — a strong universal knockback trivialized
+ *  the game (the horde never reaches the player). Kept as a lever so a future
+ *  knockback upgrade/stat can scale it back up rather than re-plumbing combat. */
+export const KNOCKBACK_SCALE = 0;
+
 /** Crunch Time: overtime seconds granted at 15:00 to resolve live release blockers. */
 export const CRUNCH_DURATION = 30;
 /** Crunch adrenaline: player damage / move-speed multipliers while crunching. */
@@ -401,7 +406,9 @@ export class Run {
   // at the post-boss Package Registry. Dies with the run. Gated with events.
   credits = 0;
   creditsCollected = 0; // lifetime within the run — drives the meta-row reveal
-  registry: { x: number; y: number; t: number } | null = null;
+  /** `used` flips on the first purchase: the registry is one *use* (a single
+   *  visit may buy many items) and is consumed when closed after buying. */
+  registry: { x: number; y: number; t: number; used: boolean } | null = null;
   /** armed while the player stands in the registry ring — one prompt per entry.
    *  Reset whenever a registry is (re)created so a fresh one always prompts. */
   registryLatch = false;
@@ -1401,7 +1408,7 @@ export class Run {
           this.zones.some((z) => dist(x, y, z.x, z.y) < z.radius + CREDITS.registryRadius)) continue;
       break;
     }
-    this.registry = { x, y, t: CREDITS.registryLife };
+    this.registry = { x, y, t: CREDITS.registryLife, used: false };
     this.registryLatch = false;
     this.emit({ type: 'registrySpawn', x, y });
   }
@@ -1441,6 +1448,7 @@ export class Run {
       case 'randomStat': break; // deferred: the UI opens a 3-option picker → applyStatBoost
     }
     this.credits -= item.cost;
+    if (this.registry) this.registry.used = true; // a used registry is spent on close
     return true;
   }
 
@@ -1527,10 +1535,11 @@ export class Run {
     }
     this.emit({ type: 'damage', x: e.x, y: e.y - e.def.radius, value: Math.round(dmg), crit });
 
-    if (opts.knockFrom && opts.knock && !e.isBoss && !(e.def as EnemyDef).stationary) {
+    if (KNOCKBACK_SCALE > 0 && opts.knockFrom && opts.knock && !e.isBoss && !(e.def as EnemyDef).stationary) {
       const d = dist(opts.knockFrom.x, opts.knockFrom.y, e.x, e.y) || 1;
-      e.knockX += ((e.x - opts.knockFrom.x) / d) * opts.knock;
-      e.knockY += ((e.y - opts.knockFrom.y) / d) * opts.knock;
+      const k = opts.knock * KNOCKBACK_SCALE;
+      e.knockX += ((e.x - opts.knockFrom.x) / d) * k;
+      e.knockY += ((e.y - opts.knockFrom.y) / d) * k;
     }
 
     if (e.hp <= 0) this.killEnemy(e);

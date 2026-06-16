@@ -120,28 +120,37 @@ function openLevelUp(): void {
 
 /** Package Registry buy modal: the sim freezes (like level-up) while open.
  *  TURBO bots never open it — the prompt event is simply not acted on. */
-function openRegistry(): void {
-  if (!run || state !== 'run' || TURBO) return;
+function showRegistryModal(): void {
+  if (!run) return;
   state = 'registry';
   ui.showRegistry(run, closeRegistry, openStatPicker);
 }
 
-/** Close the registry and resume. Owns the 'registry' Esc/B path (the modal's
- *  kbnav has no onBack) so closing can't also toggle pause in the same frame. */
+function openRegistry(): void {
+  if (!run || state !== 'run' || TURBO) return;
+  showRegistryModal();
+}
+
+/** Close the registry and resume. A registry that was bought from is consumed
+ *  on close (one use, any number of purchases); closing without buying leaves
+ *  it on the field. Owns the 'registry' Esc/B path (the modal's kbnav has no
+ *  onBack) so closing can't also toggle pause in the same frame. */
 function closeRegistry(): void {
+  if (run?.registry?.used) run.registry = null;
   state = 'run';
   ui.hide();
 }
 
 /** Lint Pass: a 3-option stat-upgrade pick after buying it at the registry.
  *  Runs under the 'levelup' state — frozen and Esc-proof (the main loop never
- *  toggles pause from 'levelup'), so the paid pick can't be skipped. */
+ *  toggles pause from 'levelup'), so the paid pick can't be skipped. Returns
+ *  to the registry afterward so more purchases can be made in the same visit. */
 function openStatPicker(): void {
   if (!run) return;
   state = 'levelup';
   ui.showStatPicker(run, () => {
-    state = 'run';
-    ui.hide();
+    if (run && run.registry) showRegistryModal();
+    else closeRegistry();
   });
 }
 
