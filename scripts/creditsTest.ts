@@ -10,7 +10,7 @@
 import { Run, type RunEvent } from '../src/game/run';
 import { spawnFieldEvent, EVENT_LIFE, TERMINAL_RADIUS, TERMINAL_REPAIR_TIME } from '../src/game/events';
 import { spawnBoss } from '../src/game/bossLogic';
-import { CREDITS } from '../src/data/registry';
+import { CREDITS, rollStatBoosts } from '../src/data/registry';
 import { snapshotRun, restoreRun } from '../src/game/runSave';
 import { CHARACTERS } from '../src/data/characters';
 import { MAPS } from '../src/data/maps';
@@ -116,9 +116,9 @@ const creditPickups = (run: Run) => run.pickups.filter((p) => p.kind === 'credit
   const run = freshRun();
   run.credits = 10;
   run.hp = 1;
-  const ok = run.buyRegistryItem('hotfix'); // heal 50% maxHp, cost 4
+  const ok = run.buyRegistryItem('hotfix'); // heal to full + shield, cost 4
   check('hotfix purchase succeeds', ok && run.credits === 6, `credits=${run.credits}`);
-  check('hotfix heals', run.hp > 1, `hp=${run.hp.toFixed(0)}`);
+  check('hotfix heals to full', Math.abs(run.hp - run.stats.maxHp) < 0.5, `hp=${run.hp.toFixed(0)}/${run.stats.maxHp}`);
 
   const rerolls = run.rerollsLeft;
   run.buyRegistryItem('spareCi'); // +1 reroll, cost 2
@@ -129,6 +129,26 @@ const creditPickups = (run: Run) => run.pickups.filter((p) => p.kind === 'credit
 
   check('unaffordable purchase refused', !run.buyRegistryItem('hotfix') && run.credits === 1);
   check('unknown item refused', !run.buyRegistryItem('nonsense'));
+}
+
+// --- 4b. Lint Pass: randomStat deducts but defers; stat boosts apply ---
+{
+  const run = freshRun();
+  run.credits = 5;
+  const ok = run.buyRegistryItem('randomStat'); // cost 3, no immediate effect
+  check('randomStat deducts credits, no immediate stat change', ok && run.credits === 2);
+
+  const boosts = rollStatBoosts(run.stats.luck);
+  check('rollStatBoosts returns 3 options', boosts.length === 3, `${boosts.length}`);
+  check('3 distinct stats', new Set(boosts.map((b) => b.stat)).size === 3);
+  check('each option carries a single mod + desc', boosts.every((b) =>
+    Object.keys(b.mods).length === 1 && b.desc.length > 0 && !!b.rarity));
+
+  const dmg0 = run.stats.damageMult;
+  run.applyStatBoost({ damage: 0.05 });
+  check('applyStatBoost raises the resolved stat', run.stats.damageMult > dmg0,
+    `${dmg0.toFixed(3)} → ${run.stats.damageMult.toFixed(3)}`);
+  check('stat boost is NOT tracked as a card', run.takenCards.size === 0);
 }
 
 // --- 5. buffs tick down over time ---

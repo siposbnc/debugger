@@ -123,7 +123,7 @@ function openLevelUp(): void {
 function openRegistry(): void {
   if (!run || state !== 'run' || TURBO) return;
   state = 'registry';
-  ui.showRegistry(run, closeRegistry);
+  ui.showRegistry(run, closeRegistry, openStatPicker);
 }
 
 /** Close the registry and resume. Owns the 'registry' Esc/B path (the modal's
@@ -131,6 +131,18 @@ function openRegistry(): void {
 function closeRegistry(): void {
   state = 'run';
   ui.hide();
+}
+
+/** Lint Pass: a 3-option stat-upgrade pick after buying it at the registry.
+ *  Runs under the 'levelup' state — frozen and Esc-proof (the main loop never
+ *  toggles pause from 'levelup'), so the paid pick can't be skipped. */
+function openStatPicker(): void {
+  if (!run) return;
+  state = 'levelup';
+  ui.showStatPicker(run, () => {
+    state = 'run';
+    ui.hide();
+  });
 }
 
 /** Stat key → meta upgrade id, derived from the upgrade defs themselves. */

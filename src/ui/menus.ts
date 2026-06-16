@@ -9,7 +9,7 @@ import { BOSSES } from '../data/bosses';
 import { OBJECTIVES } from '../data/objectives';
 import { CARD_BY_ID } from '../data/upgrades';
 import { PATCH_NOTES } from '../data/patchNotes';
-import { REGISTRY_ITEMS } from '../data/registry';
+import { REGISTRY_ITEMS, REGISTRY_BY_ID, rollStatBoosts } from '../data/registry';
 import { RARITY_COLOR, RARITY_ORDER, type StatMods, type EnemyDef, type BossDef, type MetaUpgradeDef, type WeaponLevelStats } from '../data/types';
 import { bugSprite, bossSprite } from '../render/sprites';
 import { computeStats, type ComputedStats } from '../game/stats';
@@ -855,18 +855,19 @@ export class UI {
    *  'registry' state). One-use: a purchase consumes the registry and closes
    *  the modal; CLOSE/Esc/B leave it intact to return to before it expires.
    *  Esc/B are owned by the main loop (null kbnav onBack) so closing can't
-   *  also pause. Pure DOM — purchases go through Run.buyRegistryItem. */
-  showRegistry(run: Run, onDone: () => void): void {
+   *  also pause. Pure DOM — purchases go through Run.buyRegistryItem.
+   *  `onRandomStat` opens the Lint Pass picker after a randomStat buy. */
+  showRegistry(run: Run, onDone: () => void, onRandomStat: () => void): void {
     const rows = REGISTRY_ITEMS.map((it) => `
       <div class="shop-row">
         <div class="icon">${it.icon}</div>
         <div class="info"><h4>${it.name}</h4><p>${it.desc}</p></div>
-        <button class="btn small" data-buy="${it.id}" ${run.credits < it.cost ? 'disabled' : ''}>${it.cost}©</button>
+        <button class="btn small" data-buy="${it.id}" ${run.credits < it.cost ? 'disabled' : ''}>${it.cost} ©</button>
       </div>`).join('');
     this.root.innerHTML = `
       <div class="levelup-wrap">
         <div class="levelup-title registry-title">⬡ PACKAGE REGISTRY</div>
-        <div class="hint">npm install --save-run &nbsp;·&nbsp; balance: <b class="credit-balance">${run.credits}©</b> &nbsp;·&nbsp; one purchase per registry — unspent credits expire with the process</div>
+        <div class="hint">npm install --save-run &nbsp;·&nbsp; balance: <b class="credit-balance">${run.credits} ©</b> &nbsp;·&nbsp; one purchase per registry — unspent credits expire with the process</div>
         <div class="shop-list registry-list">${rows}</div>
         <div class="levelup-actions">
           <button class="btn" data-act="close">CLOSE (ESC)</button>
@@ -882,9 +883,44 @@ export class UI {
       if (btn.dataset.act === 'close') { onDone(); return; }
       if (btn.dataset.buy && run.buyRegistryItem(btn.dataset.buy)) {
         sound.play('buy');
+        const effect = REGISTRY_BY_ID[btn.dataset.buy].effect;
         run.registry = null; // one-use: the registry is spent on a purchase
-        onDone();
+        if (effect === 'randomStat') onRandomStat(); // hand off to the picker
+        else onDone();
       }
+    });
+  }
+
+  /** Lint Pass picker: 3 rolled stat upgrades shown as cards (the level-up
+   *  card design, but applied as raw boosts, not tracked cards). Frozen under
+   *  the 'levelup' state so it can't be Esc-skipped — the credits were spent. */
+  showStatPicker(run: Run, onDone: () => void): void {
+    const boosts = rollStatBoosts(run.stats.luck);
+    const cards = boosts.map((b, i) => `
+      <div class="upgrade-card" data-i="${i}" style="--rarity:${RARITY_COLOR[b.rarity]}">
+        <div class="rarity">${b.rarity}</div>
+        <div class="icon">${b.icon}</div>
+        <h3>${b.name}</h3>
+        <div class="tagline">stat upgrade</div>
+        <div class="desc">${b.desc}</div>
+        <div class="flavor">a little goes a little way — stack them up</div>
+      </div>`).join('');
+    this.root.innerHTML = `
+      <div class="levelup-wrap">
+        <div class="levelup-title registry-title">✨ LINT PASS</div>
+        <div class="hint">pick one stat upgrade</div>
+        <div class="card-row">${cards}</div>
+      </div>`;
+    const wrap = this.root.firstElementChild as HTMLElement;
+    wrap.querySelectorAll('button').forEach((b) =>
+      b.addEventListener('mousedown', () => sound.play('click')));
+    this.nav.attach(wrap, null); // must pick — no Esc cancel
+    wrap.addEventListener('click', (e) => {
+      const card = (e.target as HTMLElement).closest<HTMLElement>('.upgrade-card');
+      if (!card) return;
+      run.applyStatBoost(boosts[Number(card.dataset.i)].mods);
+      sound.play('levelup');
+      onDone();
     });
   }
 
@@ -1103,16 +1139,18 @@ export class UI {
         <button class="btn" data-act="suspend" title="save the run and exit — resume from the main menu">SUSPEND PROCESS</button>
         <button class="btn danger" data-act="abandon">KILL PROCESS</button>
       </div>
-      <div class="pause-inventory">
-        <h3>~/inventory</h3>
-        <div class="card-row inv-row">${weaponCards}</div>
-        ${allyLine}
-      </div>
-      <div class="pause-cols pause-secondary">
-        <div class="pause-panel"><h3>~/player</h3>${statRows}</div>
-        <div class="pause-panel"><h3>~/cards</h3>${cardRows}</div>
-        <div class="pause-panel"><h3>~/card_odds</h3>${oddsRows}
-          <div class="hint" style="margin-top:8px">chance per offered slot</div>
+      <div class="pause-body">
+        <div class="pause-inventory">
+          <h3>~/inventory</h3>
+          <div class="card-row inv-row">${weaponCards}</div>
+          ${allyLine}
+        </div>
+        <div class="pause-side">
+          <div class="pause-panel"><h3>~/player</h3>${statRows}</div>
+          <div class="pause-panel"><h3>~/cards</h3>${cardRows}</div>
+          <div class="pause-panel"><h3>~/card_odds</h3>${oddsRows}
+            <div class="hint" style="margin-top:8px">chance per offered slot</div>
+          </div>
         </div>
       </div>
     `); // no kbnav onBack: the main loop owns Esc/P while paused (would double-toggle)

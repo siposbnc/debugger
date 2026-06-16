@@ -1432,15 +1432,24 @@ export class Run {
     const item = REGISTRY_BY_ID[id];
     if (!item || this.credits < item.cost) return false;
     switch (item.effect) {
-      case 'heal': this.healPlayer(this.stats.maxHp * 0.5); break;
+      case 'heal': this.healPlayer(this.stats.maxHp); this.shield = this.stats.shieldMax; break;
       case 'magnet': for (const p of this.pickups) if (p.kind === 'xp') p.magnet = true; break;
       case 'reroll': this.rerollsLeft++; break;
       case 'banish': this.banishesLeft++; break;
       case 'dmgBuff': this.buffDmgT += CREDITS.buffDuration; break;
       case 'speedBuff': this.buffSpeedT += CREDITS.buffDuration; break;
+      case 'randomStat': break; // deferred: the UI opens a 3-option picker → applyStatBoost
     }
     this.credits -= item.cost;
     return true;
+  }
+
+  /** Apply a Lint Pass stat upgrade (a raw boost, NOT a tracked card — it
+   *  folds into cardMods for computeStats but doesn't touch takenCards, so it
+   *  never affects card-offer weighting). */
+  applyStatBoost(mods: StatMods): void {
+    this.cardMods.push(mods);
+    this.recompute();
   }
 
   private collectPickup(p: Pickup): void {

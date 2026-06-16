@@ -900,11 +900,12 @@ export abstract class RendererBase {
     ctx.fillStyle = '#ffc12e';
     ctx.fillText(`⌬ ${run.computeBits().bits} bits`, pad, 66);
 
-    // credits (in-run currency) — shown once the first is collected; gold, value-first
+    // credits (in-run currency) — shown once the first is collected; gold,
+    // formatted exactly like the bits line above (symbol · value · label)
     let nextY = 88;
     if (run.creditsCollected > 0) {
       ctx.fillStyle = '#ffd23f';
-      ctx.fillText(`${run.credits} © credits`, pad, nextY);
+      ctx.fillText(`© ${run.credits} credits`, pad, nextY);
       nextY += 22;
     }
 

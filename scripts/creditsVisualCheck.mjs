@@ -24,7 +24,7 @@ await page.screenshot({ path: 'scripts/credits-hud.png' });
 await page.evaluate(() => window.dbg.registry(true));
 await page.waitForTimeout(500);
 const bal = await page.evaluate(() => document.querySelector('.credit-balance')?.textContent?.trim());
-check('balance is value-first (e.g. "12©")', /^\d+©$/.test(bal || ''), bal);
+check('balance is value-first with a space (e.g. "12 ©")', /^\d+ ©$/.test(bal || ''), bal);
 await page.screenshot({ path: 'scripts/credits-modal.png' });
 
 // one-use: buy the first affordable item → modal closes + registry consumed
@@ -53,6 +53,30 @@ const afterEsc = await page.evaluate(() => ({
 }));
 check('Escape closes the registry', !afterEsc.modal);
 check('Escape does NOT pause the game', !afterEsc.paused, JSON.stringify(afterEsc));
+
+// Lint Pass: buying the random-stat option opens a 3-card picker (fresh run —
+// the Esc test above left a registry live on the field, blocking a new one)
+await page.goto(`${BASE}/?autostart`);
+await page.waitForFunction(() => typeof window.dbg !== 'undefined', { timeout: 10000 });
+await page.evaluate(() => { window.dbg.god(true); window.dbg.credits(10); window.dbg.registry(true); });
+await page.waitForTimeout(400);
+await page.evaluate(() => {
+  const rows = [...document.querySelectorAll('.registry-list .shop-row')];
+  const lint = rows.find((r) => r.textContent.includes('Lint Pass'));
+  lint?.querySelector('button[data-buy]')?.click();
+});
+await page.waitForTimeout(400);
+const picker = await page.evaluate(() => ({
+  title: document.querySelector('.levelup-title')?.textContent?.trim() ?? '',
+  cards: document.querySelectorAll('.card-row .upgrade-card').length,
+}));
+check('Lint Pass opens a picker', picker.title.includes('LINT PASS'), picker.title);
+check('picker offers 3 stat upgrades', picker.cards === 3, `${picker.cards}`);
+await page.screenshot({ path: 'scripts/credits-lintpass.png' });
+await page.evaluate(() => document.querySelector('.card-row .upgrade-card')?.click());
+await page.waitForTimeout(300);
+const afterPick = await page.evaluate(() => !document.querySelector('.levelup-wrap'));
+check('picking a stat upgrade closes the picker', afterPick);
 
 await browser.close();
 console.log(failures === 0 ? '\nALL PASS' : `\n${failures} FAIL`);
