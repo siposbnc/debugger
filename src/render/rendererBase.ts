@@ -900,11 +900,13 @@ export abstract class RendererBase {
     ctx.fillStyle = '#ffc12e';
     ctx.fillText(`⌬ ${run.computeBits().bits} bits`, this.w - pad, 70);
 
-    // credits (in-run currency) — always shown during a run; gold, value-first
+    // credits (in-run currency) — shown once the first is collected; gold, value-first
     let nextY = 92;
-    ctx.fillStyle = '#ffd23f';
-    ctx.fillText(`${run.credits} © credits`, this.w - pad, nextY);
-    nextY += 22;
+    if (run.creditsCollected > 0) {
+      ctx.fillStyle = '#ffd23f';
+      ctx.fillText(`${run.credits} © credits`, this.w - pad, nextY);
+      nextY += 22;
+    }
 
     // next boss countdown (top-right) — moot once crunch starts
     const tToBoss = run.nextBossAt - run.time;
