@@ -558,8 +558,8 @@ export abstract class RendererBase {
    *  field-event glyphs (# / >), the Precipitate, and the player center pip.
    *  The world is unbounded, so this is a radar, not a map. */
   private drawMinimap(ctx: CanvasRenderingContext2D, run: Run): void {
-    const R = 74;
-    const cx = this.w - R - 18, cy = this.h - R - 18;
+    const R = 104;
+    const cx = this.w - R - 16, cy = R + 22; // top-right, clearing the XP bar
     // view radius in projected screen px: the event spawn band (≤950 world
     // units ≈ ≤1350 px after iso projection) must land inside the rim
     const VIEW = 1450;
@@ -590,11 +590,11 @@ export abstract class RendererBase {
       if (e.elite) {
         ctx.globalAlpha = 0.95;
         ctx.fillStyle = '#ffc12e';
-        ctx.fillRect(q.x - 1.5, q.y - 1.5, 3, 3);
+        ctx.fillRect(q.x - 2, q.y - 2, 4, 4);
       } else {
         ctx.globalAlpha = 0.6;
         ctx.fillStyle = e.def.color;
-        ctx.fillRect(q.x - 1, q.y - 1, 2, 2);
+        ctx.fillRect(q.x - 1.5, q.y - 1.5, 3, 3);
       }
     }
     // chests
@@ -603,14 +603,14 @@ export abstract class RendererBase {
       if (p.kind !== 'chest') continue;
       const q = plot(p.x, p.y);
       ctx.globalAlpha = q.clamped ? 0.5 : 1;
-      ctx.fillRect(q.x - 1.5, q.y - 1.5, 3, 3);
+      ctx.fillRect(q.x - 2, q.y - 2, 4, 4);
     }
     // the Precipitate (same shimmer language as its edge marker)
     if (run.mushi) {
       const q = plot(run.mushi.x, run.mushi.y);
       ctx.globalAlpha = 0.5 + 0.3 * Math.sin(this.t * 4);
       ctx.fillStyle = '#9fe8dc';
-      ctx.fillRect(q.x - 1.5, q.y - 1.5, 3, 3);
+      ctx.fillRect(q.x - 2, q.y - 2, 4, 4);
     }
     // bosses: big, their color, rim-clamped so the direction still reads
     for (const e of run.enemies) {
@@ -618,7 +618,7 @@ export abstract class RendererBase {
       const q = plot(e.x, e.y);
       ctx.globalAlpha = q.clamped ? 0.6 : 0.75 + 0.25 * Math.sin(this.t * 7);
       ctx.fillStyle = e.def.color;
-      ctx.fillRect(q.x - 2.5, q.y - 2.5, 5, 5);
+      ctx.fillRect(q.x - 3.5, q.y - 3.5, 7, 7);
     }
     // field event: the same glyph as its edge marker, blinking near despawn
     const fe = run.fieldEvent;
@@ -626,24 +626,24 @@ export abstract class RendererBase {
       const q = plot(fe.x, fe.y);
       ctx.globalAlpha = fe.t < 12 ? 0.55 + 0.45 * Math.sin(this.t * 9) : 0.95;
       ctx.fillStyle = fe.kind === 'nest' ? '#ff7438' : '#7df9ff';
-      ctx.font = '11px VT323, monospace';
+      ctx.font = '14px VT323, monospace';
       ctx.textAlign = 'center';
-      ctx.fillText(fe.kind === 'nest' ? '#' : '>', q.x, q.y + 3.5);
+      ctx.fillText(fe.kind === 'nest' ? '#' : '>', q.x, q.y + 4.5);
     }
     // package registry: cyan ⬡, same glyph as its edge marker
     if (run.registry) {
       const q = plot(run.registry.x, run.registry.y);
       ctx.globalAlpha = run.registry.t < 15 ? 0.55 + 0.4 * Math.sin(this.t * 8) : 0.95;
       ctx.fillStyle = '#7df9ff';
-      ctx.font = '11px VT323, monospace';
+      ctx.font = '14px VT323, monospace';
       ctx.textAlign = 'center';
-      ctx.fillText('⬡', q.x, q.y + 3.5);
+      ctx.fillText('⬡', q.x, q.y + 4.5);
     }
     // player: center pip
     ctx.globalAlpha = 1;
     ctx.fillStyle = '#53e8a8';
     ctx.beginPath();
-    ctx.arc(cx, cy, 2.5, 0, Math.PI * 2);
+    ctx.arc(cx, cy, 3, 0, Math.PI * 2);
     ctx.fill();
     ctx.restore();
 
@@ -892,28 +892,28 @@ export abstract class RendererBase {
     }
     ctx.textAlign = 'left';
 
-    // kills / bits (top-right)
-    ctx.textAlign = 'right';
+    // kills / bits (top-left — the top-right corner is the minimap now)
+    ctx.textAlign = 'left';
     ctx.font = '22px VT323, monospace';
     ctx.fillStyle = '#e8f4ff';
-    ctx.fillText(`🐛 ${run.kills}`, this.w - pad, 44);
+    ctx.fillText(`🐛 ${run.kills}`, pad, 40);
     ctx.fillStyle = '#ffc12e';
-    ctx.fillText(`⌬ ${run.computeBits().bits} bits`, this.w - pad, 70);
+    ctx.fillText(`⌬ ${run.computeBits().bits} bits`, pad, 66);
 
     // credits (in-run currency) — shown once the first is collected; gold, value-first
-    let nextY = 92;
+    let nextY = 88;
     if (run.creditsCollected > 0) {
       ctx.fillStyle = '#ffd23f';
-      ctx.fillText(`${run.credits} © credits`, this.w - pad, nextY);
+      ctx.fillText(`${run.credits} © credits`, pad, nextY);
       nextY += 22;
     }
 
-    // next boss countdown (top-right) — moot once crunch starts
+    // next boss countdown (top-left) — moot once crunch starts
     const tToBoss = run.nextBossAt - run.time;
     if (tToBoss < 99999 && !run.crunchStarted) {
       ctx.fillStyle = tToBoss < 10 ? '#ff5e5e' : 'rgba(232, 244, 255, 0.6)';
       ctx.font = '17px VT323, monospace';
-      ctx.fillText(`next boss ${formatTime(Math.max(0, tToBoss))}`, this.w - pad, nextY);
+      ctx.fillText(`next boss ${formatTime(Math.max(0, tToBoss))}`, pad, nextY);
     }
 
     // alive boss bar (top-center)
