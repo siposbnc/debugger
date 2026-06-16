@@ -99,11 +99,16 @@ export interface EnemyDef {
   xp: number;
   bits: number;
   color: string;
-  shape: 'mite' | 'tick' | 'wasp' | 'leech' | 'spider' | 'beetle' | 'scarab' | 'centipede' | 'flask' | 'pillar' | 'tracer' | 'crab' | 'nest';
+  shape: 'mite' | 'tick' | 'wasp' | 'leech' | 'spider' | 'beetle' | 'scarab' | 'centipede' | 'flask' | 'pillar' | 'tracer' | 'crab' | 'nest'
+    // production-native variant shapes
+    | 'bolt' | 'drone' | 'canister' | 'lock' | 'sentry';
   behavior: EnemyBehavior;
   /** spawn in clusters of N (Cache Tick) */
   cluster?: number;
   explodeOnDeath?: boolean;
+  /** death-explosion radius in world units (default 75). Lets a variant carry a
+   *  bigger/smaller blast — e.g. production's Panic Beetle. */
+  explodeRadius?: number;
   /** never moves, immune to knockback, exempt from straggler recycling
    *  (Deprecated Dependency pillars) */
   stationary?: boolean;

@@ -170,6 +170,47 @@ const MARSH_VARIANTS: EnemyDef[] = [
 
 for (const v of MARSH_VARIANTS) ENEMIES[v.id] = v;
 
+// Production Server — industrial heat: crashes, deadlocks, monitoring. Most of
+// the roster is map-NATIVE (bespoke silhouettes, not reskins): bolts, drones,
+// pressure canisters, padlocks, camera sentries. Warm rust/amber palette;
+// stats stay at base (the ×1.4 enemyScale + composition is the difficulty),
+// except the Panic Beetle's deliberately bigger blast.
+const PRODUCTION_VARIANTS: EnemyDef[] = [
+  variant('syntaxMite', {
+    id: 'crashMite', name: 'Crash Mite', color: '#e07b3a',
+    codexDesc: 'A typo that shipped to prod. Multiplies under load — each one is a ticket, '
+      + 'and they never arrive one at a time.',
+  }),
+  variant('cacheTick', {
+    id: 'threadTick', name: 'Thread Tick', color: '#d6a23f', shape: 'bolt',
+    codexDesc: 'A worker thread that never joined, ticking in the pool. Spawns in batches '
+      + 'the scheduler can no longer drain.',
+  }),
+  variant('nullWasp', {
+    id: 'segfaultWasp', name: 'Segfault Drone', color: '#ff8c5a', shape: 'drone',
+    codexDesc: 'Dereferences a bad address at full throttle. Reads from nothing and writes '
+      + 'the fault straight into you.',
+  }),
+  variant('exceptionBeetle', {
+    id: 'panicBeetle', name: 'Panic Beetle', color: '#ff6a2c', shape: 'canister',
+    codexDesc: 'An uncaught exception under pressure. Reaches a bad state and detonates in a '
+      + 'wider blast than anything in greenfield — give it room or kill it from range.',
+    explodeRadius: 100,
+  }),
+  variant('deadlockScarab', {
+    id: 'mutexScarab', name: 'Mutex Scarab', color: '#c98a3e', shape: 'lock',
+    codexDesc: 'Took the lock and will not release it. Everything waiting on the mutex grinds '
+      + 'to a crawl — you most of all.',
+  }),
+  variant('tracerBug', {
+    id: 'telemetrySentry', name: 'Telemetry Sentry', color: '#e8a14d', shape: 'sentry',
+    codexDesc: 'Monitors you from a safe distance and posts the metrics straight to your health '
+      + 'bar. Closing the distance closes the dashboard.',
+  }),
+];
+
+for (const v of PRODUCTION_VARIANTS) ENEMIES[v.id] = v;
+
 export const ELITE = {
   /** chance per spawn = base + perMin * minutes, after eliteFromMin */
   fromMin: 4,

@@ -1592,7 +1592,7 @@ export class Run {
     this.emit({ type: 'kill', x: e.x, y: e.y, color: def.color, big: e.elite });
 
     if (def.explodeOnDeath) {
-      const r = 75;
+      const r = def.explodeRadius ?? 75;
       this.emit({ type: 'explosion', x: e.x, y: e.y, radius: r, color: '#ff7438' });
       if (dist(e.x, e.y, this.px, this.py) < r + 14) {
         this.hurtPlayer(14 * (e.scaledDamage ?? def.damage) / def.damage);

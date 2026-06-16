@@ -86,14 +86,19 @@ export const MAPS: Record<string, MapDef> = {
     // pressure (explosions to dodge, locks slowing the escape) on hot floors.
     // Late beetle weight stays ≤5: explosion stacking past min 10 is a known
     // watchlist concern (Backlog), don't feed it.
+    // Per-map roster (v0.4): production natives only — crash swarm, pressure
+    // explosions (Panic Beetle, wider blast), deadlock slows and camera-sentry
+    // pokes. No tank/drain/duplicator types (those belong elsewhere). Panic
+    // Beetle weight held ≤4 — the bigger blast + the §watchlist explosion-
+    // stacking concern both say don't flood the floor with it.
     spawnPlan: [
-      { fromMin: 0, interval: 1.2, weights: { syntaxMite: 8, exceptionBeetle: 3 } },
-      { fromMin: 1, interval: 1.0, weights: { syntaxMite: 8, exceptionBeetle: 4, cacheTick: 4 } },
-      { fromMin: 3, interval: 0.75, weights: { syntaxMite: 6, exceptionBeetle: 5, cacheTick: 4, nullWasp: 4, deadlockScarab: 2 } },
-      { fromMin: 5, interval: 0.65, weights: { exceptionBeetle: 5, cacheTick: 4, nullWasp: 5, deadlockScarab: 4, raceSpider: 3 } },
-      { fromMin: 7, interval: 0.58, weights: { exceptionBeetle: 5, nullWasp: 5, deadlockScarab: 5, raceSpider: 4, memoryLeech: 3 } },
-      { fromMin: 9, interval: 0.5, weights: { exceptionBeetle: 5, nullWasp: 5, deadlockScarab: 5, raceSpider: 5, stackCentipede: 3, tracerBug: 3 } },
-      { fromMin: 11, interval: 0.44, weights: { exceptionBeetle: 5, nullWasp: 5, deadlockScarab: 6, raceSpider: 5, stackCentipede: 5, tracerBug: 3 } },
+      { fromMin: 0, interval: 1.2, weights: { crashMite: 8, panicBeetle: 3 } },
+      { fromMin: 1, interval: 1.0, weights: { crashMite: 8, panicBeetle: 3, threadTick: 4 } },
+      { fromMin: 3, interval: 0.75, weights: { crashMite: 6, panicBeetle: 4, threadTick: 4, segfaultWasp: 4, mutexScarab: 2 } },
+      { fromMin: 5, interval: 0.65, weights: { panicBeetle: 4, threadTick: 4, segfaultWasp: 5, mutexScarab: 4, telemetrySentry: 2 } },
+      { fromMin: 7, interval: 0.58, weights: { panicBeetle: 4, segfaultWasp: 5, mutexScarab: 5, telemetrySentry: 3, crashMite: 3 } },
+      { fromMin: 9, interval: 0.5, weights: { panicBeetle: 4, segfaultWasp: 5, mutexScarab: 5, telemetrySentry: 3, threadTick: 4 } },
+      { fromMin: 11, interval: 0.44, weights: { panicBeetle: 4, segfaultWasp: 6, mutexScarab: 6, telemetrySentry: 3, threadTick: 4 } },
     ],
     // prod is where races and stack blowups page you at 3am (overflow weight
     // capped at 2: the two stall-heaviest standards both at 3 queued bosses

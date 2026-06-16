@@ -318,6 +318,81 @@ const BUG_DRAWERS: Record<string, BugDrawer> = {
     ctx.beginPath(); ctx.arc(r * 0.5, r * 0.6, r * 0.4, Math.PI - 2.2, Math.PI - 0.3); ctx.stroke();
     eyes(ctx, 0, -r * 0.1, r * 0.35, r * 0.22, '#ffd9e8');
   },
+
+  // ---- Production Server natives (industrial silhouettes, no organic legs) ----
+  bolt: (ctx, r, color) => {
+    // hex-bolt head with a driver slot — Thread Tick cluster
+    withGlow(ctx, color, 5, () => {
+      ctx.fillStyle = color;
+      ctx.beginPath();
+      for (let i = 0; i < 6; i++) {
+        const a = (i / 6) * Math.PI * 2 + Math.PI / 6;
+        ctx[i ? 'lineTo' : 'moveTo'](Math.cos(a) * r, Math.sin(a) * r);
+      }
+      ctx.closePath(); ctx.fill();
+    });
+    ctx.fillStyle = 'rgba(0,0,0,0.4)';
+    ctx.beginPath(); ctx.arc(0, 0, r * 0.55, 0, 7); ctx.fill();
+    ctx.strokeStyle = color; ctx.lineWidth = r * 0.22; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(-r * 0.4, 0); ctx.lineTo(r * 0.4, 0); ctx.stroke();
+  },
+  drone: (ctx, r, color) => {
+    // quadrotor that charges — Segfault Wasp
+    ctx.strokeStyle = color; ctx.lineWidth = r * 0.16; ctx.lineCap = 'round';
+    for (const [sx, sy] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) {
+      ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(sx * r * 0.95, sy * r * 0.95); ctx.stroke();
+      ctx.fillStyle = 'rgba(255,255,255,0.22)';
+      ctx.beginPath(); ctx.ellipse(sx * r * 0.95, sy * r * 0.95, r * 0.5, r * 0.18, 0, 0, 7); ctx.fill();
+    }
+    withGlow(ctx, color, 8, () => {
+      ctx.fillStyle = color;
+      ctx.beginPath(); ctx.ellipse(0, 0, r * 0.55, r * 0.45, 0, 0, 7); ctx.fill();
+    });
+    ctx.fillStyle = '#ff5e5e';
+    ctx.beginPath(); ctx.arc(0, 0, r * 0.2, 0, 7); ctx.fill();
+  },
+  canister: (ctx, r, color) => {
+    // overheating pressure canister, about to blow — Panic Beetle
+    withGlow(ctx, color, 12, () => {
+      ctx.fillStyle = color;
+      ctx.fillRect(-r * 0.55, -r * 0.7, r * 1.1, r * 1.5);
+      ctx.beginPath(); ctx.ellipse(0, r * 0.8, r * 0.55, r * 0.22, 0, 0, 7); ctx.fill();
+      ctx.beginPath(); ctx.ellipse(0, -r * 0.7, r * 0.55, r * 0.22, 0, 0, 7); ctx.fill();
+    });
+    ctx.fillStyle = '#1a1d24';
+    ctx.fillRect(-r * 0.55, -r * 0.2, r * 1.1, r * 0.14);
+    ctx.fillRect(-r * 0.55, r * 0.25, r * 1.1, r * 0.14);
+    ctx.fillStyle = '#fff2b0'; // glowing relief valve
+    ctx.beginPath(); ctx.arc(0, -r * 0.7, r * 0.26, 0, 7); ctx.fill();
+  },
+  lock: (ctx, r, color) => {
+    // padlock holding a mutex — Mutex Scarab (slow aura)
+    ctx.strokeStyle = color; ctx.lineWidth = r * 0.22; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.arc(0, -r * 0.25, r * 0.5, Math.PI, 0); ctx.stroke();
+    withGlow(ctx, color, 8, () => {
+      ctx.fillStyle = color;
+      ctx.fillRect(-r * 0.75, -r * 0.3, r * 1.5, r * 1.05);
+    });
+    ctx.fillStyle = '#10131a';
+    ctx.beginPath(); ctx.arc(0, r * 0.1, r * 0.2, 0, 7); ctx.fill();
+    ctx.fillRect(-r * 0.07, r * 0.1, r * 0.14, r * 0.42);
+  },
+  sentry: (ctx, r, color) => {
+    // monitoring camera on a mount — Telemetry Sentry (ranged)
+    legs(ctx, color, r * 0.8, 2);
+    withGlow(ctx, color, 6, () => {
+      ctx.fillStyle = color;
+      ctx.fillRect(-r * 0.85, -r * 0.5, r * 1.4, r * 0.9);
+    });
+    ctx.fillStyle = '#10131a';
+    ctx.beginPath(); ctx.arc(r * 0.45, 0, r * 0.42, 0, 7); ctx.fill();
+    ctx.fillStyle = '#ff5e5e'; // recording lens
+    ctx.beginPath(); ctx.arc(r * 0.45, 0, r * 0.2, 0, 7); ctx.fill();
+    ctx.strokeStyle = color; ctx.lineWidth = r * 0.1;
+    ctx.beginPath(); ctx.moveTo(-r * 0.55, -r * 0.5); ctx.lineTo(-r * 0.75, -r * 1.1); ctx.stroke();
+    ctx.fillStyle = color;
+    ctx.beginPath(); ctx.arc(-r * 0.75, -r * 1.15, r * 0.14, 0, 7); ctx.fill();
+  },
 };
 
 export function bugSprite(shape: string, radius: number, color: string, elite: boolean): HTMLCanvasElement {
