@@ -516,23 +516,29 @@ html, body {
 .upgrade-card.inv-weapon.empty .icon { color: var(--dim); opacity: 0.5; }
 .upgrade-card.inv-weapon.empty .empty-label { font-size: 12px; color: var(--dim); line-height: 1.6; }
 
-/* taken cards: compact cardlets with an ×N stack badge, wrapping below weapons */
-.inv-cards { display: flex; flex-wrap: wrap; gap: 8px; }
+/* taken cards: cardlets with each mod's per-stack + stacked-total value and a
+   plain white ×N in the corner; the grid scrolls when it overflows */
+.inv-cards {
+  display: flex; flex-wrap: wrap; gap: 10px;
+  max-height: 232px; overflow-y: auto; padding-right: 4px; align-content: flex-start;
+}
 .cardlet {
-  position: relative; width: 92px; padding: 8px 6px;
+  position: relative; width: 158px; padding: 10px 11px;
   background: linear-gradient(165deg, var(--panel2), var(--panel));
   border: 1px solid var(--line); border-top: 3px solid var(--rarity, var(--line));
-  display: flex; flex-direction: column; align-items: center; gap: 4px; text-align: center;
+  display: flex; flex-direction: column; gap: 7px;
 }
-.cardlet .icon { font-size: 24px; line-height: 1; }
-.cardlet .cl-name { font-size: 10.5px; color: var(--text); line-height: 1.2; }
+.cardlet .cl-head { display: flex; align-items: center; gap: 7px; padding-right: 16px; }
+.cardlet .cl-head .icon { font-size: 24px; line-height: 1; }
+.cardlet .cl-name { font-size: 13px; color: var(--text); line-height: 1.15; }
 .cardlet .cl-stack {
-  position: absolute; top: -7px; right: -7px;
-  background: var(--rarity, var(--cyan)); color: #0b1016;
-  font-family: var(--font-display); font-size: 13px; line-height: 1;
-  padding: 2px 5px; border-radius: 9px;
+  position: absolute; top: 7px; right: 9px;
+  color: #fff; font-family: var(--font-display); font-size: 15px; line-height: 1;
 }
-.cardlet:hover { border-color: var(--rarity, var(--cyan)); }
+.cardlet .cl-stats { display: flex; flex-direction: column; gap: 3px; }
+.cardlet .cl-stat { display: flex; justify-content: space-between; gap: 8px; font-size: 11px; color: var(--dim); }
+.cardlet .cl-stat .v { color: var(--green); white-space: nowrap; }
+.cardlet .cl-stat .cl-total { color: var(--cyan); }
 .inv-cards .cl-empty { font-size: 12px; color: var(--dim); padding: 6px 0; }
 
 /* secondary row under the inventory: player stats / cards / odds, demoted */

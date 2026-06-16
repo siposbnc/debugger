@@ -66,6 +66,41 @@ const STAT_VIEW: Partial<Record<keyof StatMods, {
   shield: { label: 'Shield', get: (s) => s.shieldMax, fmt: (v) => `${Math.round(v)}` },
 };
 
+// Raw card-mod display (label + how to print a RAW StatMods delta) — for the
+// inventory cardlets, which show a card's own value per stack and the stacked
+// total, independent of caps/resolution (that's the level-up preview's job).
+const MOD_VIEW: Partial<Record<keyof StatMods, { label: string; fmt: (v: number) => string }>> = {
+  maxHp: { label: 'Max HP', fmt: (v) => `+${+v.toFixed(0)}` },
+  regen: { label: 'Regen', fmt: (v) => `+${+v.toFixed(2)}/s` },
+  armor: { label: 'Armor', fmt: (v) => `+${v}` },
+  speed: { label: 'Speed', fmt: (v) => `+${Math.round(v * 100)}%` },
+  damage: { label: 'Damage', fmt: (v) => `+${Math.round(v * 100)}%` },
+  cooldown: { label: 'Cooldown', fmt: (v) => `−${Math.round(v * 100)}%` },
+  area: { label: 'Area', fmt: (v) => `+${Math.round(v * 100)}%` },
+  projectiles: { label: 'Projectiles', fmt: (v) => `+${v}` },
+  critChance: { label: 'Crit', fmt: (v) => `+${Math.round(v * 100)}%` },
+  critMult: { label: 'Crit dmg', fmt: (v) => `+${v.toFixed(2)}×` },
+  pickupRadius: { label: 'Pickup', fmt: (v) => `+${+v.toFixed(0)}` },
+  xpGain: { label: 'XP gain', fmt: (v) => `+${Math.round(v * 100)}%` },
+  luck: { label: 'Luck', fmt: (v) => `+${v}` },
+  shield: { label: 'Shield', fmt: (v) => `+${+v.toFixed(0)}` },
+  rerolls: { label: 'Rerolls', fmt: (v) => `+${v}` },
+  banishes: { label: 'Banishes', fmt: (v) => `+${v}` },
+  skips: { label: 'Defers', fmt: (v) => `+${v}` },
+};
+
+/** Stat lines for an inventory cardlet: each mod's per-stack value and, when
+ *  stacked, the total (value × count). */
+function cardletStats(mods: StatMods, count: number): string {
+  return (Object.keys(mods) as (keyof StatMods)[]).map((k) => {
+    const view = MOD_VIEW[k];
+    const v = mods[k];
+    if (!view || v === undefined) return '';
+    const total = count > 1 ? ` <span class="cl-total">→ ${view.fmt(v * count)}</span>` : '';
+    return `<div class="cl-stat"><span>${view.label}</span><span class="v">${view.fmt(v)}${total}</span></div>`;
+  }).join('');
+}
+
 /** "dmg ×1.00 → ×1.08" rows for a stat card, with CAPPED marks on mods the
  *  stat clamps would fully waste. fullyCapped = every mod on the card is dead. */
 function cardStatPreview(run: Run, cardId: string): { html: string; fullyCapped: boolean } {
@@ -1117,10 +1152,10 @@ export class UI {
     // weapon cards above them.
     const cardlets = taken.length > 0
       ? taken.map(({ card, count }) => `
-        <div class="cardlet" style="--rarity:${RARITY_COLOR[card.rarity]}" title="${card.name} — ${card.desc}">
-          <div class="icon">${card.icon}</div>
-          <div class="cl-name">${card.name}</div>
+        <div class="cardlet" style="--rarity:${RARITY_COLOR[card.rarity]}" title="${card.desc}">
           ${count > 1 ? `<div class="cl-stack">×${count}</div>` : ''}
+          <div class="cl-head"><span class="icon">${card.icon}</span><span class="cl-name">${card.name}</span></div>
+          <div class="cl-stats">${cardletStats(card.mods, count)}</div>
         </div>`).join('')
       : '<div class="cl-empty">no patches applied yet</div>';
 

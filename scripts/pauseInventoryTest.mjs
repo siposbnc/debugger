@@ -73,10 +73,15 @@ check(!!fork1 && !('Slow' in fork1.stats), 'zero-valued fields omitted (no Slow 
 const cardlets = await page.$$eval('.pause-inventory .inv-cards .cardlet', (els) => els.map((el) => ({
   name: el.querySelector('.cl-name')?.textContent?.trim() ?? '',
   stack: el.querySelector('.cl-stack')?.textContent?.trim() ?? '',
+  stats: [...el.querySelectorAll('.cl-stat .v')].map((v) => v.textContent.trim()),
+  totals: [...el.querySelectorAll('.cl-stat .cl-total')].map((v) => v.textContent.trim()),
 })));
 const coffee = cardlets.find((c) => c.name.includes('Coffee'));
 check(cardlets.length >= 1, `taken cards render as cardlets in the inventory — got ${cardlets.length}`);
-check(!!coffee && coffee.stack === '×3', `stacked card shows ×N badge — got "${coffee?.stack}"`);
+check(!!coffee && coffee.stack === '×3', `stacked card shows ×N in the corner — got "${coffee?.stack}"`);
+check(!!coffee && coffee.stats.length > 0, 'cardlet shows the card stat(s)');
+check(!!coffee && coffee.totals.length > 0 && coffee.totals[0].includes('→'),
+  `stacked cardlet shows the total (→) — got "${coffee?.totals[0]}"`);
 
 const d1 = statNum(fork1, 'Damage');
 const c1 = statNum(fork1, 'Cooldown');
