@@ -151,16 +151,16 @@ const creditPickups = (run: Run) => run.pickups.filter((p) => p.kind === 'credit
   check('stat boost is NOT tracked as a card', run.takenCards.size === 0);
 }
 
-// --- 4c. one use, many purchases: buying marks `used` but doesn't consume the
-// registry (consumption happens on close, UI-side) ---
+// --- 4c. one visit: distinct items buyable once each, Lint Pass repeatable;
+// buying marks `used` but doesn't consume the registry (close does, UI-side) ---
 {
   const run = freshRun();
   spawnBoss(run, BOSSES.mergeConflict, 1);
   run.killEnemy(run.enemies.find((e) => e.isBoss)!);
-  run.credits = 20;
-  run.buyRegistryItem('spareCi');
-  run.buyRegistryItem('hotReload');
-  check('multiple purchases allowed in one visit', run.credits === 16, `credits=${run.credits}`);
+  run.credits = 30;
+  check('distinct items buy in one visit', run.buyRegistryItem('spareCi') && run.buyRegistryItem('hotReload'));
+  check('same item refused a second time this visit', !run.buyRegistryItem('spareCi'));
+  check('Lint Pass is repeatable', run.buyRegistryItem('randomStat') && run.buyRegistryItem('randomStat'));
   check('registry survives purchases (consumed only on close)', run.registry !== null);
   check('purchase marks the registry used', run.registry?.used === true);
 }

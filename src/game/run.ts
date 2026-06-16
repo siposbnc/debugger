@@ -407,8 +407,9 @@ export class Run {
   credits = 0;
   creditsCollected = 0; // lifetime within the run — drives the meta-row reveal
   /** `used` flips on the first purchase: the registry is one *use* (a single
-   *  visit may buy many items) and is consumed when closed after buying. */
-  registry: { x: number; y: number; t: number; used: boolean } | null = null;
+   *  visit) and is consumed when closed after buying. `purchased` caps each
+   *  item to one buy per visit — except Lint Pass (randomStat), repeatable. */
+  registry: { x: number; y: number; t: number; used: boolean; purchased: string[] } | null = null;
   /** armed while the player stands in the registry ring — one prompt per entry.
    *  Reset whenever a registry is (re)created so a fresh one always prompts. */
   registryLatch = false;
@@ -1408,7 +1409,7 @@ export class Run {
           this.zones.some((z) => dist(x, y, z.x, z.y) < z.radius + CREDITS.registryRadius)) continue;
       break;
     }
-    this.registry = { x, y, t: CREDITS.registryLife, used: false };
+    this.registry = { x, y, t: CREDITS.registryLife, used: false, purchased: [] };
     this.registryLatch = false;
     this.emit({ type: 'registrySpawn', x, y });
   }
@@ -1438,6 +1439,8 @@ export class Run {
   buyRegistryItem(id: string): boolean {
     const item = REGISTRY_BY_ID[id];
     if (!item || this.credits < item.cost) return false;
+    // one purchase per item per visit, except Lint Pass (randomStat)
+    if (item.effect !== 'randomStat' && this.registry?.purchased.includes(id)) return false;
     switch (item.effect) {
       case 'heal': this.healPlayer(this.stats.maxHp); this.shield = this.stats.shieldMax; break;
       case 'magnet': for (const p of this.pickups) if (p.kind === 'xp') p.magnet = true; break;
@@ -1448,7 +1451,7 @@ export class Run {
       case 'randomStat': break; // deferred: the UI opens a 3-option picker → applyStatBoost
     }
     this.credits -= item.cost;
-    if (this.registry) this.registry.used = true; // a used registry is spent on close
+    if (this.registry) { this.registry.used = true; this.registry.purchased.push(id); }
     return true;
   }
 

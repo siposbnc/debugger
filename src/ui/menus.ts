@@ -896,12 +896,16 @@ export class UI {
    *  Pass picker after a randomStat buy. */
   showRegistry(run: Run, onDone: () => void, onRandomStat: () => void): void {
     const render = () => {
-      const rows = REGISTRY_ITEMS.map((it) => `
-        <div class="shop-row">
+      const rows = REGISTRY_ITEMS.map((it) => {
+        const bought = it.effect !== 'randomStat' && !!run.registry?.purchased.includes(it.id);
+        const disabled = bought || run.credits < it.cost;
+        return `
+        <div class="shop-row${bought ? ' bought' : ''}">
           <div class="icon">${it.icon}</div>
           <div class="info"><h4>${it.name}</h4><p>${it.desc}</p></div>
-          <button class="btn small" data-buy="${it.id}" ${run.credits < it.cost ? 'disabled' : ''}>${it.cost} ©</button>
-        </div>`).join('');
+          <button class="btn small" data-buy="${it.id}" ${disabled ? 'disabled' : ''}>${bought ? 'BOUGHT' : `${it.cost} ©`}</button>
+        </div>`;
+      }).join('');
       this.root.innerHTML = `
         <div class="levelup-wrap">
           <div class="levelup-title registry-title">⬡ PACKAGE REGISTRY</div>

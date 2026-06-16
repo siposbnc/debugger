@@ -27,16 +27,27 @@ const bal = await page.evaluate(() => document.querySelector('.credit-balance')?
 check('balance is value-first with a space (e.g. "12 ©")', /^\d+ ©$/.test(bal || ''), bal);
 await page.screenshot({ path: 'scripts/credits-modal.png' });
 
-// multiple purchases per visit: buying a normal item keeps the modal open
-const balAfterBuy = await page.evaluate(() => {
-  const btn = [...document.querySelectorAll('.registry-list button[data-buy]')].find((b) => !b.disabled);
-  btn?.click();
-  return document.querySelector('.credit-balance')?.textContent?.trim();
-});
+// multiple purchases per visit: buying a normal item keeps the modal open,
+// and that item becomes BOUGHT (one buy per item per visit)
+const clickItem = (name) => page.evaluate((n) => {
+  const row = [...document.querySelectorAll('.registry-list .shop-row')].find((r) => r.textContent.includes(n));
+  row?.querySelector('button[data-buy]')?.click();
+}, name);
+await clickItem('Hotfix');
 await page.waitForTimeout(200);
-const stillOpen = await page.evaluate(() => !!document.querySelector('.registry-title'));
-check('a purchase keeps the registry open (multiple buys per visit)', stillOpen);
-check('balance dropped after the purchase', balAfterBuy !== bal, `${bal} → ${balAfterBuy}`);
+const afterBuy = await page.evaluate(() => {
+  const row = [...document.querySelectorAll('.registry-list .shop-row')].find((r) => r.textContent.includes('Hotfix'));
+  return {
+    open: !!document.querySelector('.registry-title'),
+    bal: document.querySelector('.credit-balance')?.textContent?.trim(),
+    hotfixLabel: row?.querySelector('button[data-buy]')?.textContent?.trim(),
+    hotfixDisabled: row?.querySelector('button[data-buy]')?.disabled,
+  };
+});
+check('a purchase keeps the registry open (multiple buys per visit)', afterBuy.open);
+check('balance dropped after the purchase', afterBuy.bal !== bal, `${bal} → ${afterBuy.bal}`);
+check('a bought item is capped this visit (BOUGHT + disabled)',
+  afterBuy.hotfixLabel === 'BOUGHT' && afterBuy.hotfixDisabled, `${afterBuy.hotfixLabel}/${afterBuy.hotfixDisabled}`);
 
 // closing after a purchase consumes the registry (one use)
 await page.keyboard.press('Escape');

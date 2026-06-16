@@ -40,14 +40,14 @@ export interface RegistryItemDef {
 
 export const REGISTRY_ITEMS: RegistryItemDef[] = [
   {
+    id: 'randomStat', name: 'Lint Pass', icon: '✨',
+    desc: 'Offers 3 random stat upgrades — pick one. Small boosts; buy it repeatedly.',
+    cost: 3, effect: 'randomStat',
+  },
+  {
     id: 'hotfix', name: 'Hotfix Patch', icon: '🩹',
     desc: 'Restores all HP and recharges shield to full.',
     cost: 4, effect: 'heal',
-  },
-  {
-    id: 'randomStat', name: 'Lint Pass', icon: '✨',
-    desc: 'Offers 3 random stat upgrades — pick one. Small boosts; stack them up.',
-    cost: 3, effect: 'randomStat',
   },
   {
     id: 'gcSweep', name: 'Garbage Collect', icon: '🧹',
