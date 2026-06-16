@@ -17,6 +17,21 @@ into [ROADMAP.md](../ROADMAP.md), and moves them to **Processed** below.
 
 ---
 
+## Processed → ROADMAP.md (2026-06-13, batch 23)
+
+- Bug modifiers (ARPG-style affixes, PoE/Diablo inspiration; curses amplify count + strength) → **v0.4 P2 (L) "Bug modifiers (ARPG-style affixes)"**, placed directly under the Curses P1 (its amplifier). Refined: affixes ride the existing **elite** tier by default (1 baseline), curses raise count/strength + add a "magic" chance for regular bugs. Cheap to build — most effects already exist as enemy flags (`explodeOnDeath`, `frontShield`, `slowAura`, `duplicates`, `drain`, `ranged`, `regen`), so a modifier is a spawn-time *composition* like `makeCritical()`. Data: `EnemyModifier` keyed-enum records + `Enemy.mods[]` + `rollModifiers(elite, curseLevel)`. ~8 affixes proposed; mandatory visual telegraphing + codex; reward scales with risk. Base rate enters the sim baseline → full re-cert flagged. Open Q: ride-elites vs distinct magic/rare tier (lean ride-elites first)
+
+<details>
+<summary>Batch 23 — original notes (kept for reference)</summary>
+
+### Draft ideas
+
+- bug modifiers to keep runs exciting and always different
+    - take insprition from ARPG games like Path of Exile and Diablo series
+    - curses (planned already) increase the number of modifiers a bug can have and also their strength
+
+</details>
+
 ## Processed → ROADMAP.md (2026-06-13, batch 22)
 
 - New meta upgrades (projectiles, cdr) → **v0.4 Progression & economy, P2 (S)** — pure data rows in `meta.ts`, but balance-flagged three ways: blades-cdr tripwire re-run (CDR meta), §5 meta-gap arms re-run (maxed-meta ceiling rises), full-shop cost curve re-check (25–35-run target). Projectiles priced steep at 1–2 levels (weaponSlot precedent); progressive unlock works as-is via `STAT_TO_META`
