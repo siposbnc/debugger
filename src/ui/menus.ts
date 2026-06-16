@@ -1197,6 +1197,19 @@ export class UI {
     `); // no kbnav onBack: the main loop owns Esc/P while paused (would double-toggle)
     this.screenKind = 'pause';
 
+    // Cards grid: no scrollbar — a bottom fade hints at more cards below, and
+    // clears once scrolled to the end.
+    const cardsEl = s.querySelector<HTMLElement>('.inv-cards');
+    if (cardsEl) {
+      const updateFade = () => {
+        cardsEl.classList.toggle('faded', cardsEl.scrollHeight > cardsEl.clientHeight + 2);
+        cardsEl.classList.toggle('at-bottom',
+          cardsEl.scrollTop + cardsEl.clientHeight >= cardsEl.scrollHeight - 2);
+      };
+      updateFade();
+      cardsEl.addEventListener('scroll', updateFade);
+    }
+
     // KILL PROCESS is two-step: first activate arms, second confirms. Mouse,
     // keyboard and gamepad all funnel through the button's click event (kbnav
     // activate() dispatches a real click), so one armed flag covers them all.

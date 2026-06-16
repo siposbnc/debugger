@@ -520,7 +520,14 @@ html, body {
    plain white ×N in the corner; the grid scrolls when it overflows */
 .inv-cards {
   display: flex; flex-wrap: wrap; gap: 10px;
-  max-height: 232px; overflow-y: auto; padding-right: 4px; align-content: flex-start;
+  max-height: 232px; overflow-y: auto; align-content: flex-start;
+  scrollbar-width: none; /* no visible scrollbar — a bottom fade hints overflow */
+}
+.inv-cards::-webkit-scrollbar { display: none; }
+/* faded = content overflows; cleared (at-bottom) once scrolled to the end */
+.inv-cards.faded:not(.at-bottom) {
+  -webkit-mask-image: linear-gradient(to bottom, #000 76%, transparent);
+  mask-image: linear-gradient(to bottom, #000 76%, transparent);
 }
 .cardlet {
   position: relative; width: 158px; padding: 10px 11px;
