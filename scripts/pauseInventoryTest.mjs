@@ -1,7 +1,8 @@
-// Check for the pause-screen inventory (primary-pane redesign 2026-06-13):
-// per-weapon cards (name, level pips/EVO tag, damage tally, desc, resolved
-// stat chips), open-slot placeholders up to weaponSlots, and proof the chips
-// show effective() values (global mults applied), not raw table rows.
+// Check for the pause-screen inventory (card-reuse redesign 2026-06-13):
+// weapons render with the level-up `.upgrade-card` design — name, level in the
+// rarity label, damage tally in the tagline, resolved effective() stats as
+// stat-preview lines — plus open-slot placeholders up to weaponSlots, and
+// proof the stats show effective() values (global mults applied), not raw rows.
 // Needs a served build:dev output (dbg required):
 //   npx vite build --mode dev && npx vite preview   then   node scripts/pauseInventoryTest.mjs [url]
 import { chromium } from 'playwright';
@@ -34,39 +35,43 @@ await page.evaluate(() => {
 
 const readWeapons = async () => {
   await page.keyboard.press('Escape');
-  await page.waitForSelector('.pause-inventory .inv-card', { timeout: 4000 });
-  return page.$$eval('.pause-inventory .inv-card:not(.empty)', (els) => els.map((el) => ({
-    name: el.querySelector('.inv-title b')?.textContent?.trim() ?? '',
-    level: el.querySelector('.inv-title .pips')?.textContent?.trim() ?? '',
-    pipsOn: el.querySelectorAll('.pip.on').length,
-    dmg: el.querySelector('.inv-dmg')?.textContent?.trim() ?? '',
-    desc: el.querySelector('.wpn-desc')?.textContent?.trim() ?? '',
-    chips: [...el.querySelectorAll('.wpn-stats .wstat')].map((c) => c.textContent.trim()),
-  })));
+  await page.waitForSelector('.pause-inventory .upgrade-card.inv-weapon', { timeout: 4000 });
+  return page.$$eval('.pause-inventory .upgrade-card.inv-weapon:not(.empty)', (els) => els.map((el) => {
+    const stats = {};
+    el.querySelectorAll('.stat-preview .stat-line').forEach((line) => {
+      const label = line.querySelector('span:not(.v)')?.textContent?.trim() ?? '';
+      const val = line.querySelector('.v')?.textContent?.trim() ?? '';
+      if (label) stats[label] = val;
+    });
+    return {
+      name: el.querySelector('h3')?.textContent?.trim() ?? '',
+      level: el.querySelector('.rarity')?.textContent?.trim() ?? '',
+      dmg: el.querySelector('.tagline')?.textContent?.trim() ?? '',
+      desc: el.querySelector('.desc')?.textContent?.trim() ?? '',
+      stats,
+    };
+  }));
 };
-const chipNum = (w, label) => {
-  const c = w.chips.find((t) => t.startsWith(label));
-  return c ? parseFloat(c.slice(label.length).trim()) : NaN;
-};
+const statNum = (w, label) => (label in w.stats ? parseFloat(w.stats[label]) : NaN);
 
 // --- pass 1: structure at neutral mults ---
 const w1 = await readWeapons();
 check(w1.length === 3, `3 weapon cards rendered (starter + 2 given) — got ${w1.length}`);
 check(w1.every((w) => w.desc.length > 0), 'every card has a description');
-const empties = await page.$$eval('.pause-inventory .inv-card.empty', (els) => els.length);
+const empties = await page.$$eval('.pause-inventory .upgrade-card.inv-weapon.empty', (els) => els.length);
 check(empties === 1, `open-slot placeholder fills to weaponSlots (4 slots − 3 weapons = 1, got ${empties})`);
 const fork1 = w1.find((w) => w.name.includes('Fork Bomb'));
 const zip = w1.find((w) => w.name.includes('Zip Bomb'));
-check(!!fork1 && fork1.level.includes('Lv 3') && fork1.pipsOn === 3, 'Fork Bomb card shows Lv 3 with 3 pips lit');
-check(!!zip && zip.level.includes('EVO'), 'Zip Bomb card shows EVO tag');
-check(!!fork1 && /\/s/.test(fork1.dmg), 'damage/DPS tally present on the card');
-check(w1.every((w) => w.chips.some((c) => c.startsWith('Damage')) && w.chips.some((c) => c.startsWith('Cooldown'))), 'Damage + Cooldown chips on every weapon');
-check(!!fork1 && !fork1.chips.some((c) => c.startsWith('Slow')), 'zero-valued fields omitted (no Slow chip on Fork Bomb)');
+check(!!fork1 && fork1.level.includes('LV 3'), `Fork Bomb card shows LV 3 in the rarity label — got "${fork1?.level}"`);
+check(!!zip && zip.level.includes('EVOLVED'), `Zip Bomb card shows EVOLVED — got "${zip?.level}"`);
+check(!!fork1 && /\/s/.test(fork1.dmg), 'damage/DPS tally present in the tagline');
+check(w1.every((w) => 'Damage' in w.stats && 'Cooldown' in w.stats), 'Damage + Cooldown stat lines on every weapon');
+check(!!fork1 && !('Slow' in fork1.stats), 'zero-valued fields omitted (no Slow line on Fork Bomb)');
 
-const d1 = chipNum(fork1, 'Damage');
-const c1 = parseFloat((fork1.chips.find((t) => t.startsWith('Cooldown')) ?? '').replace('Cooldown', ''));
-check(Number.isFinite(d1) && d1 > 0, `Fork Bomb damage chip parses (${d1})`);
-check(Number.isFinite(c1) && c1 > 0, `Fork Bomb cooldown chip parses (${c1}s)`);
+const d1 = statNum(fork1, 'Damage');
+const c1 = statNum(fork1, 'Cooldown');
+check(Number.isFinite(d1) && d1 > 0, `Fork Bomb damage stat parses (${d1})`);
+check(Number.isFinite(c1) && c1 > 0, `Fork Bomb cooldown stat parses (${c1}s)`);
 
 // --- pass 2: global mults must move the shown numbers ---
 await page.keyboard.press('Escape'); // resume
@@ -77,10 +82,10 @@ await page.evaluate(() => {
 });
 const w2 = await readWeapons();
 const fork2 = w2.find((w) => w.name.includes('Fork Bomb'));
-const d2 = chipNum(fork2, 'Damage');
-const c2 = parseFloat((fork2.chips.find((t) => t.startsWith('Cooldown')) ?? '').replace('Cooldown', ''));
-check(Math.abs(d2 - d1 * 2) <= 1, `damageMult ×2 doubles the Damage chip (${d1} → ${d2})`);
-check(Math.abs(c2 - c1 / 2) <= 0.01, `cooldownFactor 0.5 halves the Cooldown chip (${c1}s → ${c2}s)`);
+const d2 = statNum(fork2, 'Damage');
+const c2 = statNum(fork2, 'Cooldown');
+check(Math.abs(d2 - d1 * 2) <= 1, `damageMult ×2 doubles the Damage stat (${d1} → ${d2})`);
+check(Math.abs(c2 - c1 / 2) <= 0.01, `cooldownFactor 0.5 halves the Cooldown stat (${c1}s → ${c2}s)`);
 
 check(errors.length === 0, `no page errors${errors.length ? `: ${errors[0]}` : ''}`);
 

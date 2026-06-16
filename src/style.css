@@ -479,43 +479,33 @@ html, body {
   padding: 14px 18px 16px; width: min(936px, 94vw);
 }
 .pause-inventory h3 { font-family: var(--font-display); font-size: 24px; color: var(--cyan); font-weight: 400; margin-bottom: 10px; }
-.inv-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(270px, 1fr)); gap: 10px; }
-.inv-card {
-  background: linear-gradient(160deg, var(--panel2), var(--panel));
-  border: 1px solid var(--line); border-left: 3px solid var(--accent, var(--line));
-  padding: 10px 12px; display: flex; flex-direction: column; gap: 6px;
+.pause-inventory .inv-row { margin-top: 2px; }
+.pause-inventory .inv-allies { margin-top: 12px; font-size: 11px; color: var(--dim); }
+.pause-inventory .dim { color: var(--dim); }
+
+/* inventory weapons reuse the level-up card design but are static (not picks):
+   no pointer/hover-lift/fly-in, and excluded from kbnav (see kbnav selector) */
+.upgrade-card.inv-weapon { cursor: default; animation: none; }
+.upgrade-card.inv-weapon:hover {
+  transform: none;
+  box-shadow: 0 0 18px color-mix(in srgb, var(--rarity, #888) 22%, transparent), inset 0 1px 0 rgba(255,255,255,0.05);
 }
-.inv-card.empty {
-  border: 1px dashed var(--line); background: none;
-  align-items: center; justify-content: center;
-  color: var(--dim); font-size: 11px; min-height: 110px;
+.upgrade-card.inv-weapon .tagline { color: var(--cyan); letter-spacing: 0.06em; }
+.upgrade-card.inv-weapon .evo-line {
+  font-size: 11px; color: var(--dim); border-top: 1px dashed var(--line); padding-top: 8px;
 }
-.inv-head { display: flex; align-items: center; gap: 10px; }
-.inv-icon {
-  width: 42px; height: 42px; flex-shrink: 0;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 24px; color: var(--accent, var(--text));
-  border: 1px solid var(--line); border-radius: 4px;
+.upgrade-card.inv-weapon .evo-line.ready { color: var(--gold); }
+.upgrade-card.inv-weapon.empty {
+  border-style: dashed; box-shadow: none; justify-content: center; align-items: center; text-align: center;
 }
-.inv-title { min-width: 0; }
-.inv-title b { font-size: 14px; color: var(--accent, var(--text)); }
-.inv-title .pips { display: flex; align-items: center; gap: 3px; margin-top: 4px; }
-.inv-title .pip { width: 9px; height: 9px; border: 1px solid var(--line); transform: rotate(45deg); }
-.inv-title .pip.on { background: var(--green); border-color: var(--green); box-shadow: 0 0 5px rgba(83, 232, 168, 0.6); }
-.inv-title .pips .dim { margin-left: 6px; }
-.inv-dmg { margin-left: auto; text-align: right; font-family: var(--font-display); font-size: 16px; color: var(--cyan); white-space: nowrap; }
-.evo-tag { font-family: var(--font-display); font-size: 13px; color: var(--gold); letter-spacing: 0.1em; text-shadow: 0 0 8px rgba(255, 193, 46, 0.5); }
-.wpn-evo { font-size: 11px; color: var(--dim); border-top: 1px dashed var(--line); padding-top: 5px; margin-top: auto; }
-.wpn-evo.ready { color: var(--gold); }
-.inv-allies { margin-top: 10px; font-size: 11px; color: var(--dim); }
-.inv-card .wpn-desc, .pause-panel .wpn-desc { font-size: 11px; color: var(--dim); line-height: 1.4; margin: 2px 0 3px; }
-.inv-card .wpn-stats, .pause-panel .wpn-stats { display: flex; flex-wrap: wrap; gap: 2px 10px; font-size: 11px; }
-.inv-card .wstat, .pause-panel .wstat { color: var(--green); white-space: nowrap; }
-.inv-card .wl, .pause-panel .wl { color: var(--dim); }
-.inv-card .dim, .pause-inventory .dim { color: var(--dim); font-size: 11px; }
+.upgrade-card.inv-weapon.empty .icon { color: var(--dim); opacity: 0.5; }
+.upgrade-card.inv-weapon.empty .empty-label { font-size: 12px; color: var(--dim); line-height: 1.6; }
 
 /* secondary row under the inventory: player stats / cards / odds, demoted */
 .pause-secondary .pause-panel h3 { font-size: 18px; }
+.pause-panel .wpn-stats { display: flex; flex-wrap: wrap; gap: 2px 10px; font-size: 11px; }
+.pause-panel .wstat { color: var(--green); white-space: nowrap; }
+.pause-panel .wl { color: var(--dim); }
 
 /* ---------- settings ---------- */
 

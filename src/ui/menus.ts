@@ -1024,50 +1024,48 @@ export class UI {
       row('Luck', `${st.luck}`),
     ].join('');
 
-    // Inventory — the pause screen's primary pane (user feedback 2026-06-13:
-    // the old one-column weapons panel felt cramped). One large card per
-    // weapon: icon tile, level pips, damage/DPS tally, desc, the resolved live
-    // stat sheet (the same effective() values combat fires with — global mults
-    // applied, unlike the raw-table weapon-card previews) and evolution state.
+    // Inventory — the pause screen's primary pane. Weapons render with the
+    // exact level-up card design (`.upgrade-card`), so a weapon you own looks
+    // like the card you picked it from: weapon color as the rarity accent,
+    // level in the rarity label, damage/DPS tally in the tagline, the resolved
+    // live stat sheet (effective() — global mults applied) as the stat block,
+    // evolution state + flavor at the foot. `.inv-weapon` makes them static
+    // (no pointer/hover/fly-in, excluded from kbnav — they aren't selectable).
+    const maxLvOf = (w: typeof run.weapons[number]) => w.def.levels.length;
+    const levelLabel = (w: typeof run.weapons[number]) =>
+      w.def.isEvolution ? 'EVOLVED ★'
+        : w.level >= maxLvOf(w) ? `MAX · LV ${w.level}`
+        : `LV ${w.level} / ${maxLvOf(w)}`;
     const weaponCards = run.weapons.map((w) => {
       const dps = w.totalDamage / Math.max(1, run.time - w.acquiredAt);
       const eff = effective(run, w);
-      const stats = WEAPON_FIELD_VIEW
+      const statLines = WEAPON_FIELD_VIEW
         .filter(([key]) => eff[key] !== 0)
         .map(([key, label, fmt]) =>
-          `<span class="wstat"><span class="wl">${label}</span> ${fmt(eff[key])}</span>`)
+          `<div class="stat-line"><span>${label}</span><span class="v">${fmt(eff[key])}</span></div>`)
         .join('');
-      const maxLv = w.def.levels.length;
-      const pips = w.def.isEvolution
-        ? '<span class="evo-tag">EVO</span>'
-        : Array.from({ length: maxLv }, (_, i) =>
-            `<span class="pip ${i < w.level ? 'on' : ''}"></span>`).join('')
-          + `<span class="dim">Lv ${w.level}</span>`;
       const evo = w.def.evolveTo
-        ? w.level >= maxLv
-          ? `<div class="wpn-evo ready">⚡ evolution ready — the next boss chest forges ${WEAPONS[w.def.evolveTo].name}</div>`
-          : `<div class="wpn-evo">⮕ evolves into ${WEAPONS[w.def.evolveTo].name} at Lv ${maxLv}</div>`
+        ? w.level >= maxLvOf(w)
+          ? `<div class="evo-line ready">⚡ EVOLUTION READY — next boss chest forges ${WEAPONS[w.def.evolveTo].name}</div>`
+          : `<div class="evo-line">⮕ evolves into ${WEAPONS[w.def.evolveTo].name} at max level</div>`
         : EVOLVED_FROM[w.def.id]
-          ? `<div class="wpn-evo">⮑ evolved from ${WEAPONS[EVOLVED_FROM[w.def.id]].name}</div>`
+          ? `<div class="evo-line">⮑ evolved from ${WEAPONS[EVOLVED_FROM[w.def.id]].name}</div>`
           : '';
       return `
-      <div class="inv-card" style="--accent:${w.def.color}">
-        <div class="inv-head">
-          <div class="inv-icon">${w.def.icon}</div>
-          <div class="inv-title">
-            <b>${w.def.name}</b>
-            <div class="pips">${pips}</div>
-          </div>
-          <div class="inv-dmg">${fmtDmg(w.totalDamage)} <span class="dim">dmg · ${fmtDmg(dps)}/s</span></div>
-        </div>
-        <div class="wpn-desc">${w.def.desc}</div>
-        <div class="wpn-stats">${stats}</div>
+      <div class="upgrade-card inv-weapon" style="--rarity:${w.def.color}">
+        <div class="rarity">${levelLabel(w)}</div>
+        <div class="icon">${w.def.icon}</div>
+        <h3>${w.def.name}</h3>
+        <div class="tagline">${fmtDmg(w.totalDamage)} dmg · ${fmtDmg(dps)}/s</div>
+        <div class="desc">${w.def.desc}</div>
+        <div class="stat-preview">${statLines}</div>
         ${evo}
+        <div class="flavor">${w.def.flavor}</div>
       </div>`;
     }).join('')
       // open slots communicate capacity: a new-weapon card fills one at level-up
       + Array.from({ length: Math.max(0, run.stats.weaponSlots - run.weapons.length) },
-          () => '<div class="inv-card empty">open slot — take a weapon card to fill it</div>').join('');
+          () => '<div class="upgrade-card inv-weapon empty"><div class="icon">+</div><div class="empty-label">open slot<br><span class="dim">take a weapon card to fill it</span></div></div>').join('');
     const allyLine = run.allyDamage > 0
       ? `<div class="inv-allies">⚙ allies dealt ${fmtDmg(run.allyDamage)} dmg on top</div>`
       : '';
@@ -1107,7 +1105,7 @@ export class UI {
       </div>
       <div class="pause-inventory">
         <h3>~/inventory</h3>
-        <div class="inv-grid">${weaponCards}</div>
+        <div class="card-row inv-row">${weaponCards}</div>
         ${allyLine}
       </div>
       <div class="pause-cols pause-secondary">
