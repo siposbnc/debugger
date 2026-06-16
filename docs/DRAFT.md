@@ -17,6 +17,52 @@ into [ROADMAP.md](../ROADMAP.md), and moves them to **Processed** below.
 
 ---
 
+## Processed → ROADMAP.md (2026-06-17, batch 24)
+
+- Bigger minimap icons (chests/events/bosses large, credits a small bump) → **v0.4 P3 (S) "Minimap: scale important contacts"** — also adds credit pickups to the minimap (not plotted today); pure `drawMinimap()` tuning
+- Database codex for all cards (reveal on first pick, `?` hint) → **v0.4 Progression & economy P2 (S) "Codex: cards tab"** — exact weapon-arsenal-tab pattern, `card:<id>` reveal from `applyCard`, locked rows reuse `lockedCodexRow`
+- Card rarity tiers gated by an ordered objective chain (common/uncommon at start; rare→epic→legendary unlock in sequence; early game hard by design) → **v0.4 Progression & economy P2 (M) "Rarity tiers unlocked by objectives"** — zero out un-unlocked tiers in `levelup.ts rarityWeight()`; heavily balance-flagged (redefines the early-game baseline the §5 meta-gap cert rests on → full matrix re-cert + likely early-map re-tune; may want its own pass after the current P1s)
+- Unlockable active skills, infinite stage (dash w/ i-frames + upgradable duration; revive ×N upgradable) → **v0.5 prestige design-doc enriched** — concrete "new mechanic nodes" examples; dash needs a keybind + cooldown UI + i-frame handling in `run.ts`; doc decides prestige-tree vs own unlock track
+- Coffee pickup heals a % of max HP instead of flat 25 → **v0.4 P3 (S) "Coffee pickup heals a % of max HP"** — one-line `collectPickup` change; balance-flagged (sustain nerf, re-check §5 marsh/glacier)
+- New event type: squash N bugs while *inside* a marked area → **v0.4 P3 (S) "New in-run event type: Containment"** — third `FieldEventKind` (ring zone + counter), pulls the player into the horde
+- Debuffs (reversed movement "Malfunction"; weapons disabled ~15s) → **folded into the Curses P1** as timed, telegraphed debuff-curses (banner + windup so they read as mechanics); noted the same effects could later be boss/affix-inflicted instead of whole-run toggles
+
+<details>
+<summary>Batch 24 — original notes (kept for reference)</summary>
+
+### Draft ideas
+
+- important icons should be much larger on the minimap, should draw the player's attention
+    - chests
+    - events
+    - bosses
+    - credits (smaller than the rest, but still larger than currently)
+- database codex for all cards
+    - codex entry unlocks when the player picks them in a run (same mechanism as meta upgrade unlocks and other codex entries)
+        - should be hinted as well, but a ? symbol is enough to hint codex entry reveal
+- upgrade cards
+    - rarity tiers should be tied to objectives
+    - completing the objective unlock the tier
+    - the player cannot get higher rarity cards before they are unlocked (common and uncommon only at start)
+    - make sure the selected objective completions can happen in order only
+        - so unlocking legendary rarity before epic is unlocked is impossible
+    - it makes early game harder but that is by design. first couple of runs should be very hard
+- unlockable skills (infinite stage)
+    - dash (invincibility during dashing, used to dodge collisions) (can be upgraded to increase i-frame time)
+    - revive n times (can be upgraded)
+    - ???
+- coffee pickup restores a percentage of health instead of flat amount
+    - this makes to restore health harder without hp regen
+- new event types:
+    - squash n amount of bugs inside an area (player needs to be inside, not the bug)
+    - ???
+- debuffs (can be worked into curses?)
+    - malfunction: movement is reversed
+    - ??: weapons are disabled for 15 seconds
+    - ???
+
+</details>
+
 ## Processed → ROADMAP.md (2026-06-13, batch 23)
 
 - Bug modifiers (ARPG-style affixes, PoE/Diablo inspiration; curses amplify count + strength) → **v0.4 P2 (L) "Bug modifiers (ARPG-style affixes)"**, placed directly under the Curses P1 (its amplifier). Refined: affixes ride the existing **elite** tier by default (1 baseline), curses raise count/strength + add a "magic" chance for regular bugs. Cheap to build — most effects already exist as enemy flags (`explodeOnDeath`, `frontShield`, `slowAura`, `duplicates`, `drain`, `ranged`, `regen`), so a modifier is a spawn-time *composition* like `makeCritical()`. Data: `EnemyModifier` keyed-enum records + `Enemy.mods[]` + `rollModifiers(elite, curseLevel)`. ~8 affixes proposed; mandatory visual telegraphing + codex; reward scales with risk. Base rate enters the sim baseline → full re-cert flagged. Open Q: ride-elites vs distinct magic/rare tier (lean ride-elites first)
