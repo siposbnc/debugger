@@ -1,5 +1,8 @@
 import type { Run, RunEvent } from '../game/run';
 import { TERMINAL_RADIUS } from '../game/events';
+import { CREDITS } from '../data/registry';
+
+const REGISTRY_RADIUS = CREDITS.registryRadius;
 import type { BossDef, MapDef } from '../data/types';
 import { clamp, formatTime, lerp, rand } from '../core/util';
 import { touchStick } from '../core/input';
@@ -501,6 +504,7 @@ export abstract class RendererBase {
     if (run) {
       this.drawHud(ctx, run);
       this.drawFieldEvent(ctx, run);
+      this.drawRegistryRing(ctx, run);
       this.drawEdgeRadar(ctx, run);
       if (this.minimapEnabled) this.drawMinimap(ctx, run);
       this.drawTouchStick(ctx);
@@ -626,6 +630,15 @@ export abstract class RendererBase {
       ctx.textAlign = 'center';
       ctx.fillText(fe.kind === 'nest' ? '#' : '>', q.x, q.y + 3.5);
     }
+    // package registry: cyan ⬡, same glyph as its edge marker
+    if (run.registry) {
+      const q = plot(run.registry.x, run.registry.y);
+      ctx.globalAlpha = run.registry.t < 15 ? 0.55 + 0.4 * Math.sin(this.t * 8) : 0.95;
+      ctx.fillStyle = '#7df9ff';
+      ctx.font = '11px VT323, monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText('⬡', q.x, q.y + 3.5);
+    }
     // player: center pip
     ctx.globalAlpha = 1;
     ctx.fillStyle = '#53e8a8';
@@ -720,6 +733,11 @@ export abstract class RendererBase {
         fe.kind === 'nest' ? '#ff7438' : '#7df9ff',
         fe.kind === 'nest' ? '#' : '>', wave);
     }
+    // Package Registry (post-boss credits sink): cyan ⬡, blinks as it expires.
+    if (run.registry) {
+      const wave = run.registry.t < 15 ? 0.6 + 0.35 * Math.sin(this.t * 8) : 0.85;
+      this.edgeMarker(ctx, run.registry.x, run.registry.y, 13, '#7df9ff', '⬡', wave);
+    }
     ctx.globalAlpha = 1;
   }
 
@@ -765,6 +783,32 @@ export abstract class RendererBase {
         -Math.PI / 2, -Math.PI / 2 + fe.progress * Math.PI * 2);
       ctx.stroke();
     }
+    ctx.restore();
+  }
+
+  /** Package Registry activation ring on the floor — walk inside to open the
+   *  buy modal. The kiosk sprite itself is drawn in the world pass. */
+  private drawRegistryRing(ctx: CanvasRenderingContext2D, run: Run): void {
+    const reg = run.registry;
+    if (!reg) return;
+    const p = this.proj(reg.x, reg.y);
+    const sx = p.x - this.camX + this.w / 2;
+    const sy = p.y - this.camY + this.h / 2;
+    if (sx < -180 || sx > this.w + 180 || sy < -180 || sy > this.h + 180) return;
+    ctx.save();
+    ctx.globalAlpha = reg.t < 15 ? 0.5 + 0.4 * Math.sin(this.t * 8) : 0.8;
+    ctx.strokeStyle = '#7df9ff';
+    ctx.lineWidth = 1.5;
+    ctx.setLineDash([7, 7]);
+    ctx.beginPath();
+    ctx.ellipse(sx, sy, REGISTRY_RADIUS, REGISTRY_RADIUS / 2, 0, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = '#7df9ff';
+    ctx.font = '15px VT323, monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText('npm install', sx, sy + REGISTRY_RADIUS / 2 + 16);
     ctx.restore();
   }
 
@@ -856,12 +900,20 @@ export abstract class RendererBase {
     ctx.fillStyle = '#ffc12e';
     ctx.fillText(`⌬ ${run.computeBits().bits} bits`, this.w - pad, 70);
 
-    // next boss countdown (top-right, under bits) — moot once crunch starts
+    // credits (in-run currency) — only once any have been earned this run
+    let nextY = 92;
+    if (run.creditsCollected > 0) {
+      ctx.fillStyle = '#7df9ff';
+      ctx.fillText(`© ${run.credits} credits`, this.w - pad, nextY);
+      nextY += 22;
+    }
+
+    // next boss countdown (top-right) — moot once crunch starts
     const tToBoss = run.nextBossAt - run.time;
     if (tToBoss < 99999 && !run.crunchStarted) {
       ctx.fillStyle = tToBoss < 10 ? '#ff5e5e' : 'rgba(232, 244, 255, 0.6)';
       ctx.font = '17px VT323, monospace';
-      ctx.fillText(`next boss ${formatTime(Math.max(0, tToBoss))}`, this.w - pad, 92);
+      ctx.fillText(`next boss ${formatTime(Math.max(0, tToBoss))}`, this.w - pad, nextY);
     }
 
     // alive boss bar (top-center)

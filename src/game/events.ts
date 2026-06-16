@@ -9,6 +9,7 @@
 
 import type { Enemy, Run } from './run';
 import { ENEMIES, MAX_ENEMIES } from '../data/enemies';
+import { CREDITS } from '../data/registry';
 import { dist, rand } from '../core/util';
 import { makeEnemy, randomPhaseEnemyDef } from './spawner';
 
@@ -61,10 +62,15 @@ export function spawnFieldEvent(run: Run, kind: FieldEventKind): void {
   run.emit({ type: 'eventSpawn', x, y, kind, name: EVENT_NAME[kind] });
 }
 
-/** Event completed: the bounty chest. (A killed nest already paid its own
- *  kill credit + XP through the normal death path — the chest is on top.) */
+/** Event completed: the bounty chest + credits. (A killed nest already paid
+ *  its own kill credit + XP through the normal death path — this is on top.) */
 function resolve(run: Run, ev: FieldEvent): void {
   run.pickups.push({ kind: 'chest', x: ev.x, y: ev.y, value: 0, magnet: false, vx: 0, vy: 0 });
+  run.pickups.push({
+    kind: 'credit', x: ev.x + rand(-20, 20), y: ev.y + rand(-20, 20),
+    value: CREDITS.eventDrop + (run.metaLevels['creditAmount'] ?? 0),
+    magnet: false, vx: 0, vy: 0,
+  });
   run.fieldEvent = null;
   run.eventAt = run.time + EVENT_INTERVAL + rand(-EVENT_JITTER, EVENT_JITTER);
   run.emit({ type: 'eventDone', x: ev.x, y: ev.y, kind: ev.kind, name: EVENT_NAME[ev.kind] });

@@ -9,6 +9,7 @@ import { BOSSES } from '../data/bosses';
 import { OBJECTIVES } from '../data/objectives';
 import { CARD_BY_ID } from '../data/upgrades';
 import { PATCH_NOTES } from '../data/patchNotes';
+import { REGISTRY_ITEMS } from '../data/registry';
 import { RARITY_COLOR, RARITY_ORDER, type StatMods, type EnemyDef, type BossDef, type MetaUpgradeDef, type WeaponLevelStats } from '../data/types';
 import { bugSprite, bossSprite } from '../render/sprites';
 import { computeStats, type ComputedStats } from '../game/stats';
@@ -848,6 +849,44 @@ export class UI {
   }
 
   // ---------- level-up modal ----------
+
+  /** Package Registry (in-run credits sink): a buy modal opened by walking
+   *  into the post-boss terminal. The sim is frozen while it's up (main.ts
+   *  'registry' state); Esc/B/CLOSE resumes. Pure DOM — purchases go through
+   *  Run.buyRegistryItem so the headless rule holds. */
+  showRegistry(run: Run, onDone: () => void): void {
+    const render = () => {
+      const rows = REGISTRY_ITEMS.map((it) => `
+        <div class="shop-row">
+          <div class="icon">${it.icon}</div>
+          <div class="info"><h4>${it.name}</h4><p>${it.desc}</p></div>
+          <button class="btn small" data-buy="${it.id}" ${run.credits < it.cost ? 'disabled' : ''}>${it.cost} ©</button>
+        </div>`).join('');
+      this.root.innerHTML = `
+        <div class="levelup-wrap">
+          <div class="levelup-title registry-title">⬡ PACKAGE REGISTRY</div>
+          <div class="hint">npm install --save-run &nbsp;·&nbsp; balance: <b class="credit-balance">© ${run.credits}</b> &nbsp;·&nbsp; unspent credits expire with the process</div>
+          <div class="shop-list registry-list">${rows}</div>
+          <div class="levelup-actions">
+            <button class="btn" data-act="close">CLOSE (ESC)</button>
+          </div>
+        </div>`;
+      const wrap = this.root.firstElementChild as HTMLElement;
+      wrap.querySelectorAll('button').forEach((b) =>
+        b.addEventListener('mousedown', () => sound.play('click')));
+      this.nav.attach(wrap, onDone);
+      wrap.addEventListener('click', (e) => {
+        const btn = (e.target as HTMLElement).closest('button');
+        if (!btn) return;
+        if (btn.dataset.act === 'close') { onDone(); return; }
+        if (btn.dataset.buy && run.buyRegistryItem(btn.dataset.buy)) {
+          sound.play('buy');
+          render();
+        }
+      });
+    };
+    render();
+  }
 
   showLevelUp(run: Run, onDone: () => void): void {
     let banishMode = false;

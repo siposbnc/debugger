@@ -5,7 +5,7 @@ import { bladePositions, petPositions } from '../game/combat';
 import { hash2, clamp, rand } from '../core/util';
 import {
   bugSprite, bossSprite, playerSprite, gemSprite, coffeeSprite,
-  chestSprite, turretSprite, helperSprite, propSprite,
+  chestSprite, creditSprite, registrySprite, turretSprite, helperSprite, propSprite,
 } from './sprites';
 import { RendererBase } from './rendererBase';
 
@@ -249,9 +249,17 @@ export class CanvasRenderer extends RendererBase {
       let sprite: HTMLCanvasElement;
       if (p.kind === 'xp') sprite = gemSprite(p.value >= 20 ? 2 : p.value >= 5 ? 1 : 0);
       else if (p.kind === 'hp') sprite = coffeeSprite();
+      else if (p.kind === 'credit') sprite = creditSprite();
       else sprite = chestSprite();
       const bob = Math.sin(performance.now() / 300 + p.x) * 3;
       ctx.drawImage(sprite, s.x - sprite.width / 4, s.y - sprite.height / 4 + bob - 6, sprite.width / 2, sprite.height / 2);
+    }
+
+    // Package Registry terminal (post-boss credits sink)
+    if (run.registry) {
+      const r = this.proj(run.registry.x, run.registry.y);
+      const spr = registrySprite();
+      ctx.drawImage(spr, r.x - spr.width / 4, r.y - spr.height / 4 - 8, spr.width / 2, spr.height / 2);
     }
 
     // depth-sorted billboards

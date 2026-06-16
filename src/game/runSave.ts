@@ -72,6 +72,9 @@ export interface SuspendedRun {
   /** field-event spawn clock — optional: pre-events snapshots re-arm on resume.
    *  Infinity (= an event was live; it isn't serialized) → null (JSON). */
   eventAt?: number | null;
+  /** credits in the wallet — the live registry terminal and buff timers are
+   *  deliberately NOT serialized (suspend drops them, like field events) */
+  credits?: number;
 }
 
 function snapEnemy(e: Enemy): EnemySnap {
@@ -134,6 +137,7 @@ export function snapshotRun(run: Run): SuspendedRun {
     mushiAt: Number.isFinite(run.mushiAt) ? run.mushiAt : null,
     mushiCaught: run.mushiCaught,
     eventAt: Number.isFinite(run.eventAt) ? run.eventAt : null,
+    credits: run.credits,
   };
 }
 
@@ -203,6 +207,8 @@ export function restoreRun(snap: SuspendedRun, doneObjectives: Set<string>): Run
   // the snapshot) — re-arm a fresh spawn a beat after resuming. Pre-events
   // snapshots get the same treatment.
   run.eventAt = snap.eventAt ?? run.time + 30;
+  run.credits = snap.credits ?? 0;
+  run.creditsCollected = snap.credits ?? 0; // close enough for the meta reveal
 
   run.hp = Math.min(snap.hp, run.stats.maxHp);
   run.shield = Math.min(snap.shield ?? run.stats.shieldMax, run.stats.shieldMax);

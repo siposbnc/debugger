@@ -87,6 +87,21 @@ export const META_UPGRADES: MetaUpgradeDef[] = [
     maxLevel: 3, baseCost: 150, costGrowth: 1.7,
     special: 'bossReward',
   },
+  // Credits economy (v0.4 in-run currency). No matching card stat exists, so
+  // these reveal on the first credit ever picked up (recordEncounters), not
+  // on a card pick like the stat upgrades above.
+  {
+    id: 'creditRate', name: 'Premium API Plan', icon: '📡',
+    desc: '+15% chance per level that elites drop credits.',
+    maxLevel: 3, baseCost: 90, costGrowth: 1.7,
+    special: 'creditRate',
+  },
+  {
+    id: 'creditAmount', name: 'Bulk Billing', icon: '🧾',
+    desc: '+1 credit per drop, per level (elites and field events).',
+    maxLevel: 2, baseCost: 120, costGrowth: 1.8,
+    special: 'creditAmount',
+  },
 ];
 
 export const META_BY_ID: Record<string, MetaUpgradeDef> =

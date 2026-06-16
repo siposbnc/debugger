@@ -11,6 +11,7 @@ import { updateWeapons } from './combat';
 import { updateSpawner, makeCritical, SPAWN_RADIUS } from './spawner';
 import { updateBossSchedule, updateBossMechanics, crumblePillars, fadeRaceImages } from './bossLogic';
 import { updateFieldEvents, EVENT_FIRST_AT, type FieldEvent } from './events';
+import { CREDITS, REGISTRY_BY_ID } from '../data/registry';
 
 // ---------- entities ----------
 
@@ -103,7 +104,7 @@ export interface EnemyShot {
 }
 
 export interface Pickup {
-  kind: 'xp' | 'hp' | 'chest';
+  kind: 'xp' | 'hp' | 'chest' | 'credit';
   x: number; y: number;
   value: number;
   magnet: boolean;
@@ -255,6 +256,10 @@ export type RunEvent =
   | { type: 'eventSpawn'; x: number; y: number; kind: 'nest' | 'terminal'; name: string }
   | { type: 'eventDone'; x: number; y: number; kind: 'nest' | 'terminal'; name: string }
   | { type: 'eventExpired'; x: number; y: number; kind: 'nest' | 'terminal' }
+  | { type: 'creditPickup'; x: number; y: number; value: number }
+  | { type: 'registrySpawn'; x: number; y: number }   // package registry online (post-boss)
+  | { type: 'registryPrompt' }                        // player walked in — main opens the buy modal
+  | { type: 'registryGone'; x: number; y: number }    // expired unused
   | { type: 'chest'; x: number; y: number }
   | { type: 'mushiSpawn'; x: number; y: number }
   | { type: 'mushiCaught'; x: number; y: number }
@@ -391,6 +396,16 @@ export class Run {
   eventAt = EVENT_FIRST_AT;
   /** false under noTerrain — events never run in balance sims (user policy). */
   eventsEnabled = true;
+
+  // Credits (data/registry.ts): in-run currency from events + elites, spent
+  // at the post-boss Package Registry. Dies with the run. Gated with events.
+  credits = 0;
+  creditsCollected = 0; // lifetime within the run — drives the meta-row reveal
+  registry: { x: number; y: number; t: number } | null = null;
+  /** armed while the player stands in the registry ring — one prompt per entry */
+  private registryLatch = false;
+  buffDmgT = 0;   // Overclock seconds remaining
+  buffSpeedT = 0; // Hot Reload seconds remaining
 
   objectiveCheckT = 0;
   rng = mulberry32(Date.now() & 0xffffffff);
@@ -814,6 +829,9 @@ export class Run {
     this.updatePickups(dt);
     this.updateMushi(dt);
     updateFieldEvents(this, dt);
+    this.updateRegistry(dt);
+    if (this.buffDmgT > 0) this.buffDmgT -= dt;
+    if (this.buffSpeedT > 0) this.buffSpeedT -= dt;
 
     // regen
     if (this.stats.regen > 0) this.healPlayer(this.stats.regen * dt);
@@ -861,7 +879,8 @@ export class Run {
     // tradeoff is the flat −15% speed in his mods
     if (this.character.special === 'slowImmune') this.playerSlow = 1;
 
-    const sp = this.stats.moveSpeed * this.playerSlow * (this.crunchT > 0 ? CRUNCH_SPEED_MULT : 1);
+    const sp = this.stats.moveSpeed * this.playerSlow * (this.crunchT > 0 ? CRUNCH_SPEED_MULT : 1)
+      * (this.buffSpeedT > 0 ? CREDITS.speedBuffMult : 1); // Hot Reload (registry)
     this.px += wx * sp * dt;
     this.py += wy * sp * dt;
     if (this.patches.length > 0 || this.obstacles.length > 0) {
@@ -1368,6 +1387,61 @@ export class Run {
     }
   }
 
+  /** Package Registry online after a boss: a credits sink placed a short trek
+   *  out, alive for CREDITS.registryLife seconds. */
+  private spawnRegistry(): void {
+    let x = 0, y = 0;
+    for (let tries = 0; tries < 24; tries++) {
+      const a = Math.random() * Math.PI * 2;
+      const d = rand(400, 600);
+      x = this.px + Math.cos(a) * d;
+      y = this.py + Math.sin(a) * d;
+      if (this.obstacles.some((o) => dist(x, y, o.x, o.y) < o.r + CREDITS.registryRadius) ||
+          this.zones.some((z) => dist(x, y, z.x, z.y) < z.radius + CREDITS.registryRadius)) continue;
+      break;
+    }
+    this.registry = { x, y, t: CREDITS.registryLife };
+    this.registryLatch = false;
+    this.emit({ type: 'registrySpawn', x, y });
+  }
+
+  private updateRegistry(dt: number): void {
+    const r = this.registry;
+    if (!r) return;
+    r.t -= dt;
+    if (r.t <= 0) {
+      this.registry = null;
+      this.emit({ type: 'registryGone', x: r.x, y: r.y });
+      return;
+    }
+    // one prompt per ring entry: latch arms on entry, releases when the
+    // player leaves (closing the modal while still inside won't re-open it)
+    const d = dist(r.x, r.y, this.px, this.py);
+    if (d < CREDITS.registryRadius && !this.registryLatch) {
+      this.registryLatch = true;
+      this.emit({ type: 'registryPrompt' });
+    } else if (d > CREDITS.registryRadius + 40) {
+      this.registryLatch = false;
+    }
+  }
+
+  /** Spend credits on a registry item. Returns false if unaffordable
+   *  (or unknown id — console callers aren't type-checked). */
+  buyRegistryItem(id: string): boolean {
+    const item = REGISTRY_BY_ID[id];
+    if (!item || this.credits < item.cost) return false;
+    switch (item.effect) {
+      case 'heal': this.healPlayer(this.stats.maxHp * 0.5); break;
+      case 'magnet': for (const p of this.pickups) if (p.kind === 'xp') p.magnet = true; break;
+      case 'reroll': this.rerollsLeft++; break;
+      case 'banish': this.banishesLeft++; break;
+      case 'dmgBuff': this.buffDmgT += CREDITS.buffDuration; break;
+      case 'speedBuff': this.buffSpeedT += CREDITS.buffDuration; break;
+    }
+    this.credits -= item.cost;
+    return true;
+  }
+
   private collectPickup(p: Pickup): void {
     if (p.kind === 'xp') {
       this.gainXp(p.value);
@@ -1375,6 +1449,10 @@ export class Run {
     } else if (p.kind === 'hp') {
       this.healPlayer(p.value);
       this.emit({ type: 'pickupHp' });
+    } else if (p.kind === 'credit') {
+      this.credits += p.value;
+      this.creditsCollected += p.value;
+      this.emit({ type: 'creditPickup', x: p.x, y: p.y, value: p.value });
     } else {
       // chest: evolve a maxed weapon if possible, else bonus
       this.emit({ type: 'chest', x: p.x, y: p.y });
@@ -1429,6 +1507,7 @@ export class Run {
     // stack overflow with live frames 0.5)
     if (e.isBoss && e.armorMult !== undefined) dmg *= e.armorMult;
     if (this.crunchT > 0) dmg *= CRUNCH_DMG_MULT; // crunch adrenaline
+    if (this.buffDmgT > 0) dmg *= CREDITS.dmgBuffMult; // Overclock (registry)
 
     e.hp -= dmg;
     e.hitFlash = 0.12;
@@ -1479,6 +1558,8 @@ export class Run {
         }
       }
       this.pickups.push({ kind: 'chest', x: e.x, y: e.y, value: 0, magnet: false, vx: 0, vy: 0, bossTier: e.bossTier });
+      // a resolved boss brings the Package Registry online (credits sink)
+      if (this.eventsEnabled) this.spawnRegistry();
       return;
     }
 
@@ -1498,6 +1579,17 @@ export class Run {
       this.dropXp(e.x, e.y, def.xp * (e.elite ? 10 : 1));
       if (e.elite && Math.random() < 0.6) {
         this.pickups.push({ kind: 'hp', x: e.x, y: e.y, value: 25, magnet: false, vx: 0, vy: 0 });
+      }
+      // elite credit drop (gated with events: never in balance sims)
+      if (e.elite && this.eventsEnabled) {
+        const chance = CREDITS.eliteChance + CREDITS.eliteChancePerRate * (this.metaLevels['creditRate'] ?? 0);
+        if (Math.random() < chance) {
+          this.pickups.push({
+            kind: 'credit', x: e.x + rand(-14, 14), y: e.y + rand(-14, 14),
+            value: CREDITS.eliteDrop + (this.metaLevels['creditAmount'] ?? 0),
+            magnet: false, vx: 0, vy: 0,
+          });
+        }
       }
     }
   }

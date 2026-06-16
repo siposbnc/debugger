@@ -636,6 +636,52 @@ export function chestSprite(): HTMLCanvasElement {
   });
 }
 
+export function creditSprite(): HTMLCanvasElement {
+  // in-run currency token: cyan coin with a © glyph (registry theme)
+  return bake('credit', 32, 32, (ctx) => {
+    withGlow(ctx, '#7df9ff', 8, () => {
+      ctx.fillStyle = '#15384a';
+      ctx.beginPath(); ctx.arc(0, 0, 8, 0, 7); ctx.fill();
+      ctx.strokeStyle = '#7df9ff';
+      ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.arc(0, 0, 8, 0, 7); ctx.stroke();
+    });
+    ctx.fillStyle = '#7df9ff';
+    ctx.font = 'bold 10px monospace';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('©', 0, 1);
+  });
+}
+
+export function registrySprite(): HTMLCanvasElement {
+  // Package Registry terminal: a server-rack kiosk with a cyan ⬡ screen
+  return bake('registry', 56, 64, (ctx) => {
+    withGlow(ctx, '#7df9ff', 12, () => {
+      ctx.fillStyle = '#1a2230';
+      ctx.fillRect(-13, -20, 26, 38);
+      ctx.strokeStyle = '#7df9ff';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(-13, -20, 26, 38);
+    });
+    // screen
+    ctx.fillStyle = '#0c2530';
+    ctx.fillRect(-9, -16, 18, 13);
+    ctx.fillStyle = '#7df9ff';
+    ctx.font = 'bold 11px monospace';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('⬡', 0, -9);
+    // rack slots
+    ctx.strokeStyle = 'rgba(125,249,255,0.5)';
+    ctx.lineWidth = 1.5;
+    for (let i = 0; i < 3; i++) {
+      const y = 1 + i * 5;
+      ctx.beginPath(); ctx.moveTo(-9, y); ctx.lineTo(9, y); ctx.stroke();
+    }
+  });
+}
+
 export function turretSprite(): HTMLCanvasElement {
   return bake('turret', 40, 48, (ctx) => {
     withGlow(ctx, '#ffb347', 8, () => {

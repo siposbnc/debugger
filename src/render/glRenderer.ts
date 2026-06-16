@@ -5,7 +5,7 @@ import { bladePositions, petPositions } from '../game/combat';
 import { hash2, clamp, rand } from '../core/util';
 import {
   bugSprite, bossSprite, playerSprite, gemSprite, coffeeSprite,
-  chestSprite, turretSprite, helperSprite, propSprite,
+  chestSprite, creditSprite, registrySprite, turretSprite, helperSprite, propSprite,
 } from './sprites';
 import { RendererBase } from './rendererBase';
 import { Batch, parseColor } from './gl/glx';
@@ -298,9 +298,18 @@ export class GlRenderer extends RendererBase {
       let sprite: HTMLCanvasElement;
       if (p.kind === 'xp') sprite = gemSprite(p.value >= 20 ? 2 : p.value >= 5 ? 1 : 0);
       else if (p.kind === 'hp') sprite = coffeeSprite();
+      else if (p.kind === 'credit') sprite = creditSprite();
       else sprite = chestSprite();
       const bob = Math.sin(performance.now() / 300 + p.x) * 3;
       this.spr(sprite, sx - sprite.width / 4, sy - sprite.height / 4 + bob - 6);
+    }
+
+    // Package Registry terminal (post-boss credits sink): a ground ring +
+    // kiosk sprite. Drawn under entities, like the field-event terminal.
+    if (run.registry) {
+      const rsx = px(run.registry.x, run.registry.y), rsy = py(run.registry.x, run.registry.y);
+      const spr = registrySprite();
+      this.spr(spr, rsx - spr.width / 4, rsy - spr.height / 4 - 8);
     }
 
     // depth-sorted billboards (pooled entries — the old path allocated ~400

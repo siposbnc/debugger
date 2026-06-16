@@ -216,7 +216,9 @@ export interface MetaUpgradeDef {
   baseCost: number;
   costGrowth: number; // cost = baseCost * costGrowth^level
   modsPerLevel?: StatMods;
-  special?: 'weaponSlot' | 'bossReward' | 'startBits';
+  special?: 'weaponSlot' | 'bossReward' | 'startBits'
+    | 'creditRate'    // + elite credit-drop chance (read by killEnemy)
+    | 'creditAmount'; // + credits per drop (read by drop sites)
 }
 
 /** Snapshot of a finished (or ongoing) run for objectives + Bits scoring. */

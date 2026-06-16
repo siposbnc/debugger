@@ -48,6 +48,8 @@ const HELP: [call: string, what: string][] = [
   ['dbg.speed(mult?)', 'sim speed / tick rate: 6 = turbo, 0.5 = slow-mo, 1 = normal; no args reads it'],
   ['dbg.mushi()', 'precipitate the very rare visitor now (spawns on the next sim frame)'],
   ["dbg.event(kind?, near?)", "spawn a field event now: 'nest' | 'terminal' (default random); near=true drops it in view instead of at excursion range"],
+  ['dbg.credits(n=20)', 'grant n in-run credits (currency for the package registry)'],
+  ['dbg.registry(near=true)', 'bring the package registry online now (walk in to open the buy modal)'],
   ["dbg.unlock(what='all')", "reveal progressive unlocks: 'codex' (all bug/boss entries), 'meta' (all ??? shop rows), or 'all' (persisted)"],
   ['dbg.help()', 'this text'],
 ];
@@ -201,6 +203,28 @@ function buildApi(ctx: DevContext) {
         }
       }
       return `[dbg] ${ev.kind} spawned ${near ? 'nearby' : 'at excursion range — follow the marker'} (${Math.round(ev.t)}s window)`;
+    },
+
+    credits(n?: unknown): string {
+      const run = needRun();
+      if (!run) return '';
+      const amount = n === undefined ? 20 : num(n);
+      if (amount === null) return '[dbg] usage: dbg.credits(n) — number of credits to grant';
+      run.credits += amount;
+      run.creditsCollected += amount;
+      return `[dbg] +${amount} credits (wallet: ${run.credits})`;
+    },
+
+    registry(near = true): string {
+      const run = needRun();
+      if (!run) return '';
+      if (run.registry) return '[dbg] a registry is already live';
+      // near=true drops it right on the player so the buy modal opens on the
+      // next frame; otherwise at normal post-boss trek range
+      const a = Math.random() * Math.PI * 2;
+      const d = near ? 30 : 500;
+      run.registry = { x: run.px + Math.cos(a) * d, y: run.py + Math.sin(a) * d, t: 60 };
+      return `[dbg] package registry online ${near ? '— opening now' : 'at trek range — walk in to shop'}`;
     },
 
     god(on?: boolean): string {

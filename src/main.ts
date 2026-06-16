@@ -13,7 +13,7 @@ import { createRenderer } from './render';
 import { UI } from './ui/menus';
 import { sound } from './audio/sound';
 
-type GameState = 'menu' | 'run' | 'levelup' | 'paused' | 'summary';
+type GameState = 'menu' | 'run' | 'levelup' | 'paused' | 'summary' | 'registry';
 
 const canvas = document.getElementById('game') as HTMLCanvasElement;
 const hudCanvas = document.getElementById('hud') as HTMLCanvasElement;
@@ -118,6 +118,17 @@ function openLevelUp(): void {
   });
 }
 
+/** Package Registry buy modal: the sim freezes (like level-up) while open.
+ *  TURBO bots never open it — the prompt event is simply not acted on. */
+function openRegistry(): void {
+  if (!run || state !== 'run' || TURBO) return;
+  state = 'registry';
+  ui.showRegistry(run, () => {
+    state = 'run';
+    ui.hide();
+  });
+}
+
 /** Stat key → meta upgrade id, derived from the upgrade defs themselves. */
 const STAT_TO_META: Record<string, string> = {};
 for (const m of META_UPGRADES) {
@@ -143,6 +154,9 @@ function recordEncounters(r: Run): void {
   if (r.rerollsLeft < r.stats.rerolls) meta.add('reroll');
   if (r.banishesLeft < r.stats.banishes) meta.add('banish');
   if (r.skipsLeft < r.stats.skips) meta.add('skip');
+  // credits have no card stat: the first one ever picked up reveals both
+  // credit meta rows (draft 2026-06-13)
+  if (r.creditsCollected > 0) { meta.add('creditRate'); meta.add('creditAmount'); }
   save.unlockedMeta = [...meta];
 }
 
@@ -269,6 +283,10 @@ function drainEvents(): void {
       case 'eventSpawn': sound.play('fizz'); break;
       case 'eventDone': sound.play('resolve'); break;
       case 'eventExpired': sound.play('fizz'); break;
+      case 'creditPickup': sound.play('pickup'); break;
+      case 'registrySpawn': sound.play('fizz'); break;
+      case 'registryPrompt': openRegistry(); break;
+      case 'registryGone': sound.play('fizz'); break;
       case 'mushiSpawn': sound.play('fizz'); break;
       case 'mushiCaught': sound.play('resolve'); break;
       case 'mushiGone': sound.play('fizz'); break;
