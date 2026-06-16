@@ -1112,12 +1112,17 @@ export class UI {
       .filter((x) => x.card)
       .sort((a, b) =>
         RARITY_ORDER.indexOf(b.card.rarity) - RARITY_ORDER.indexOf(a.card.rarity) || b.count - a.count);
-    const cardRows = taken.length > 0
-      ? taken.map(({ card, count }) => row(
-          `<span style="color:${RARITY_COLOR[card.rarity]}">${card.icon} ${card.name}</span>`,
-          count > 1 ? `×${count}` : '',
-        )).join('')
-      : '<div class="prow"><span class="dim">no patches applied yet</span></div>';
+    // taken cards render in the inventory as compact cardlets (the level-up
+    // card design, shrunk) with an ×N stack badge — same visual family as the
+    // weapon cards above them.
+    const cardlets = taken.length > 0
+      ? taken.map(({ card, count }) => `
+        <div class="cardlet" style="--rarity:${RARITY_COLOR[card.rarity]}" title="${card.name} — ${card.desc}">
+          <div class="icon">${card.icon}</div>
+          <div class="cl-name">${card.name}</div>
+          ${count > 1 ? `<div class="cl-stack">×${count}</div>` : ''}
+        </div>`).join('')
+      : '<div class="cl-empty">no patches applied yet</div>';
 
     // live offer odds (per card slot, includes luck and banishes)
     const odds = offerOdds(run);
@@ -1141,13 +1146,14 @@ export class UI {
       </div>
       <div class="pause-body">
         <div class="pause-inventory">
-          <h3>~/inventory</h3>
-          <div class="card-row inv-row">${weaponCards}</div>
+          <h3>~/weapons</h3>
+          <div class="inv-weapons">${weaponCards}</div>
           ${allyLine}
+          <h3 class="inv-cards-head">~/cards</h3>
+          <div class="inv-cards">${cardlets}</div>
         </div>
         <div class="pause-side">
           <div class="pause-panel"><h3>~/player</h3>${statRows}</div>
-          <div class="pause-panel"><h3>~/cards</h3>${cardRows}</div>
           <div class="pause-panel"><h3>~/card_odds</h3>${oddsRows}
             <div class="hint" style="margin-top:8px">chance per offered slot</div>
           </div>

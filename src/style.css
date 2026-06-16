@@ -487,17 +487,24 @@ html, body {
   padding: 14px 18px 16px; flex: 1 1 auto; min-width: 0;
 }
 .pause-inventory h3 { font-family: var(--font-display); font-size: 24px; color: var(--cyan); font-weight: 400; margin-bottom: 10px; }
-.pause-inventory .inv-row { margin-top: 2px; justify-content: flex-start; }
+.pause-inventory .inv-cards-head { margin-top: 16px; }
 .pause-inventory .inv-allies { margin-top: 12px; font-size: 11px; color: var(--dim); }
 .pause-inventory .dim { color: var(--dim); }
 
+/* weapons: one row — cards share the width and shrink to fit (never wrap) */
+.inv-weapons { display: flex; gap: 10px; align-items: stretch; }
 /* inventory weapons reuse the level-up card design but are static (not picks):
    no pointer/hover-lift/fly-in, and excluded from kbnav (see kbnav selector) */
-.upgrade-card.inv-weapon { cursor: default; animation: none; }
+.upgrade-card.inv-weapon {
+  flex: 1 1 0; min-width: 0; width: auto; max-width: 230px; min-height: 0;
+  cursor: default; animation: none; padding: 14px 13px;
+}
 .upgrade-card.inv-weapon:hover {
   transform: none;
   box-shadow: 0 0 18px color-mix(in srgb, var(--rarity, #888) 22%, transparent), inset 0 1px 0 rgba(255,255,255,0.05);
 }
+.upgrade-card.inv-weapon h3 { font-size: 22px; }
+.upgrade-card.inv-weapon .icon { font-size: 34px; }
 .upgrade-card.inv-weapon .tagline { color: var(--cyan); letter-spacing: 0.06em; }
 .upgrade-card.inv-weapon .evo-line {
   font-size: 11px; color: var(--dim); border-top: 1px dashed var(--line); padding-top: 8px;
@@ -508,6 +515,25 @@ html, body {
 }
 .upgrade-card.inv-weapon.empty .icon { color: var(--dim); opacity: 0.5; }
 .upgrade-card.inv-weapon.empty .empty-label { font-size: 12px; color: var(--dim); line-height: 1.6; }
+
+/* taken cards: compact cardlets with an ×N stack badge, wrapping below weapons */
+.inv-cards { display: flex; flex-wrap: wrap; gap: 8px; }
+.cardlet {
+  position: relative; width: 92px; padding: 8px 6px;
+  background: linear-gradient(165deg, var(--panel2), var(--panel));
+  border: 1px solid var(--line); border-top: 3px solid var(--rarity, var(--line));
+  display: flex; flex-direction: column; align-items: center; gap: 4px; text-align: center;
+}
+.cardlet .icon { font-size: 24px; line-height: 1; }
+.cardlet .cl-name { font-size: 10.5px; color: var(--text); line-height: 1.2; }
+.cardlet .cl-stack {
+  position: absolute; top: -7px; right: -7px;
+  background: var(--rarity, var(--cyan)); color: #0b1016;
+  font-family: var(--font-display); font-size: 13px; line-height: 1;
+  padding: 2px 5px; border-radius: 9px;
+}
+.cardlet:hover { border-color: var(--rarity, var(--cyan)); }
+.inv-cards .cl-empty { font-size: 12px; color: var(--dim); padding: 6px 0; }
 
 /* secondary row under the inventory: player stats / cards / odds, demoted */
 .pause-side .pause-panel { width: 100%; }

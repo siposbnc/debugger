@@ -29,6 +29,7 @@ await page.evaluate(() => {
   window.dbg.give('forkBomb');
   window.dbg.level('forkBomb', 3);
   window.dbg.give('zipBomb'); // isEvolution — should render the EVO tag
+  window.dbg.give('coffeeBreak', 3); // stacked card → cardlet with ×N badge
   window.dbg.stat('damageMult', 1);
   window.dbg.stat('cooldownFactor', 1);
 });
@@ -67,6 +68,15 @@ check(!!zip && zip.level.includes('EVOLVED'), `Zip Bomb card shows EVOLVED — g
 check(!!fork1 && /\/s/.test(fork1.dmg), 'damage/DPS tally present in the tagline');
 check(w1.every((w) => 'Damage' in w.stats && 'Cooldown' in w.stats), 'Damage + Cooldown stat lines on every weapon');
 check(!!fork1 && !('Slow' in fork1.stats), 'zero-valued fields omitted (no Slow line on Fork Bomb)');
+
+// taken cards render as cardlets with stack badges, inside the inventory pane
+const cardlets = await page.$$eval('.pause-inventory .inv-cards .cardlet', (els) => els.map((el) => ({
+  name: el.querySelector('.cl-name')?.textContent?.trim() ?? '',
+  stack: el.querySelector('.cl-stack')?.textContent?.trim() ?? '',
+})));
+const coffee = cardlets.find((c) => c.name.includes('Coffee'));
+check(cardlets.length >= 1, `taken cards render as cardlets in the inventory — got ${cardlets.length}`);
+check(!!coffee && coffee.stack === '×3', `stacked card shows ×N badge — got "${coffee?.stack}"`);
 
 const d1 = statNum(fork1, 'Damage');
 const c1 = statNum(fork1, 'Cooldown');
