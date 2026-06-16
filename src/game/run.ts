@@ -657,7 +657,7 @@ export class Run {
   emit(e: RunEvent): void { this.events.push(e); }
 
   recompute(): void {
-    const hpFrac = this.hp / this.stats.maxHp;
+    const oldMaxHp = this.stats.maxHp;
     const oldShieldMax = this.stats.shieldMax;
     this.stats = computeStats(this.character, this.metaLevels, this.cardMods);
     // new shield capacity arrives charged (a shield card should DO something
@@ -669,7 +669,9 @@ export class Run {
       this.stats.damageMult *= 1 + Math.floor(this.xpCollected / 100) * 0.01;
     }
     if (this.statOverrides) Object.assign(this.stats, this.statOverrides);
-    this.hp = clamp(hpFrac * this.stats.maxHp, 1, this.stats.maxHp);
+    // a max-HP increase heals by that amount — the player GAINS the health, not
+    // just a taller bar (mirrors the shield rule above); a decrease just clamps
+    this.hp = clamp(this.hp + Math.max(0, this.stats.maxHp - oldMaxHp), 1, this.stats.maxHp);
   }
 
   addWeapon(id: string): void {

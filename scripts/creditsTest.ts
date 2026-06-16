@@ -149,6 +149,13 @@ const creditPickups = (run: Run) => run.pickups.filter((p) => p.kind === 'credit
   check('applyStatBoost raises the resolved stat', run.stats.damageMult > dmg0,
     `${dmg0.toFixed(3)} → ${run.stats.damageMult.toFixed(3)}`);
   check('stat boost is NOT tracked as a card', run.takenCards.size === 0);
+
+  // a max-HP increase heals by that amount (player gains the health)
+  run.hp = 10;
+  const hp0 = run.hp;
+  run.applyStatBoost({ maxHp: 25 });
+  check('max-HP boost heals by the increase', Math.abs(run.hp - (hp0 + 25)) < 0.5,
+    `${hp0} → ${run.hp.toFixed(0)} (maxHp ${run.stats.maxHp})`);
 }
 
 // --- 4c. one visit: distinct items buyable once each, Lint Pass repeatable;
