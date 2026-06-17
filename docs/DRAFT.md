@@ -17,6 +17,30 @@ into [ROADMAP.md](../ROADMAP.md), and moves them to **Processed** below.
 
 ---
 
+## Processed → ROADMAP.md (2026-06-17, batch 25)
+
+- Endless mode "work hours" pun: base run → 8 minutes ("Normal Work Hours"), time past it = Overtime in Endless w/ richer rewards → **folded into the v0.4 P1 "Endless mode" item, reframed "Normal Work Hours & overtime"**. Flagged that the 15:00 → 8:00 change is **game-wide, not Endless-only**: it rewrites every map's `spawnPlan` (boss cadence + 12:00 finale compress toward 8:00) and invalidates the absolute-minute balance targets (min-6 crossover, 60–100s TTK) → added a watchlist note and tied it to the **single** rarity-gating + per-map-variants BALANCE.md rewrite (all three re-anchor the early game together). Overtime "more generous" = a per-minute Bits/Credits multiplier; exponential `difficulty()` overtime term keys off 8:00
+- Dev tools (spawn specific boss / remove weapon / spawn specific event / set spawn rate) → **🛠️ Dev tooling P3 (S) "More `dbg` run hooks"** — `dbg.boss(id?)`, `dbg.remove(id)`, `dbg.spawn(mult)` as a thin `devtools.ts` layer over Run/spawner; noted "spawn specific event" **already ships** as `dbg.event('nest'|'terminal')` (gains the third kind free when Containment lands). devtoolsTest extended per verb
+
+<details>
+<summary>Batch 25 — original notes (kept for reference)</summary>
+
+### Draft ideas
+
+- endless mode
+    - play on words with work hours. initial game time should be readjusted to 8 minutes instead of 15. this is called normal work hours. when the player enters Endless mode, the time after normal work hours become overtime (hints at rewards also being more generous)
+    - needs to be integrated to the endless mode roadmap item
+
+### Dev env ideas
+
+- dev tool for:
+    - spawn specific boss
+    - remove weapon
+    - spawn specific event
+    - set spawn rate
+
+</details>
+
 ## Processed → ROADMAP.md (2026-06-17, batch 24)
 
 - Bigger minimap icons (chests/events/bosses large, credits a small bump) → **v0.4 P3 (S) "Minimap: scale important contacts"** — also adds credit pickups to the minimap (not plotted today); pure `drawMinimap()` tuning
