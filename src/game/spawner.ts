@@ -53,7 +53,9 @@ export function makeEnemy(run: Run, def: EnemyDef, x: number, y: number, elite: 
   const diff = difficulty(run.time / 60);
   const scale = run.map.enemyScale ?? 1; // per-map meta-gating multiplier
   const ot = overtimeMult(run.overtimeMinutes()); // endless overtime ramp (×1 otherwise)
-  const hp = def.hp * diff.hpMult * scale * ot * (elite ? ELITE.hpMult : 1);
+  // curse taxes apply to regular bugs only — boss fights stay tier-scaled
+  // (an hp curse on bosses would shift every TTK window, not add pressure)
+  const hp = def.hp * diff.hpMult * scale * ot * run.curseMods.enemyHp * (elite ? ELITE.hpMult : 1);
   const e: Enemy = {
     def, x, y,
     hp, maxHp: hp,
@@ -66,7 +68,7 @@ export function makeEnemy(run: Run, def: EnemyDef, x: number, y: number, elite: 
     bossTier: 0, mechT: 0, mechT2: 0, burstPeriod: 0,
     phase: 'exposed', phaseT: 0, splitDone: false,
     facing: 0,
-    scaledSpeed: def.speed * diff.speedMult * (elite ? ELITE.speedMult : 1),
+    scaledSpeed: def.speed * diff.speedMult * run.curseMods.enemySpeed * (elite ? ELITE.speedMult : 1),
     scaledDamage: def.damage * diff.damageMult * scale * ot * (elite ? ELITE.damageMult : 1),
   };
   // anything hatched during overtime (Monolith breeding, stack frames) is born critical
@@ -111,7 +113,7 @@ export function updateSpawner(run: Run, dt: number): void {
 
   run.spawnTimer -= dt;
   if (run.spawnTimer > 0) return;
-  run.spawnTimer = phase.interval * diff.spawnRateMult;
+  run.spawnTimer = phase.interval * diff.spawnRateMult * run.curseMods.spawnInterval;
 
   const def = randomPhaseEnemyDef(run);
 

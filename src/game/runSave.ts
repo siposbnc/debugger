@@ -55,6 +55,10 @@ export interface SuspendedRun {
   crunchStarted?: boolean; crunchT?: number;
   // endless mode — optional: pre-endless snapshots restore as normal runs
   endless?: boolean; banked?: boolean;
+  // curses — optional: pre-curse snapshots restore uncursed
+  curses?: string[];
+  curseReverseT?: number; curseLockT?: number;
+  curseTimed?: { id: string; nextAt: number; warned: boolean }[];
   // character specials
   turretT: number; helperT: number;
   // entities
@@ -123,6 +127,9 @@ export function snapshotRun(run: Run): SuspendedRun {
     slams: run.slams.map((s) => ({ ...s })), chillT: run.chillT,
     crunchStarted: run.crunchStarted, crunchT: run.crunchT,
     endless: run.endless, banked: run.banked,
+    curses: run.curses.map((c) => c.id),
+    curseReverseT: run.curseReverseT, curseLockT: run.curseLockT,
+    curseTimed: run.curseTimed.map((t) => ({ id: t.def.id, nextAt: t.nextAt, warned: t.warned })),
     turretT: run.turretT, helperT: run.helperT,
     // a live field event is dropped wholesale (its nest with it): resuming
     // re-arms the spawn clock instead — simpler than serializing the entity ref
@@ -148,7 +155,7 @@ export function restoreRun(snap: SuspendedRun, doneObjectives: Set<string>): Run
   const character = CHARACTERS[snap.charId] ?? fail('character', snap.charId);
   const map = MAPS[snap.mapId] ?? fail('map', snap.mapId);
   const run = new Run(character, map, { ...snap.metaLevels }, [...snap.weaponPool], doneObjectives,
-    snap.endless ? { endless: true } : {});
+    { endless: snap.endless, curses: snap.curses });
 
   // cards first: applyCard() rebuilds cardMods + takenCards and recomputes stats
   for (const [id, count] of snap.takenCards) {
@@ -196,6 +203,14 @@ export function restoreRun(snap: SuspendedRun, doneObjectives: Set<string>): Run
   run.crunchT = snap.crunchT ?? 0;
   run.banked = snap.banked ?? false;
   if (run.banked) run.victory = true; // the banked workday survives suspend too
+  // timed-curse rhythm: restore each schedule by id (constructor re-armed
+  // them fresh); unknown ids were already dropped by the constructor
+  run.curseReverseT = snap.curseReverseT ?? 0;
+  run.curseLockT = snap.curseLockT ?? 0;
+  for (const t of snap.curseTimed ?? []) {
+    const live = run.curseTimed.find((x) => x.def.id === t.id);
+    if (live) { live.nextAt = t.nextAt; live.warned = t.warned; }
+  }
   run.turretT = snap.turretT; run.helperT = snap.helperT;
 
   run.enemies = snap.enemies.map(restoreEnemy);

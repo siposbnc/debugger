@@ -2,6 +2,7 @@ import type { SaveData } from '../save/save';
 import { persistSave, wipeSave } from '../save/save';
 import { CHARACTER_LIST, CHARACTERS } from '../data/characters';
 import { MAP_LIST, MAPS } from '../data/maps';
+import { CURSES, CURSE_LIST } from '../data/curses';
 import { META_UPGRADES, metaCost } from '../data/meta';
 import { SHOP_WEAPONS, WEAPONS } from '../data/weapons';
 import { ENEMIES } from '../data/enemies';
@@ -464,10 +465,25 @@ export class UI {
           ${endlessRow}
         </div>`;
     }).join('');
+    // Curses: pre-run difficulty toggles, revealed after the first victory
+    // (opt-in harder content shouldn't clutter a brand-new player's screen).
+    // Active selection persists in the save; the pay bonus stacks.
+    const curseBonus = this.save.curses.reduce((a, id) => a + (CURSES[id]?.bitsBonus ?? 0), 0);
+    const curseBlock = this.save.lifetime.victories > 0 ? `
+      <div class="screen-heading" style="margin-top:24px">⚠ curses — opt-in pain, extra pay${
+        curseBonus > 0 ? ` <span style="color:#ffc12e">(+${Math.round(curseBonus * 100)}% ⌬)</span>` : ''}</div>
+      <div style="display:flex;flex-wrap:wrap;gap:8px;justify-content:center;max-width:900px;margin:0 auto">
+        ${CURSE_LIST.map((c) => `
+          <button class="btn small ${this.save.curses.includes(c.id) ? 'primary' : ''}"
+                  data-curse="${c.id}" title="${c.desc} ${c.flavor}">
+            ${c.icon} ${c.name} · ${c.desc.replace(/\.$/, '')} · +${Math.round(c.bitsBonus * 100)}%⌬
+          </button>`).join('')}
+      </div>` : '';
     const s = this.screen(`
       <div class="screen-heading">select deployment target</div>
       <div class="bits-display">⌬ ${this.save.bits} bits</div>
       <div class="grid">${cards}</div>
+      ${curseBlock}
       <button class="btn" data-act="back">BACK</button>
     `, () => this.showMainMenu());
     s.addEventListener('click', (e) => {
@@ -475,6 +491,17 @@ export class UI {
       if (t.closest('button')?.dataset.act === 'back') { this.showMainMenu(); return; }
       if (t.closest('[data-mode-toggle]')) {
         this.save.endlessMode = !this.save.endlessMode;
+        this.persist();
+        sound.play('click');
+        this.showMapSelect();
+        return;
+      }
+      const curseBtn = t.closest<HTMLElement>('[data-curse]');
+      if (curseBtn) {
+        const id = curseBtn.dataset.curse!;
+        this.save.curses = this.save.curses.includes(id)
+          ? this.save.curses.filter((c) => c !== id)
+          : [...this.save.curses, id];
         this.persist();
         sound.play('click');
         this.showMapSelect();

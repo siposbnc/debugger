@@ -68,7 +68,8 @@ function startRun(charId: string, mapId: string): void {
   // Endless is armed by the map-select toggle but gated on the map being
   // cleared at least once — the toggle can't leak onto an unearned map.
   const endless = save.endlessMode && (save.mapVictories[map.id] ?? 0) > 0;
-  run = new Run(character, map, save.metaLevels, weaponPool, new Set(save.completedObjectives), { endless });
+  run = new Run(character, map, save.metaLevels, weaponPool, new Set(save.completedObjectives),
+    { endless, curses: save.curses });
   if (TURBO) run.invincible = true;
   renderer.camX = 0; renderer.camY = 0;
   ui.hide();
@@ -327,6 +328,8 @@ function drainEvents(): void {
       case 'objective': sound.play('objective'); break;
       case 'victory': sound.play('victory'); break;
       case 'workday': sound.play('victory'); break; // endless 8:00 bank — same fanfare, run continues
+      case 'curseWarn': sound.play('bossWarn'); break;
+      case 'curseStart': sound.play('vent'); break;
       case 'death': sound.play('death'); break;
       default: break;
     }

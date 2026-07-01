@@ -1,5 +1,6 @@
-import type { BossDef, CharacterDef, EnemyDef, MapDef, RunStatsView, StatMods, UpgradeCard, WeaponDef } from '../data/types';
+import type { BossDef, CharacterDef, CurseDef, EnemyDef, MapDef, RunStatsView, StatMods, UpgradeCard, WeaponDef } from '../data/types';
 import { WEAPONS } from '../data/weapons';
+import { CURSES } from '../data/curses';
 import { RUN_DURATION, WORKDAY_DURATION } from '../data/maps';
 import { OBJECTIVES, OBJECTIVE_BITS } from '../data/objectives';
 import { BOSS_BITS } from '../data/bosses';
@@ -269,6 +270,8 @@ export type RunEvent =
   | { type: 'objective'; name: string }
   | { type: 'victory' }
   | { type: 'workday' }   // endless: 8:00 boundary crossed — payout banked, overtime begins
+  | { type: 'curseWarn'; name: string; desc: string }                             // timed curse windup
+  | { type: 'curseStart'; name: string; kind: 'reverse' | 'weaponLock'; duration: number }
   | { type: 'death' };
 
 export interface RunResults {
@@ -331,6 +334,14 @@ export class Run {
   // exponential overtimeMult, rewards ramp. Opt-in per map once cleared.
   endless = false;
   banked = false;
+  // Curses (data/curses.ts): pre-run difficulty toggles. Stat taxes are
+  // precomputed into curseMods (all ×1 / +0 with no curses — the baseline is
+  // untouched); timed curses run a warn → active rhythm in updateCurses().
+  curses: CurseDef[] = [];
+  curseMods = { enemyHp: 1, enemySpeed: 1, spawnInterval: 1, pickupRadius: 1, heal: 1, bitsBonus: 0 };
+  curseTimed: { def: CurseDef; nextAt: number; warned: boolean }[] = [];
+  curseReverseT = 0; // seconds of reversed movement left (Malfunction)
+  curseLockT = 0;    // seconds of weapon lock left (Kernel Lock)
 
   // player
   px = 0; py = 0;
@@ -444,11 +455,25 @@ export class Run {
      *  events) — hazards stay. Balance-sim policy (user 2026-06-12): the §5/§1
      *  instruments always run on terrain-free maps so terrain content never
      *  invalidates win-rate baselines; terrain is validated by its own tests. */
-    private opts: { noTerrain?: boolean; endless?: boolean } = {},
+    private opts: { noTerrain?: boolean; endless?: boolean; curses?: string[] } = {},
   ) {
     this.eventsEnabled = !opts.noTerrain;
     this.endless = !!opts.endless;
+    for (const id of opts.curses ?? []) {
+      const c = CURSES[id];
+      if (!c) continue; // unknown id (content drift in the save): skip, don't crash
+      this.curses.push(c);
+      this.curseMods.enemyHp *= c.enemyHpMult ?? 1;
+      this.curseMods.enemySpeed *= c.enemySpeedMult ?? 1;
+      this.curseMods.spawnInterval *= c.spawnIntervalMult ?? 1;
+      this.curseMods.pickupRadius *= c.pickupRadiusMult ?? 1;
+      this.curseMods.heal *= c.healMult ?? 1;
+      this.curseMods.bitsBonus += c.bitsBonus;
+      if (c.timed) this.curseTimed.push({ def: c, nextAt: c.timed.period, warned: false });
+    }
     this.stats = computeStats(character, metaLevels, this.cardMods);
+    // curse stat taxes apply from frame 0 (recompute() re-applies on changes)
+    if (this.curseMods.pickupRadius !== 1) this.stats.pickupRadius *= this.curseMods.pickupRadius;
     this.hp = this.stats.maxHp;
     this.shield = this.stats.shieldMax;
     this.rerollsLeft = this.stats.rerolls;
@@ -684,6 +709,8 @@ export class Run {
     if (this.character.special === 'xpPower') {
       this.stats.damageMult *= 1 + Math.floor(this.xpCollected / 100) * 0.01;
     }
+    // curse stat taxes (×1 with no curses); dbg statOverrides still win below
+    if (this.curseMods.pickupRadius !== 1) this.stats.pickupRadius *= this.curseMods.pickupRadius;
     if (this.statOverrides) Object.assign(this.stats, this.statOverrides);
     // a max-HP increase heals by that amount — the player GAINS the health, not
     // just a taller bar (mirrors the shield rule above); a decrease just clamps
@@ -791,7 +818,8 @@ export class Run {
   }
 
   healPlayer(amount: number): void {
-    const healed = Math.min(amount, this.stats.maxHp - this.hp);
+    // Stale Coffee curse taxes every heal source (regen, coffee, registry)
+    const healed = Math.min(amount * this.curseMods.heal, this.stats.maxHp - this.hp);
     if (healed <= 0 || this.over) return; // full HP / dead: no heal, no feedback
     this.hp += healed;
     this.healAccum += healed;
@@ -870,7 +898,10 @@ export class Run {
     updateSpawner(this, dt); // crunch freeze handled inside (recycling must continue)
     updateBossSchedule(this, dt);
     this.updateEnemies(dt);
-    updateWeapons(this, dt);
+    this.updateCurses(dt);
+    // Kernel Lock: weapons hang while the curse holds the interrupt lock —
+    // no new attacks, timers frozen (live projectiles/zones keep flying)
+    if (this.curseLockT <= 0) updateWeapons(this, dt);
     this.updateProjectiles(dt);
     this.updateWalls(dt);
     this.updateEnemyShots(dt);
@@ -903,12 +934,36 @@ export class Run {
     }
   }
 
+  /** Timed-curse rhythm: warn `warn` seconds ahead (banner windup), then hold
+   *  the debuff for `duration`, re-arming every `period`. Telegraphed by
+   *  design — a timed curse must never read as random death. */
+  private updateCurses(dt: number): void {
+    if (this.curseReverseT > 0) this.curseReverseT -= dt;
+    if (this.curseLockT > 0) this.curseLockT -= dt;
+    for (const t of this.curseTimed) {
+      const spec = t.def.timed!;
+      if (!t.warned && this.time >= t.nextAt - spec.warn) {
+        t.warned = true;
+        this.emit({ type: 'curseWarn', name: t.def.name, desc: t.def.desc });
+      }
+      if (this.time >= t.nextAt) {
+        if (spec.kind === 'reverse') this.curseReverseT = spec.duration;
+        else this.curseLockT = spec.duration;
+        this.emit({ type: 'curseStart', name: t.def.name, kind: spec.kind, duration: spec.duration });
+        t.nextAt += spec.period;
+        t.warned = false;
+      }
+    }
+  }
+
   private updatePlayer(dt: number): void {
     const mv = moveVector();
     // Rotate screen-space input 45° into world space so keys match the screen.
     const inv = 1 / Math.SQRT2;
     let wx = (mv.x + mv.y) * inv;
     let wy = (mv.y - mv.x) * inv;
+    // Malfunction curse: the input handler swaps sign
+    if (this.curseReverseT > 0) { wx = -wx; wy = -wy; }
 
     // slow factors: deadlock scarab aura + marsh pools + latency fields + chill
     this.playerSlow = 1;
@@ -1688,6 +1743,14 @@ export class Run {
     if (otMin > 0) {
       const core = breakdown.reduce((a, b) => a + b.value, 0);
       breakdown.push({ label: `Overtime worked (${Math.floor(otMin)}m)`, value: core * OVERTIME_BITS_PER_MIN * otMin });
+    }
+    // curse pay: the risk premium on everything earned (incl. overtime)
+    if (this.curseMods.bitsBonus > 0) {
+      const core = breakdown.reduce((a, b) => a + b.value, 0);
+      breakdown.push({
+        label: `Curses endured ×${this.curses.length} (+${Math.round(this.curseMods.bitsBonus * 100)}%)`,
+        value: core * this.curseMods.bitsBonus,
+      });
     }
     const base = breakdown.reduce((a, b) => a + b.value, 0);
     const bits = Math.floor(base * this.map.bitsMult);

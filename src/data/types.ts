@@ -131,6 +131,30 @@ export interface EnemyDef {
   variantOf?: string;
 }
 
+/** Curses (v0.4): pre-run difficulty toggles, each adding a Bits pay bonus;
+ *  stacking allowed. Two shapes: flat stat taxes (any subset of the mult
+ *  fields) and timed debuffs (a warn → active rhythm handled in run.ts —
+ *  telegraphed so they read as a mechanic, not random death). */
+export interface CurseDef {
+  id: string;
+  name: string;
+  icon: string;
+  desc: string;    // literal mechanical text
+  flavor: string;
+  /** additive Bits pay bonus (0.25 = +25%); active curses' bonuses sum */
+  bitsBonus: number;
+  // stat taxes (all optional multipliers, 1 = no effect)
+  enemyHpMult?: number;
+  enemySpeedMult?: number;
+  /** multiplies the spawn interval — <1 = more spawns */
+  spawnIntervalMult?: number;
+  pickupRadiusMult?: number;
+  healMult?: number;
+  /** timed debuff: fires every `period` seconds for `duration` seconds,
+   *  announced `warn` seconds ahead (banner + windup) */
+  timed?: { kind: 'reverse' | 'weaponLock'; period: number; duration: number; warn: number };
+}
+
 export type BossMechanic =
   | 'split' | 'pools' | 'burst' | 'summon' | 'phase'
   | 'teleport'   // race condition: blink + afterimage races

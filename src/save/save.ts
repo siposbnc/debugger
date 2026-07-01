@@ -52,6 +52,9 @@ export interface SaveData {
   /** Endless mode toggle (map select). Only effective on maps already cleared
    *  — startRun gates on mapVictories, so it can never leak into a locked map. */
   endlessMode: boolean;
+  /** Active curse ids (map-select toggles, persisted). Revealed after the
+   *  first victory; unknown ids (content drift) are skipped at run start. */
+  curses: string[];
   /** Best endless survival time (seconds) per map id — the "longest shift"
    *  leaderboard stat (endless runs always end: overtime ramps exponentially). */
   endlessBest: Record<string, number>;
@@ -106,6 +109,7 @@ function defaults(): SaveData {
     mapVictories: {},
     endlessMode: false,
     endlessBest: {},
+    curses: [],
     lastSeenVersion: '',
     suspendedRun: null,
   };

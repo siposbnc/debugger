@@ -410,6 +410,14 @@ export abstract class RendererBase {
         this.banner('NORMAL WORK HOURS COMPLETE', 'payout banked — overtime: rewards and risk now rising', '#ffb347', 5);
         this.flash = 0.5;
         break;
+      case 'curseWarn':
+        this.banner(`⚠ ${ev.name.toUpperCase()} IMMINENT`, ev.desc, '#ffc12e', 2.5);
+        break;
+      case 'curseStart':
+        this.banner(ev.name.toUpperCase(),
+          ev.kind === 'reverse' ? `movement reversed — ${ev.duration}s` : `weapons locked — ${ev.duration}s`,
+          '#ff5e5e', 3);
+        break;
       default:
         break;
     }
@@ -932,6 +940,25 @@ export abstract class RendererBase {
       ctx.fillStyle = '#ffb347';
       ctx.font = '17px VT323, monospace';
       ctx.fillText(`overtime ×${run.overtimeRewardMult().toFixed(1)} pay`, pad, nextY);
+      nextY += 22;
+    }
+
+    // curses: standing count + live timed-debuff countdowns (left stack too)
+    if (run.curses.length > 0) {
+      ctx.font = '17px VT323, monospace';
+      ctx.fillStyle = 'rgba(255, 193, 46, 0.8)';
+      ctx.fillText(`⚠ ${run.curses.length} curse${run.curses.length > 1 ? 's' : ''} +${Math.round(run.curseMods.bitsBonus * 100)}%⌬`, pad, nextY);
+      nextY += 22;
+      const blink = Math.sin(this.t * 8) > 0;
+      if (run.curseReverseT > 0) {
+        ctx.fillStyle = blink ? '#ffd2d2' : '#ff5e5e';
+        ctx.fillText(`🔀 REVERSED ${run.curseReverseT.toFixed(1)}s`, pad, nextY);
+        nextY += 22;
+      }
+      if (run.curseLockT > 0) {
+        ctx.fillStyle = blink ? '#ffd2d2' : '#ff5e5e';
+        ctx.fillText(`🔒 WEAPONS LOCKED ${run.curseLockT.toFixed(1)}s`, pad, nextY);
+      }
     }
 
     // alive boss bar (top-center)
