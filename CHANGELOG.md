@@ -8,6 +8,36 @@ not as a copied task list. Dropped or deferred items are noted at the end of eac
 
 ---
 
+## v0.4.39 — Modes & Replayability (2026-07-02)
+
+Reasons to keep coming back: an Endless mode with banked victories and collapsing overtime,
+stackable curses that pay for their pain, a distinct bug roster on every map, and an in-run
+economy (events → Credits → Package Registry) that finally makes moving around the map pay.
+
+### Modes
+- **Endless mode — "Normal Work Hours & overtime"**: unlocked per map by clearing it once (toggle on its map-select card). The workday ends at **8:00** — the victory payout banks immediately (an overtime death never forfeits it) — and past it is **Overtime**: bosses reshuffle from the map pool with the unique finale joining at weight 2, enemies and bosses gain an exponential ×1.07/min term so every run has a definite end, and pay ramps +10%/min (Bits "Overtime worked" line + richer credit drops). Per-map **"longest shift"** best times; amber overtime clock; suspend/resume-safe. Normal runs are untouched (still 15:00 → victory)
+- **Curses**: seven pre-run toggles (revealed after the first victory), each adding a stacking Bits pay bonus (+15…40%, all seven = +180%) — stat taxes **Technical Debt** (+35% enemy hp), **Scope Creep** (+25% spawn rate), **Move Fast** (+20% enemy speed), **Deprecated Drivers** (−25% pickup radius), **Stale Coffee** (healing halved), plus two timed debuffs on a telegraphed warn→active rhythm: **Malfunction** (movement reverses 4s every ~40s) and **Kernel Lock** (weapons freeze 15s every ~90s). Taxes hit regular bugs only — boss fights stay tier-scaled
+
+### Map identity — per-map enemy rosters
+- Every map now fields its **own roster** via the new variant system (`variantOf`: behavior inherited, sprite/palette/stats overridden — most variants are bespoke map-native sprites, not reskins): **Memory Marsh** 7 variants (drain/slow/tank; droplet, mosquito, slug, forked spider, mud-dome sprites), **Production Server** 6 (crash/explosion/lock/ranged; bolt, drone, canister, padlock, camera-sentry sprites), **Cyber Glacier** 7 (tank/chill/shield; shard, moth, ghost, snowflake-crystal, ice-floe sprites) — 20 new bugs, codex-tagged "VARIANT · base"
+- Two sim-caught tuning laws now encoded in the data comments: variant stats stay at BASE (bulk eats the boss-window DPS budget), and cluster spawners stay out of late waves (a ×6-per-roll spawner through the finale halved the maxed-meta win rate)
+- **Harder by design** (standing ruling): rosters certified against tighter §5 bands — marsh 1.6%/50%, production 6.25%/39%, glacier 3.1%/34.4% (zero/maxed-meta), greenfield 67.2% maxed
+
+### In-run events & economy
+- **Field events** on a ~90s cadence, radar-marked, 45s despawn: **Bug Nest** (stationary hatcher to destroy) and **Hung Terminal** (stand in the ring to reboot) — bounty chest + Credits
+- **Credits**: in-run currency from events and elites, spent at the post-boss **Package Registry** on one-run consumables (Hotfix Patch heal, Garbage Collect magnet sweep, Spare CI Run / Emergency Veto, Overclock / Hot Reload buffs, repeatable Lint Pass stat picks); unspent credits die with the run. Two meta upgrades (Premium API Plan, Bulk Billing) reveal on the first credit
+- **Minimap**: top-right fixed-range radar through the camera's iso projection — horde dots, gold elites/chests, rim-clamped boss squares, event glyphs (settings toggle, default on)
+
+### Progression & shop
+- **One purchase surface**: the shop (renamed from UPGRADES) sells stat upgrades, weapon licenses AND characters in tabs with per-tab NEW badges; select screens keep locked silhouettes but no longer sell
+- **Gated map discovery**: the next map is a silhouetted "???" until the previous one is first cleared (new `mapVictories` per-map win counter — also the Endless unlock)
+- **Codex arsenal tab**: every weapon with desc/flavor, evolution chain, key level highlights and lifetime damage; reveals on first wield
+- **Pause inventory redesign**: the arsenal is the pause screen's anchor — large weapon cards with pips, resolved stats and evolution state; run stats/cards demoted to a secondary row
+
+### Deferred / dropped
+- P2s rolled into v0.5: Linus meta-scaling tune, The Printer (mimic boss), Bug modifiers (ARPG affixes — the curse `curseLevel` amplification hook is ready), daily/weekly seeded challenges, Projectiles+CDR meta upgrades, codex cards tab, rarity tiers unlocked by objectives (owns the BALANCE.md bands-down rewrite)
+- P3s to Backlog: achievements → palette swaps, meta tree UI, minimap contact scaling, Containment event, coffee %-heal
+
 ## v0.3.50 — Content Expansion (2026-06-12)
 
 More reasons to do one more run: two new maps with real terrain, per-map boss rosters
