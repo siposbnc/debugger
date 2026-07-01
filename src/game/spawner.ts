@@ -1,4 +1,4 @@
-import { ENEMIES, ELITE, MAX_ENEMIES, difficulty } from '../data/enemies';
+import { ENEMIES, ELITE, MAX_ENEMIES, difficulty, overtimeMult } from '../data/enemies';
 import type { EnemyDef, SpawnPhase } from '../data/types';
 import { rand, weightedIndex } from '../core/util';
 import type { Enemy, Run } from './run';
@@ -52,7 +52,8 @@ export function makeCritical(e: Enemy): void {
 export function makeEnemy(run: Run, def: EnemyDef, x: number, y: number, elite: boolean): Enemy {
   const diff = difficulty(run.time / 60);
   const scale = run.map.enemyScale ?? 1; // per-map meta-gating multiplier
-  const hp = def.hp * diff.hpMult * scale * (elite ? ELITE.hpMult : 1);
+  const ot = overtimeMult(run.overtimeMinutes()); // endless overtime ramp (×1 otherwise)
+  const hp = def.hp * diff.hpMult * scale * ot * (elite ? ELITE.hpMult : 1);
   const e: Enemy = {
     def, x, y,
     hp, maxHp: hp,
@@ -66,7 +67,7 @@ export function makeEnemy(run: Run, def: EnemyDef, x: number, y: number, elite: 
     phase: 'exposed', phaseT: 0, splitDone: false,
     facing: 0,
     scaledSpeed: def.speed * diff.speedMult * (elite ? ELITE.speedMult : 1),
-    scaledDamage: def.damage * diff.damageMult * scale * (elite ? ELITE.damageMult : 1),
+    scaledDamage: def.damage * diff.damageMult * scale * ot * (elite ? ELITE.damageMult : 1),
   };
   // anything hatched during overtime (Monolith breeding, stack frames) is born critical
   if (run.crunchStarted) makeCritical(e);

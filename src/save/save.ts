@@ -46,9 +46,15 @@ export interface SaveData {
    *  specials derive from objectives (boss1 → bossReward, evolve → weaponSlot). */
   unlockedMeta: string[];
   /** Victories per map id. Gates map discovery (the next map's card stays a
-   *  hidden "???" until the previous map is first cleared) and later feeds
-   *  per-map Endless unlocks + best-time stats. */
+   *  hidden "???" until the previous map is first cleared) and feeds the
+   *  per-map Endless unlock (a map's Endless toggle appears once cleared). */
   mapVictories: Record<string, number>;
+  /** Endless mode toggle (map select). Only effective on maps already cleared
+   *  — startRun gates on mapVictories, so it can never leak into a locked map. */
+  endlessMode: boolean;
+  /** Best endless survival time (seconds) per map id — the "longest shift"
+   *  leaderboard stat (endless runs always end: overtime ramps exponentially). */
+  endlessBest: Record<string, number>;
   /** Newest patch-notes entry version the player has opened ('' = never) —
    *  drives the "What's new" menu badge. */
   lastSeenVersion: string;
@@ -98,6 +104,8 @@ function defaults(): SaveData {
     encountered: [],
     unlockedMeta: [],
     mapVictories: {},
+    endlessMode: false,
+    endlessBest: {},
     lastSeenVersion: '',
     suspendedRun: null,
   };

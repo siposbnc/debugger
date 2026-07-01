@@ -69,7 +69,8 @@ function resolve(run: Run, ev: FieldEvent): void {
   run.pickups.push({ kind: 'chest', x: ev.x, y: ev.y, value: 0, magnet: false, vx: 0, vy: 0 });
   run.pickups.push({
     kind: 'credit', x: ev.x + rand(-20, 20), y: ev.y + rand(-20, 20),
-    value: CREDITS.eventDrop + (run.metaLevels['creditAmount'] ?? 0),
+    // endless overtime pays richer drops (×1 in normal runs)
+    value: Math.round((CREDITS.eventDrop + (run.metaLevels['creditAmount'] ?? 0)) * run.overtimeRewardMult()),
     magnet: false, vx: 0, vy: 0,
   });
   run.fieldEvent = null;

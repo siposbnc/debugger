@@ -1,6 +1,6 @@
 import type { BossDef, CharacterDef, EnemyDef, MapDef, RunStatsView, StatMods, UpgradeCard, WeaponDef } from '../data/types';
 import { WEAPONS } from '../data/weapons';
-import { RUN_DURATION } from '../data/maps';
+import { RUN_DURATION, WORKDAY_DURATION } from '../data/maps';
 import { OBJECTIVES, OBJECTIVE_BITS } from '../data/objectives';
 import { BOSS_BITS } from '../data/bosses';
 import { SpatialHash } from '../core/spatial';
@@ -268,6 +268,7 @@ export type RunEvent =
   | { type: 'bonusCard'; cardName: string }
   | { type: 'objective'; name: string }
   | { type: 'victory' }
+  | { type: 'workday' }   // endless: 8:00 boundary crossed — payout banked, overtime begins
   | { type: 'death' };
 
 export interface RunResults {
@@ -277,6 +278,8 @@ export interface RunResults {
   bossKills: number;
   victory: boolean;
   releaseFailed: boolean; // defeat flavor: blockers outlived crunch time (not a death)
+  endless: boolean;
+  overtimeSec: number;    // endless: seconds survived past the 8:00 workday (0 = none)
   newObjectives: string[];
   bits: number;
   bitsBreakdown: { label: string; value: number }[];
@@ -297,6 +300,11 @@ export const CRUNCH_DURATION = 30;
 export const CRUNCH_DMG_MULT = 1.5;
 export const CRUNCH_SPEED_MULT = 1.15;
 
+/** Endless overtime pay: the reward ramp per overtime minute — feeds both the
+ *  Bits "overtime worked" summary line and live credit-drop scaling. Pays for
+ *  the exponential risk ramp (overtimeMult in data/enemies.ts). */
+export const OVERTIME_BITS_PER_MIN = 0.1;
+
 // Shield: a recharging layer over HP (0 unless built). Absorbs damage first;
 // absorbed hits don't count as "real" damage (future no-hit objectives).
 // Design ruling: Halo-style recharge — the identity vs HP is "comes back if
@@ -316,6 +324,13 @@ export class Run {
   crunchStarted = false;
   crunchT = 0;          // remaining overtime; > 0 while crunching
   releaseFailed = false;
+  // Endless mode ("Normal Work Hours & overtime"): no 15:00 ship date. The
+  // workday ends at WORKDAY_DURATION (8:00) — the victory payout banks there
+  // (`banked`; an overtime death never forfeits it) and the clock keeps
+  // running into Overtime: bosses reshuffle (bossLogic), enemies gain the
+  // exponential overtimeMult, rewards ramp. Opt-in per map once cleared.
+  endless = false;
+  banked = false;
 
   // player
   px = 0; py = 0;
@@ -429,9 +444,10 @@ export class Run {
      *  events) — hazards stay. Balance-sim policy (user 2026-06-12): the §5/§1
      *  instruments always run on terrain-free maps so terrain content never
      *  invalidates win-rate baselines; terrain is validated by its own tests. */
-    private opts: { noTerrain?: boolean } = {},
+    private opts: { noTerrain?: boolean; endless?: boolean } = {},
   ) {
     this.eventsEnabled = !opts.noTerrain;
+    this.endless = !!opts.endless;
     this.stats = computeStats(character, metaLevels, this.cardMods);
     this.hp = this.stats.maxHp;
     this.shield = this.stats.shieldMax;
@@ -757,9 +773,21 @@ export class Run {
     if (this.hp <= 0) {
       this.hp = 0;
       this.over = true;
-      this.victory = false;
+      // endless: a banked workday survives the overtime death (normal runs
+      // have banked=false, so death still voids the victory flag as before)
+      this.victory = this.banked;
       this.emit({ type: 'death' });
     }
+  }
+
+  /** Minutes past the endless workday boundary (0 in normal runs / pre-8:00). */
+  overtimeMinutes(): number {
+    return this.endless ? Math.max(0, (this.time - WORKDAY_DURATION) / 60) : 0;
+  }
+
+  /** Overtime pays better: scales credit drops and the Bits overtime line. */
+  overtimeRewardMult(): number {
+    return 1 + OVERTIME_BITS_PER_MIN * this.overtimeMinutes();
   }
 
   healPlayer(amount: number): void {
@@ -795,31 +823,43 @@ export class Run {
     if (this.over) return;
     this.time += dt;
 
-    if (this.time >= RUN_DURATION) {
-      const blockers = this.enemies.some((e) => e.isBoss);
-      if (!this.crunchStarted) {
-        if (!blockers) { this.finishVictory(); return; }
-        // ship date reached with bosses alive: crunch time. Feature freeze —
-        // no new bugs spawn — but the live backlog doesn't vanish: every bug
-        // on the field escalates to critical severity. Shipping late hurts.
-        this.crunchStarted = true;
-        this.crunchT = CRUNCH_DURATION;
-        for (const e of this.enemies) {
-          if (!(e.def as EnemyDef).stationary) makeCritical(e);
-        }
-        this.emit({ type: 'crunch' });
-      } else {
-        this.crunchT -= dt;
-        if (!blockers) { this.finishVictory(); return; }
-        if (this.crunchT <= 0) {
-          // blockers outlived the deadline — the release slips
-          this.over = true;
-          this.victory = false;
-          this.releaseFailed = true;
-          this.emit({ type: 'death' });
-          return;
+    if (!this.endless) {
+      if (this.time >= RUN_DURATION) {
+        const blockers = this.enemies.some((e) => e.isBoss);
+        if (!this.crunchStarted) {
+          if (!blockers) { this.finishVictory(); return; }
+          // ship date reached with bosses alive: crunch time. Feature freeze —
+          // no new bugs spawn — but the live backlog doesn't vanish: every bug
+          // on the field escalates to critical severity. Shipping late hurts.
+          this.crunchStarted = true;
+          this.crunchT = CRUNCH_DURATION;
+          for (const e of this.enemies) {
+            if (!(e.def as EnemyDef).stationary) makeCritical(e);
+          }
+          this.emit({ type: 'crunch' });
+        } else {
+          this.crunchT -= dt;
+          if (!blockers) { this.finishVictory(); return; }
+          if (this.crunchT <= 0) {
+            // blockers outlived the deadline — the release slips
+            this.over = true;
+            this.victory = false;
+            this.releaseFailed = true;
+            this.emit({ type: 'death' });
+            return;
+          }
         }
       }
+    } else if (!this.banked && this.time >= WORKDAY_DURATION) {
+      // Endless: the workday ships at 8:00 — the victory payout banks NOW, so
+      // a later overtime death can't forfeit it (nobody would opt into
+      // overtime twice if it could cost them the win). No crunch, no ship
+      // date: the clock just keeps running, and Overtime scaling takes over
+      // (spawner/bossLogic read overtimeMinutes()).
+      this.banked = true;
+      this.victory = true;
+      this.checkObjectives();
+      this.emit({ type: 'workday' });
     }
 
     this.updatePlayer(dt);
@@ -1610,7 +1650,8 @@ export class Run {
         if (Math.random() < chance) {
           this.pickups.push({
             kind: 'credit', x: e.x + rand(-14, 14), y: e.y + rand(-14, 14),
-            value: CREDITS.eliteDrop + (this.metaLevels['creditAmount'] ?? 0),
+            // endless overtime pays richer drops (×1 in normal runs)
+            value: Math.round((CREDITS.eliteDrop + (this.metaLevels['creditAmount'] ?? 0)) * this.overtimeRewardMult()),
             magnet: false, vx: 0, vy: 0,
           });
         }
@@ -1641,6 +1682,13 @@ export class Run {
       { label: 'Objectives completed', value: this.objectivesThisRun.length * OBJECTIVE_BITS },
     ];
     if (this.mushiCaught) breakdown.push({ label: 'Field sample resolved', value: MUSHI_BITS });
+    // endless overtime pay: a ramping bonus on everything earned — the label
+    // shows the pun doing its job ("overtime worked")
+    const otMin = this.overtimeMinutes();
+    if (otMin > 0) {
+      const core = breakdown.reduce((a, b) => a + b.value, 0);
+      breakdown.push({ label: `Overtime worked (${Math.floor(otMin)}m)`, value: core * OVERTIME_BITS_PER_MIN * otMin });
+    }
     const base = breakdown.reduce((a, b) => a + b.value, 0);
     const bits = Math.floor(base * this.map.bitsMult);
     return {
@@ -1650,6 +1698,8 @@ export class Run {
       bossKills: this.bossKills,
       victory: this.victory,
       releaseFailed: this.releaseFailed,
+      endless: this.endless,
+      overtimeSec: this.endless ? Math.max(0, this.time - WORKDAY_DURATION) : 0,
       newObjectives: [...this.objectivesThisRun],
       bits,
       bitsBreakdown: breakdown.map((b) => ({ label: b.label, value: Math.floor(b.value) })),

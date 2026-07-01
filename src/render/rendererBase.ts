@@ -4,6 +4,7 @@ import { CREDITS } from '../data/registry';
 
 const REGISTRY_RADIUS = CREDITS.registryRadius;
 import type { BossDef, MapDef } from '../data/types';
+import { WORKDAY_DURATION } from '../data/maps';
 import { clamp, formatTime, lerp, rand } from '../core/util';
 import { touchStick } from '../core/input';
 
@@ -403,6 +404,11 @@ export abstract class RendererBase {
         break;
       case 'victory':
         this.flash = 0.6;
+        break;
+      case 'workday':
+        // endless: the 8:00 boundary — payout banked, overtime begins
+        this.banner('NORMAL WORK HOURS COMPLETE', 'payout banked — overtime: rewards and risk now rising', '#ffb347', 5);
+        this.flash = 0.5;
         break;
       default:
         break;
@@ -826,9 +832,10 @@ export abstract class RendererBase {
     ctx.textAlign = 'center';
     ctx.fillText(`LV ${run.level}`, this.w / 2, 12);
 
-    // timer
+    // timer (endless overtime turns the clock amber — you're off the clock)
+    const overtime = run.endless && run.time >= WORKDAY_DURATION;
     ctx.font = '38px VT323, monospace';
-    ctx.fillStyle = '#e8f4ff';
+    ctx.fillStyle = overtime ? '#ffb347' : '#e8f4ff';
     ctx.strokeStyle = 'rgba(0,0,0,0.7)';
     ctx.lineWidth = 4;
     ctx.strokeText(formatTime(run.time), this.w / 2, 52);
@@ -915,6 +922,16 @@ export abstract class RendererBase {
       ctx.fillStyle = tToBoss < 10 ? '#ff5e5e' : 'rgba(232, 244, 255, 0.6)';
       ctx.font = '17px VT323, monospace';
       ctx.fillText(`next boss ${formatTime(Math.max(0, tToBoss))}`, pad, nextY);
+      nextY += 22;
+    }
+
+    // endless overtime pay readout — lives in the left stack: the top-center
+    // slot under the clock belongs to the boss bar, which is up most of
+    // overtime (the amber clock is the always-on overtime cue)
+    if (overtime) {
+      ctx.fillStyle = '#ffb347';
+      ctx.font = '17px VT323, monospace';
+      ctx.fillText(`overtime ×${run.overtimeRewardMult().toFixed(1)} pay`, pad, nextY);
     }
 
     // alive boss bar (top-center)

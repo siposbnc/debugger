@@ -285,6 +285,15 @@ export const ELITE = {
   healthDropChance: 0.6,
 };
 
+/** Endless overtime: exponential hp/damage multiplier layered ON TOP of
+ *  difficulty() past the 8:00 workday (Endless runs only; 0 overtime minutes
+ *  = ×1 — normal runs are untouched). The ramp guarantees even god-tier
+ *  builds collapse a fixed span into overtime: every endless run has a
+ *  definite end, which is what makes best-time-per-map a real stat. */
+export function overtimeMult(overtimeMinutes: number): number {
+  return Math.pow(1.07, Math.max(0, overtimeMinutes));
+}
+
 /** Difficulty director: per-minute global enemy scaling. */
 export function difficulty(minutes: number) {
   return {

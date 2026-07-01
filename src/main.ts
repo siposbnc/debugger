@@ -65,7 +65,10 @@ function startRun(charId: string, mapId: string): void {
   const character = CHARACTERS[charId] ?? CHARACTERS.ada;
   const map = MAPS[mapId] ?? MAPS.greenfield;
   const weaponPool = [...new Set([...DEFAULT_WEAPON_POOL, ...save.unlockedWeapons, character.weapon])];
-  run = new Run(character, map, save.metaLevels, weaponPool, new Set(save.completedObjectives));
+  // Endless is armed by the map-select toggle but gated on the map being
+  // cleared at least once — the toggle can't leak onto an unearned map.
+  const endless = save.endlessMode && (save.mapVictories[map.id] ?? 0) > 0;
+  run = new Run(character, map, save.metaLevels, weaponPool, new Set(save.completedObjectives), { endless });
   if (TURBO) run.invincible = true;
   renderer.camX = 0; renderer.camY = 0;
   ui.hide();
@@ -207,6 +210,11 @@ function endRun(): void {
     lt.victories++;
     save.mapVictories[run.map.id] = (save.mapVictories[run.map.id] ?? 0) + 1;
   }
+  if (run.endless) {
+    // "longest shift" per map — endless runs always end, so this is the stat
+    const t = Math.floor(results.timeSec);
+    if (t > (save.endlessBest[run.map.id] ?? 0)) save.endlessBest[run.map.id] = t;
+  }
   for (const id of results.newObjectives) {
     if (!save.completedObjectives.includes(id)) save.completedObjectives.push(id);
   }
@@ -318,6 +326,7 @@ function drainEvents(): void {
       case 'evolve': sound.play('evolve'); break;
       case 'objective': sound.play('objective'); break;
       case 'victory': sound.play('victory'); break;
+      case 'workday': sound.play('victory'); break; // endless 8:00 bank — same fanfare, run continues
       case 'death': sound.play('death'); break;
       default: break;
     }

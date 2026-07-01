@@ -441,6 +441,17 @@ export class UI {
         </div>`;
       }
       const selected = this.save.lastMap === m.id;
+      // Endless: per-map unlock — the toggle appears on the SELECTED card once
+      // that map has been cleared (mapVictories); the best-shift stat shows on
+      // every cleared card. Normal runs are the default; the toggle persists.
+      const endlessOn = this.save.endlessMode;
+      const best = this.save.endlessBest[m.id] ?? 0;
+      const endlessRow = unlocked && cleared(m.id)
+        ? `${best > 0 ? `<div class="passive">∞ longest shift: ${formatTime(best)}</div>` : ''}
+           ${selected ? `<button class="btn small" data-mode-toggle>
+             ${endlessOn ? '∞ ENDLESS — 8:00 workday, then overtime' : '⏱ STANDARD — 15:00 shift'}
+           </button>` : ''}`
+        : '';
       return `
         <div class="select-card ${unlocked ? '' : 'locked'} ${selected ? 'selected' : ''}"
              data-id="${m.id}" style="--accent:${m.palette.accent}">
@@ -450,6 +461,7 @@ export class UI {
           <div class="arch">bits ×${m.bitsMult.toFixed(2)}</div>
           <p>${m.desc}</p>
           ${unlocked ? '' : `<div class="cost">🔒 ${m.cost} bits</div>`}
+          ${endlessRow}
         </div>`;
     }).join('');
     const s = this.screen(`
@@ -461,6 +473,13 @@ export class UI {
     s.addEventListener('click', (e) => {
       const t = e.target as HTMLElement;
       if (t.closest('button')?.dataset.act === 'back') { this.showMainMenu(); return; }
+      if (t.closest('[data-mode-toggle]')) {
+        this.save.endlessMode = !this.save.endlessMode;
+        this.persist();
+        sound.play('click');
+        this.showMapSelect();
+        return;
+      }
       const card = t.closest<HTMLElement>('.select-card');
       if (!card?.dataset.id) return; // undiscovered "???" cards carry no id
       const id = card.dataset.id;
@@ -1282,10 +1301,12 @@ export class UI {
 
     const s = this.screen(`
       <div class="result-heading ${results.victory ? 'win' : 'lose'}">
-        ${results.victory ? 'SYSTEM STABILIZED' : results.releaseFailed ? 'RELEASE SLIPPED' : 'SEGMENTATION FAULT'}
+        ${results.victory ? (results.endless ? 'SHIFT COMPLETE' : 'SYSTEM STABILIZED') : results.releaseFailed ? 'RELEASE SLIPPED' : 'SEGMENTATION FAULT'}
       </div>
       <div class="hint">${results.victory
-        ? 'all critical bugs resolved — shipping to production'
+        ? results.endless
+          ? `workday banked at 8:00 — overtime survived ${formatTime(results.overtimeSec)}`
+          : 'all critical bugs resolved — shipping to production'
         : results.releaseFailed
           ? 'a release blocker outlived crunch time — the deadline shipped without you'
           : `process terminated after ${formatTime(results.timeSec)} (core dumped)`}</div>

@@ -53,6 +53,8 @@ export interface SuspendedRun {
   shield?: number; shieldHitT?: number;
   // crunch time — optional: snapshots from before the mechanic existed restore inactive
   crunchStarted?: boolean; crunchT?: number;
+  // endless mode — optional: pre-endless snapshots restore as normal runs
+  endless?: boolean; banked?: boolean;
   // character specials
   turretT: number; helperT: number;
   // entities
@@ -120,6 +122,7 @@ export function snapshotRun(run: Run): SuspendedRun {
     nextBossId: run.nextBossId, lastBossId: run.lastBossId,
     slams: run.slams.map((s) => ({ ...s })), chillT: run.chillT,
     crunchStarted: run.crunchStarted, crunchT: run.crunchT,
+    endless: run.endless, banked: run.banked,
     turretT: run.turretT, helperT: run.helperT,
     // a live field event is dropped wholesale (its nest with it): resuming
     // re-arms the spawn clock instead — simpler than serializing the entity ref
@@ -144,7 +147,8 @@ export function snapshotRun(run: Run): SuspendedRun {
 export function restoreRun(snap: SuspendedRun, doneObjectives: Set<string>): Run {
   const character = CHARACTERS[snap.charId] ?? fail('character', snap.charId);
   const map = MAPS[snap.mapId] ?? fail('map', snap.mapId);
-  const run = new Run(character, map, { ...snap.metaLevels }, [...snap.weaponPool], doneObjectives);
+  const run = new Run(character, map, { ...snap.metaLevels }, [...snap.weaponPool], doneObjectives,
+    snap.endless ? { endless: true } : {});
 
   // cards first: applyCard() rebuilds cardMods + takenCards and recomputes stats
   for (const [id, count] of snap.takenCards) {
@@ -190,6 +194,8 @@ export function restoreRun(snap: SuspendedRun, doneObjectives: Set<string>): Run
   run.chillT = snap.chillT ?? 0;
   run.crunchStarted = snap.crunchStarted ?? false;
   run.crunchT = snap.crunchT ?? 0;
+  run.banked = snap.banked ?? false;
+  if (run.banked) run.victory = true; // the banked workday survives suspend too
   run.turretT = snap.turretT; run.helperT = snap.helperT;
 
   run.enemies = snap.enemies.map(restoreEnemy);

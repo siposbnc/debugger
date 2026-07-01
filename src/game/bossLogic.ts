@@ -1,5 +1,5 @@
 import { BOSSES, BOSS_INTERVAL, BOSS_WARNING_LEAD, BOSS_TIER_HP_MULT, BOSS_TIER_DMG_MULT } from '../data/bosses';
-import { ENEMIES } from '../data/enemies';
+import { ENEMIES, overtimeMult } from '../data/enemies';
 import type { BossDef } from '../data/types';
 import { clamp, dist, rand } from '../core/util';
 import { makeEnemy, randomPhaseEnemyDef } from './spawner';
@@ -128,14 +128,28 @@ export function updateBossSchedule(run: Run, _dt: number): void {
   }
 }
 
+/** The endless 8:00 slot (2:00 + 3×120s): overtime boss draws start here. */
+const OVERTIME_SLOT = 3;
+/** Weight the unique finale carries inside the endless overtime pool. */
+const OVERTIME_UNIQUE_WEIGHT = 2;
+
 /** Weighted draw from the map's standard pool (unique finale at its fixed
- *  slot). No immediate repeats; the opener slot filters to light bosses. */
+ *  slot). No immediate repeats; the opener slot filters to light bosses.
+ *  Endless overtime reshuffles instead: the whole standard pool PLUS the
+ *  unique finale — its "elevated tier" comes free from the rising slot index
+ *  — and no light filter (the post-finale one exists for the feature-freeze
+ *  ship window, which endless doesn't have). */
 function drawBossId(run: Run, index: number): string {
-  if (index === UNIQUE_SLOT) return run.map.uniqueBoss;
-  let entries = Object.entries(run.map.bossPool);
-  if (index === 0 || index > UNIQUE_SLOT) {
-    const light = entries.filter(([id]) => BOSSES[id].hp <= LIGHT_SLOT_MAX_HP);
-    if (light.length) entries = light;
+  let entries: [string, number][];
+  if (run.endless && index >= OVERTIME_SLOT) {
+    entries = [...Object.entries(run.map.bossPool), [run.map.uniqueBoss, OVERTIME_UNIQUE_WEIGHT]];
+  } else {
+    if (index === UNIQUE_SLOT) return run.map.uniqueBoss;
+    entries = Object.entries(run.map.bossPool);
+    if (index === 0 || index > UNIQUE_SLOT) {
+      const light = entries.filter(([id]) => BOSSES[id].hp <= LIGHT_SLOT_MAX_HP);
+      if (light.length) entries = light;
+    }
   }
   const fresh = entries.filter(([id]) => id !== run.lastBossId);
   if (fresh.length) entries = fresh;
@@ -154,7 +168,8 @@ export function spawnBoss(run: Run, def: BossDef, tier: number): void {
   const x = run.px + Math.cos(ang) * 620;
   const y = run.py + Math.sin(ang) * 620;
   const scale = run.map.enemyScale ?? 1; // per-map meta-gating multiplier
-  const hp = def.hp * scale * (1 + tier * BOSS_TIER_HP_MULT);
+  const ot = overtimeMult(run.overtimeMinutes()); // endless overtime ramp (×1 otherwise)
+  const hp = def.hp * scale * ot * (1 + tier * BOSS_TIER_HP_MULT);
   const boss: Enemy = {
     def, x, y,
     hp, maxHp: hp,
@@ -170,7 +185,7 @@ export function spawnBoss(run: Run, def: BossDef, tier: number): void {
     splitDone: false,
     facing: 0,
     scaledSpeed: def.speed,
-    scaledDamage: def.damage * scale * (1 + tier * BOSS_TIER_DMG_MULT),
+    scaledDamage: def.damage * scale * ot * (1 + tier * BOSS_TIER_DMG_MULT),
   };
   run.enemies.push(boss);
   run.spawnedKinds.add(`boss:${def.id}`); // codex discovery (progressive unlocks)

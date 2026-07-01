@@ -164,3 +164,8 @@ export const MAP_LIST = Object.values(MAPS);
 
 /** Run is won when the player survives this long (seconds). */
 export const RUN_DURATION = 15 * 60;
+
+/** Endless mode: "Normal Work Hours" end here (an 8-hour workday → 8 minutes).
+ *  The victory payout banks at this boundary; the clock past it is Overtime.
+ *  Endless-only — normal runs keep the RUN_DURATION 15:00 shift. */
+export const WORKDAY_DURATION = 8 * 60;
