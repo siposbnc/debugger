@@ -15,6 +15,23 @@ export interface PatchNote {
 
 export const PATCH_NOTES: PatchNote[] = [
   {
+    version: '0.4',
+    name: 'Modes & Replayability',
+    date: '2026-07-02',
+    highlights: [
+      'Endless mode: clear a map to unlock its ENDLESS toggle — the workday ends at 8:00 with your victory payout banked, and everything past it is Overtime: escalating pay, exponentially escalating danger, and a per-map "longest shift" record. Every shift ends. How late did you stay?',
+      'Curses: seven opt-in modifiers that pay extra Bits for extra pain — from +35% enemy HP to a Kernel Lock that periodically freezes your weapons for 15 telegraphed seconds. Stack all seven for +180% pay, if you dare',
+      'Every map now fights differently: each has its own bug roster — Memory Marsh drains and slows, Production Server crashes and explodes, Cyber Glacier tanks and chills. 20 new map-native bugs, most with their own look',
+      'In-run events: Bug Nests to torch and Hung Terminals to reboot appear on the radar — bounty chests and Credits for those who go',
+      'Credits: a new in-run currency from events and elites, spent at the post-boss Package Registry on one-run consumables (heal, magnet sweep, extra reroll, damage/speed buffs). Unspent Credits die with the run',
+      'A real minimap: horde density, gold elites, chests, events and boss markers at a glance',
+      'The shop now sells everything in one place — stat upgrades, weapon licenses and characters, in tabs — and new maps stay hidden until you clear the one before',
+      'Codex arsenal tab: every weapon with its evolution chain and your lifetime damage; the pause screen puts your build front and center with full weapon cards',
+      'Harder by design: the new rosters and spawn plans were certified against tighter balance targets — early runs are meant to sting',
+    ],
+    flavor: 'Normal work hours are 8:00 sharp. The overtime is voluntary, the bugs are not.',
+  },
+  {
     version: '0.3',
     name: 'Content Expansion',
     date: '2026-06-12',
