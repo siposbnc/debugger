@@ -15,7 +15,13 @@ export const MAPS: Record<string, MapDef> = {
       { fromMin: 2, interval: 1.0, weights: { syntaxMite: 9, cacheTick: 5, nullWasp: 4 } },
       { fromMin: 4, interval: 0.85, weights: { syntaxMite: 7, cacheTick: 5, nullWasp: 5, exceptionBeetle: 3, memoryLeech: 3 } },
       { fromMin: 6, interval: 0.7, weights: { syntaxMite: 5, cacheTick: 5, nullWasp: 5, exceptionBeetle: 4, memoryLeech: 4, raceSpider: 4 } },
-      { fromMin: 8, interval: 0.62, weights: { cacheTick: 5, nullWasp: 5, exceptionBeetle: 4, memoryLeech: 4, raceSpider: 4, deadlockScarab: 3, tracerBug: 2 } },
+      // crab in the min-8 wave ONLY, weight 2: it moved here when glacier got
+      // its own roster (v0.4 variants — the base type must still spawn
+      // SOMEWHERE for the codex), and it stays well clear of the Monolith's
+      // 12:00 window — crabs spawning at min 10–12 lingered into the finale
+      // and cost ~11–14pp off the maxed-meta arm (sim-caught; the recurring
+      // frontal-shot-soak boss-budget lesson)
+      { fromMin: 8, interval: 0.62, weights: { cacheTick: 5, nullWasp: 5, exceptionBeetle: 4, memoryLeech: 4, raceSpider: 4, deadlockScarab: 3, tracerBug: 2, checksumCrab: 2 } },
       { fromMin: 10, interval: 0.55, weights: { nullWasp: 5, exceptionBeetle: 5, memoryLeech: 4, raceSpider: 5, deadlockScarab: 4, stackCentipede: 2, tracerBug: 3 } },
       { fromMin: 12, interval: 0.48, weights: { nullWasp: 5, exceptionBeetle: 5, raceSpider: 5, deadlockScarab: 5, stackCentipede: 4, tracerBug: 3 } },
     ],
@@ -125,22 +131,28 @@ export const MAPS: Record<string, MapDef> = {
     // glacier's extra difficulty stays in the latency fields, tank skew and
     // the heaviest finale (Kernel Panic 2200 + freeze phases).
     enemyScale: 1.35,
-    // Skew: tanks — leeches from minute 0, scarabs early (slow aura on top of
-    // latency lag), centipedes from min 5 and heavy late. Beetle weight stays
-    // ≤4 (explosion-stacking Backlog concern); wasps keep charge pressure so
-    // lagged dodges actually cost something.
+    // Per-map roster (v0.4): glacier variants only — tank + chill + shield
+    // identity: zombie tanks from minute 0, semaphore slow auras early (on top
+    // of latency lag), coldpath centipedes from min 5 and heavy late, thrash-
+    // moth charges so lagged dodges actually cost something. No explosion
+    // types (production's) and no drain (marsh's).
     spawnPlan: [
-      { fromMin: 0, interval: 1.25, weights: { syntaxMite: 8, memoryLeech: 3 } },
-      { fromMin: 1, interval: 1.05, weights: { syntaxMite: 7, memoryLeech: 5, deadlockScarab: 2 } },
-      { fromMin: 3, interval: 0.8, weights: { syntaxMite: 5, memoryLeech: 6, deadlockScarab: 4, cacheTick: 4 } },
-      { fromMin: 5, interval: 0.7, weights: { memoryLeech: 6, deadlockScarab: 5, cacheTick: 4, nullWasp: 4, stackCentipede: 2 } },
-      { fromMin: 7, interval: 0.6, weights: { memoryLeech: 5, deadlockScarab: 6, nullWasp: 5, stackCentipede: 3, exceptionBeetle: 3 } },
-      // crab weight stays LOW here: glacier is already the tank map, and a
+      { fromMin: 0, interval: 1.25, weights: { frostMite: 8, zombieProcess: 3 } },
+      { fromMin: 1, interval: 1.05, weights: { frostMite: 7, zombieProcess: 5, semaphoreScarab: 2 } },
+      { fromMin: 3, interval: 0.8, weights: { frostMite: 5, zombieProcess: 6, semaphoreScarab: 4, lagSpike: 4 } },
+      { fromMin: 5, interval: 0.7, weights: { zombieProcess: 6, semaphoreScarab: 5, lagSpike: 4, thrashMoth: 4, coldpathCentipede: 2 } },
+      // lagSpike (cluster ×6) stays OUT of the min-7+ waves, exactly like the
+      // base cacheTick did: a cluster spawner in the late tables multiplies
+      // effective density ~6× per roll through the finale — leaving it in
+      // held the §5 maxed-meta arm at 16% even after the stat reverts
+      // (sim-caught). Frost mites fill the late chaff slots instead.
+      { fromMin: 7, interval: 0.6, weights: { zombieProcess: 5, semaphoreScarab: 6, thrashMoth: 6, coldpathCentipede: 3, frostMite: 2 } },
+      // ICE-crab weight stays LOW here: glacier is already the tank map, and a
       // frontal-blocking shot-soak arriving in the finale's DPS window dropped
       // the maxed-meta cert below the 40% floor at weight 3/4 (sim-caught —
       // the Monolith-pillar lesson again: durable bodies eat the boss budget)
-      { fromMin: 9, interval: 0.52, weights: { memoryLeech: 5, deadlockScarab: 6, nullWasp: 5, stackCentipede: 4, exceptionBeetle: 4, raceSpider: 4, checksumCrab: 2 } },
-      { fromMin: 11, interval: 0.46, weights: { deadlockScarab: 6, nullWasp: 5, stackCentipede: 6, exceptionBeetle: 4, raceSpider: 5, checksumCrab: 2 } },
+      { fromMin: 9, interval: 0.52, weights: { zombieProcess: 5, semaphoreScarab: 6, thrashMoth: 7, coldpathCentipede: 4, frostMite: 4, blackIceCrab: 2 } },
+      { fromMin: 11, interval: 0.46, weights: { semaphoreScarab: 6, thrashMoth: 7, coldpathCentipede: 6, zombieProcess: 3, frostMite: 4, blackIceCrab: 2 } },
     ],
     // frozen processes: the slow heavyweights rule the glacier
     bossPool: { stackOverflowBoss: 3, infiniteLoop: 3, memoryLeak: 2, mergeConflict: 2, raceCondition: 2 },

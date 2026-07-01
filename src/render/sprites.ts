@@ -393,6 +393,275 @@ const BUG_DRAWERS: Record<string, BugDrawer> = {
     ctx.fillStyle = color;
     ctx.beginPath(); ctx.arc(-r * 0.75, -r * 1.15, r * 0.14, 0, 7); ctx.fill();
   },
+
+  // ---- Cyber Glacier natives (crystalline silhouettes) ----
+  shard: (ctx, r, color) => {
+    // cluster of jagged ice spikes — Lag Spike
+    withGlow(ctx, color, 7, () => {
+      ctx.fillStyle = color;
+      // central tall spike + two flankers
+      ctx.beginPath();
+      ctx.moveTo(0, -r * 1.4); ctx.lineTo(r * 0.35, r * 0.9); ctx.lineTo(-r * 0.35, r * 0.9);
+      ctx.closePath(); ctx.fill();
+      ctx.beginPath();
+      ctx.moveTo(-r * 0.65, -r * 0.6); ctx.lineTo(-r * 0.25, r * 0.9); ctx.lineTo(-r * 0.95, r * 0.9);
+      ctx.closePath(); ctx.fill();
+      ctx.beginPath();
+      ctx.moveTo(r * 0.65, -r * 0.5); ctx.lineTo(r * 0.95, r * 0.9); ctx.lineTo(r * 0.25, r * 0.9);
+      ctx.closePath(); ctx.fill();
+    });
+    // fracture lines
+    ctx.strokeStyle = 'rgba(10,20,35,0.5)';
+    ctx.lineWidth = Math.max(1, r * 0.09);
+    ctx.beginPath(); ctx.moveTo(-r * 0.08, -r * 0.9); ctx.lineTo(r * 0.12, -r * 0.2); ctx.lineTo(-r * 0.05, r * 0.4); ctx.stroke();
+    // glint
+    ctx.fillStyle = 'rgba(255,255,255,0.85)';
+    ctx.beginPath(); ctx.arc(r * 0.12, -r * 0.95, r * 0.09, 0, 7); ctx.fill();
+    eyes(ctx, 0, r * 0.45, r * 0.26, r * 0.16);
+  },
+  moth: (ctx, r, color) => {
+    // frost moth, wings mid-thrash — Thrash Moth (charge)
+    // big scalloped wings, translucent with a cold edge
+    for (const side of [-1, 1]) {
+      ctx.fillStyle = 'rgba(225,238,255,0.4)';
+      ctx.beginPath();
+      ctx.moveTo(side * r * 0.15, -r * 0.2);
+      ctx.quadraticCurveTo(side * r * 1.5, -r * 1.2, side * r * 1.25, -r * 0.15);
+      ctx.quadraticCurveTo(side * r * 1.35, r * 0.7, side * r * 0.2, r * 0.35);
+      ctx.closePath(); ctx.fill();
+      // eyespot
+      ctx.fillStyle = 'rgba(20,30,50,0.45)';
+      ctx.beginPath(); ctx.arc(side * r * 0.85, -r * 0.35, r * 0.2, 0, 7); ctx.fill();
+    }
+    withGlow(ctx, color, 6, () => {
+      ctx.fillStyle = color;
+      ctx.beginPath(); ctx.ellipse(0, r * 0.1, r * 0.4, r * 0.9, 0, 0, 7); ctx.fill();
+    });
+    // fuzz stripes + antennae
+    ctx.fillStyle = 'rgba(0,0,0,0.3)';
+    ctx.fillRect(-r * 0.36, r * 0.1, r * 0.72, r * 0.16);
+    ctx.fillRect(-r * 0.3, r * 0.5, r * 0.6, r * 0.14);
+    ctx.strokeStyle = color; ctx.lineWidth = Math.max(1, r * 0.09); ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(-r * 0.12, -r * 0.7); ctx.quadraticCurveTo(-r * 0.5, -r * 1.25, -r * 0.75, -r * 1.15); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(r * 0.12, -r * 0.7); ctx.quadraticCurveTo(r * 0.5, -r * 1.25, r * 0.75, -r * 1.15); ctx.stroke();
+    eyes(ctx, 0, -r * 0.5, r * 0.22, r * 0.15);
+  },
+  ghost: (ctx, r, color) => {
+    // a process that exited but was never reaped — Zombie Process (tank).
+    // Sheet-ghost silhouette; hollow eyes, not the usual live ones: it's dead.
+    withGlow(ctx, color, 10, () => {
+      ctx.fillStyle = color;
+      ctx.beginPath();
+      ctx.moveTo(-r, r * 0.85);
+      ctx.lineTo(-r, -r * 0.1);
+      ctx.quadraticCurveTo(-r, -r * 1.05, 0, -r * 1.05);
+      ctx.quadraticCurveTo(r, -r * 1.05, r, -r * 0.1);
+      ctx.lineTo(r, r * 0.85);
+      // wavy hem
+      ctx.quadraticCurveTo(r * 0.75, r * 0.45, r * 0.5, r * 0.85);
+      ctx.quadraticCurveTo(r * 0.25, r * 1.15, 0, r * 0.85);
+      ctx.quadraticCurveTo(-r * 0.25, r * 0.45, -r * 0.5, r * 0.85);
+      ctx.quadraticCurveTo(-r * 0.75, r * 1.15, -r, r * 0.85);
+      ctx.fill();
+    });
+    // pale inner sheet
+    ctx.fillStyle = 'rgba(235,248,250,0.25)';
+    ctx.beginPath(); ctx.ellipse(0, -r * 0.25, r * 0.62, r * 0.55, 0, 0, 7); ctx.fill();
+    // hollow dead eyes + a small open mouth
+    ctx.fillStyle = '#10131a';
+    ctx.beginPath(); ctx.ellipse(-r * 0.32, -r * 0.3, r * 0.17, r * 0.24, 0, 0, 7); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(r * 0.32, -r * 0.3, r * 0.17, r * 0.24, 0, 0, 7); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(0, r * 0.15, r * 0.12, r * 0.17, 0, 0, 7); ctx.fill();
+  },
+  crystal: (ctx, r, color) => {
+    // hexagonal snowflake, signal frozen at red — Semaphore Scarab (slow aura)
+    ctx.strokeStyle = color; ctx.lineWidth = Math.max(1.5, r * 0.14); ctx.lineCap = 'round';
+    for (let i = 0; i < 6; i++) {
+      const a = (i / 6) * Math.PI * 2;
+      const cx = Math.cos(a), cy = Math.sin(a);
+      ctx.beginPath(); ctx.moveTo(cx * r * 0.5, cy * r * 0.5); ctx.lineTo(cx * r * 1.2, cy * r * 1.2); ctx.stroke();
+      // branch ticks on each spoke
+      const px = -cy, py = cx;
+      ctx.beginPath();
+      ctx.moveTo(cx * r * 0.85 + px * r * 0.22, cy * r * 0.85 + py * r * 0.22);
+      ctx.lineTo(cx * r * 0.85, cy * r * 0.85);
+      ctx.lineTo(cx * r * 0.85 - px * r * 0.22, cy * r * 0.85 - py * r * 0.22);
+      ctx.stroke();
+    }
+    withGlow(ctx, color, 8, () => {
+      ctx.fillStyle = color;
+      ctx.beginPath();
+      for (let i = 0; i < 6; i++) {
+        const a = (i / 6) * Math.PI * 2 + Math.PI / 6;
+        ctx[i ? 'lineTo' : 'moveTo'](Math.cos(a) * r * 0.62, Math.sin(a) * r * 0.62);
+      }
+      ctx.closePath(); ctx.fill();
+    });
+    // the frozen semaphore: red lit, the rest dark
+    ctx.fillStyle = '#ff5e5e';
+    ctx.beginPath(); ctx.arc(0, -r * 0.28, r * 0.15, 0, 7); ctx.fill();
+    ctx.fillStyle = 'rgba(16,19,26,0.85)';
+    ctx.beginPath(); ctx.arc(0, 0, r * 0.13, 0, 7); ctx.fill();
+    ctx.beginPath(); ctx.arc(0, r * 0.28, r * 0.13, 0, 7); ctx.fill();
+  },
+  floe: (ctx, r, color) => {
+    // angular ice-slab crab — Black ICE Crab. Keeps the checksum crab's tell:
+    // the bright FRONTAL facet is the shield side; flank it.
+    legs(ctx, color, r, 3);
+    withGlow(ctx, color, 7, () => {
+      ctx.fillStyle = color;
+      ctx.beginPath();
+      ctx.moveTo(-r * 1.15, -r * 0.1);
+      ctx.lineTo(-r * 0.6, -r * 0.75);
+      ctx.lineTo(r * 0.55, -r * 0.8);
+      ctx.lineTo(r * 1.15, -r * 0.05);
+      ctx.lineTo(r * 0.75, r * 0.7);
+      ctx.lineTo(-r * 0.7, r * 0.72);
+      ctx.closePath(); ctx.fill();
+    });
+    // bright frontal shield facet
+    ctx.fillStyle = 'rgba(255,255,255,0.45)';
+    ctx.beginPath();
+    ctx.moveTo(-r * 0.6, -r * 0.75); ctx.lineTo(r * 0.55, -r * 0.8);
+    ctx.lineTo(r * 0.45, -r * 0.35); ctx.lineTo(-r * 0.5, -r * 0.32);
+    ctx.closePath(); ctx.fill();
+    // cracks in the slab
+    ctx.strokeStyle = 'rgba(10,20,35,0.55)';
+    ctx.lineWidth = Math.max(1, r * 0.08);
+    ctx.beginPath(); ctx.moveTo(-r * 0.4, r * 0.6); ctx.lineTo(-r * 0.15, r * 0.1); ctx.lineTo(-r * 0.35, -r * 0.25); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(r * 0.5, r * 0.55); ctx.lineTo(r * 0.3, r * 0.15); ctx.stroke();
+    // shard claws out front
+    ctx.fillStyle = color;
+    ctx.beginPath(); ctx.moveTo(-r * 1.0, -r * 0.5); ctx.lineTo(-r * 1.4, -r * 0.75); ctx.lineTo(-r * 0.85, -r * 0.85); ctx.closePath(); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(r * 1.0, -r * 0.5); ctx.lineTo(r * 1.4, -r * 0.75); ctx.lineTo(r * 0.85, -r * 0.85); ctx.closePath(); ctx.fill();
+    eyes(ctx, 0, r * 0.2, r * 0.3, r * 0.18);
+  },
+
+  // ---- Memory Marsh natives (bespoke retrofit of the v0.4 reskins) ----
+  droplet: (ctx, r, color) => {
+    // a fat hanging leak, mid-drip — Drip Tick (cluster)
+    legs(ctx, color, r * 0.8, 2);
+    withGlow(ctx, color, 6, () => {
+      ctx.fillStyle = color;
+      ctx.beginPath();
+      ctx.moveTo(0, -r * 1.25);
+      ctx.quadraticCurveTo(r * 0.85, -r * 0.2, r * 0.8, r * 0.25);
+      ctx.arc(0, r * 0.25, r * 0.8, 0, Math.PI);
+      ctx.quadraticCurveTo(-r * 0.85, -r * 0.2, 0, -r * 1.25);
+      ctx.fill();
+    });
+    // glossy highlight + a bead about to fall
+    ctx.fillStyle = 'rgba(255,255,255,0.4)';
+    ctx.beginPath(); ctx.ellipse(-r * 0.3, -r * 0.25, r * 0.16, r * 0.32, -0.4, 0, 7); ctx.fill();
+    ctx.fillStyle = color; ctx.globalAlpha = 0.7;
+    ctx.beginPath(); ctx.arc(r * 0.15, r * 1.25, r * 0.14, 0, 7); ctx.fill();
+    ctx.globalAlpha = 1;
+    eyes(ctx, 0, r * 0.2, r * 0.3, r * 0.2);
+  },
+  mosquito: (ctx, r, color) => {
+    // swamp bloodsucker with a dereferencing needle — Mire Wasp (charge)
+    // swept-back wings
+    ctx.fillStyle = 'rgba(220,235,225,0.4)';
+    ctx.beginPath(); ctx.ellipse(-r * 0.75, -r * 0.55, r * 1.0, r * 0.28, -0.9, 0, 7); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(r * 0.75, -r * 0.55, r * 1.0, r * 0.28, 0.9, 0, 7); ctx.fill();
+    // dangly legs
+    ctx.strokeStyle = color; ctx.lineWidth = Math.max(1, r * 0.1); ctx.lineCap = 'round';
+    for (const side of [-1, 1]) {
+      ctx.beginPath(); ctx.moveTo(side * r * 0.3, r * 0.1); ctx.lineTo(side * r * 0.8, r * 0.6); ctx.lineTo(side * r * 0.7, r * 1.1); ctx.stroke();
+    }
+    withGlow(ctx, color, 6, () => {
+      ctx.fillStyle = color;
+      // humped thorax + abdomen
+      ctx.beginPath(); ctx.ellipse(0, -r * 0.15, r * 0.5, r * 0.55, 0, 0, 7); ctx.fill();
+      ctx.beginPath(); ctx.ellipse(0, r * 0.5, r * 0.38, r * 0.6, 0, 0, 7); ctx.fill();
+    });
+    // stripes on the abdomen
+    ctx.fillStyle = 'rgba(0,0,0,0.35)';
+    ctx.fillRect(-r * 0.34, r * 0.35, r * 0.68, r * 0.14);
+    ctx.fillRect(-r * 0.3, r * 0.7, r * 0.6, r * 0.13);
+    // the needle (proboscis), pointing at what it's about to dereference
+    ctx.strokeStyle = 'rgba(235,245,240,0.9)';
+    ctx.lineWidth = Math.max(1.2, r * 0.12);
+    ctx.beginPath(); ctx.moveTo(0, -r * 0.55); ctx.lineTo(0, -r * 1.45); ctx.stroke();
+    eyes(ctx, 0, -r * 0.45, r * 0.26, r * 0.18);
+  },
+  slug: (ctx, r, color) => {
+    // bloated allocation-hoarder — Heap Leech (drain)
+    withGlow(ctx, color, 8, () => {
+      ctx.fillStyle = color;
+      ctx.beginPath();
+      ctx.moveTo(-r * 1.1, r * 0.6);
+      ctx.quadraticCurveTo(-r * 1.2, -r * 0.35, -r * 0.35, -r * 0.6);
+      ctx.quadraticCurveTo(r * 0.6, -r * 0.95, r * 1.0, -r * 0.2);
+      ctx.quadraticCurveTo(r * 1.25, r * 0.45, r * 0.6, r * 0.65);
+      ctx.quadraticCurveTo(0, r * 0.85, -r * 1.1, r * 0.6);
+      ctx.fill();
+    });
+    // hoarded heap blocks embedded in the back
+    ctx.fillStyle = 'rgba(0,0,0,0.35)';
+    ctx.fillRect(-r * 0.15, -r * 0.55, r * 0.34, r * 0.34);
+    ctx.fillRect(r * 0.3, -r * 0.35, r * 0.3, r * 0.3);
+    ctx.strokeStyle = 'rgba(235,255,240,0.5)';
+    ctx.lineWidth = Math.max(1, r * 0.07);
+    ctx.strokeRect(-r * 0.15, -r * 0.55, r * 0.34, r * 0.34);
+    ctx.strokeRect(r * 0.3, -r * 0.35, r * 0.3, r * 0.3);
+    // slime drips
+    ctx.fillStyle = color; ctx.globalAlpha = 0.7;
+    ctx.beginPath(); ctx.arc(-r * 0.55, r * 0.9, r * 0.16, 0, 7); ctx.fill();
+    ctx.beginPath(); ctx.arc(r * 0.35, r * 0.95, r * 0.13, 0, 7); ctx.fill();
+    ctx.globalAlpha = 1;
+    // eye stalks
+    ctx.strokeStyle = color; ctx.lineWidth = Math.max(1.2, r * 0.11); ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(-r * 0.75, -r * 0.35); ctx.lineTo(-r * 0.95, -r * 0.9); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(-r * 0.5, -r * 0.45); ctx.lineTo(-r * 0.45, -r * 1.0); ctx.stroke();
+    eyes(ctx, -r * 0.7, -r * 0.98, r * 0.25, r * 0.15);
+  },
+  forked: (ctx, r, color) => {
+    // a spider mid-fork(): one body, two heads, neither the parent — Fork Spider
+    legs(ctx, color, r * 1.15, 4);
+    withGlow(ctx, color, 6, () => {
+      ctx.fillStyle = color;
+      ctx.beginPath(); ctx.arc(0, r * 0.15, r * 0.8, 0, 7); ctx.fill();
+      // twin heads on a Y
+      ctx.beginPath(); ctx.arc(-r * 0.45, -r * 0.75, r * 0.4, 0, 7); ctx.fill();
+      ctx.beginPath(); ctx.arc(r * 0.45, -r * 0.75, r * 0.4, 0, 7); ctx.fill();
+    });
+    // the seam where the copy is splitting off
+    ctx.strokeStyle = 'rgba(10,20,10,0.45)';
+    ctx.lineWidth = Math.max(1, r * 0.09);
+    ctx.beginPath(); ctx.moveTo(0, -r * 0.5); ctx.lineTo(0, r * 0.75); ctx.stroke();
+    eyes(ctx, -r * 0.45, -r * 0.75, r * 0.16, r * 0.11);
+    eyes(ctx, r * 0.45, -r * 0.75, r * 0.16, r * 0.11);
+  },
+  dome: (ctx, r, color) => {
+    // mud-caked dome shell holding the lock — Sludge Scarab (slow aura)
+    legs(ctx, color, r * 0.9, 2);
+    withGlow(ctx, color, 8, () => {
+      ctx.fillStyle = color;
+      ctx.beginPath();
+      ctx.moveTo(-r * 1.05, r * 0.45);
+      ctx.quadraticCurveTo(-r * 1.1, -r * 0.9, 0, -r * 0.95);
+      ctx.quadraticCurveTo(r * 1.1, -r * 0.9, r * 1.05, r * 0.45);
+      ctx.closePath(); ctx.fill();
+    });
+    // dripping mud hem
+    ctx.fillStyle = color;
+    ctx.beginPath(); ctx.ellipse(0, r * 0.45, r * 1.05, r * 0.3, 0, 0, 7); ctx.fill();
+    ctx.globalAlpha = 0.7;
+    ctx.beginPath(); ctx.arc(-r * 0.6, r * 0.85, r * 0.15, 0, 7); ctx.fill();
+    ctx.beginPath(); ctx.arc(r * 0.5, r * 0.9, r * 0.13, 0, 7); ctx.fill();
+    ctx.globalAlpha = 1;
+    // shading band on the dome
+    ctx.fillStyle = 'rgba(0,0,0,0.25)';
+    ctx.beginPath(); ctx.ellipse(0, -r * 0.35, r * 0.75, r * 0.35, 0, 0, 7); ctx.fill();
+    // the held lock (same slow-aura tell as the scarab family)
+    ctx.strokeStyle = 'rgba(225,240,230,0.95)';
+    ctx.lineWidth = Math.max(1.2, r * 0.12);
+    ctx.strokeRect(-r * 0.26, -r * 0.28, r * 0.52, r * 0.42);
+    ctx.beginPath(); ctx.arc(0, -r * 0.3, r * 0.19, Math.PI, 0); ctx.stroke();
+    // eyes peeking out under the front rim
+    eyes(ctx, 0, r * 0.55, r * 0.3, r * 0.16);
+  },
 };
 
 export function bugSprite(shape: string, radius: number, color: string, elite: boolean): HTMLCanvasElement {

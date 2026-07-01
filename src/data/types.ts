@@ -101,7 +101,11 @@ export interface EnemyDef {
   color: string;
   shape: 'mite' | 'tick' | 'wasp' | 'leech' | 'spider' | 'beetle' | 'scarab' | 'centipede' | 'flask' | 'pillar' | 'tracer' | 'crab' | 'nest'
     // production-native variant shapes
-    | 'bolt' | 'drone' | 'canister' | 'lock' | 'sentry';
+    | 'bolt' | 'drone' | 'canister' | 'lock' | 'sentry'
+    // glacier-native variant shapes
+    | 'shard' | 'moth' | 'ghost' | 'crystal' | 'floe'
+    // marsh-native variant shapes (bespoke retrofit)
+    | 'droplet' | 'mosquito' | 'slug' | 'forked' | 'dome';
   behavior: EnemyBehavior;
   /** spawn in clusters of N (Cache Tick) */
   cluster?: number;

@@ -109,10 +109,13 @@ export const ENEMIES: Record<string, EnemyDef> = {
 };
 
 // ---------- Map-identity variants (v0.4) ----------
-// A variant re-skins a base archetype: it inherits the base's shape, behavior
-// and flags, then overrides a palette colour, some stats and (at most) one
-// flag. Cheap to add — no new sprite — and gives each map its own roster so no
-// two maps field the exact same enemy id. See ROADMAP "Per-map enemy pools".
+// A variant inherits a base archetype's behavior and flags, then overrides a
+// palette colour, some stats and (at most) one flag. Most also override the
+// SHAPE with a map-native bespoke sprite (user ruling 2026-06-17: reskins are
+// fine for some, but most of a roster should look tailored to its map) — the
+// behavior stays inherited so game/ is untouched. Gives each map its own
+// roster so no two maps field the exact same enemy id. See ROADMAP
+// "Per-map enemy pools".
 
 /** Build a variant of `baseId`, inheriting everything not overridden. */
 function variant(baseId: string, over: Partial<EnemyDef> & Pick<EnemyDef, 'id' | 'name' | 'codexDesc' | 'color'>): EnemyDef {
@@ -133,30 +136,30 @@ const MARSH_VARIANTS: EnemyDef[] = [
     speed: 52,
   }),
   variant('cacheTick', {
-    id: 'dripTick', name: 'Drip Tick', color: '#9aa83c',
+    id: 'dripTick', name: 'Drip Tick', color: '#9aa83c', shape: 'droplet',
     codexDesc: 'Leaks one stale byte at a time, in identical drips. The puddle is the problem.',
     speed: 66,
   }),
   variant('nullWasp', {
-    id: 'mireWasp', name: 'Mire Wasp', color: '#7fa86a',
+    id: 'mireWasp', name: 'Mire Wasp', color: '#7fa86a', shape: 'mosquito',
     codexDesc: 'Dereferences out of the reeds in heavy, waterlogged charges. '
       + 'Points at nothing; lands in muck.',
     speed: 86,
   }),
   variant('memoryLeech', {
-    id: 'heapLeech', name: 'Heap Leech', color: '#5fbf6b',
+    id: 'heapLeech', name: 'Heap Leech', color: '#5fbf6b', shape: 'slug',
     codexDesc: 'The marsh native. Sits in the leaked allocations it caused and drinks '
       + 'your health to grow its own — right at home in the swamp it made.',
     speed: 32,
   }),
   variant('raceSpider', {
-    id: 'forkSpider', name: 'Fork Spider', color: '#b6c24b',
+    id: 'forkSpider', name: 'Fork Spider', color: '#b6c24b', shape: 'forked',
     codexDesc: 'Forks a copy whenever you blink. In the fog you can never be sure how '
       + 'many there really are.',
     speed: 80,
   }),
   variant('deadlockScarab', {
-    id: 'sludgeScarab', name: 'Sludge Scarab', color: '#4f7d5b',
+    id: 'sludgeScarab', name: 'Sludge Scarab', color: '#4f7d5b', shape: 'dome',
     codexDesc: 'Holds a lock on the mud itself. Everything near it wades; you most of all.',
     speed: 36,
   }),
@@ -210,6 +213,63 @@ const PRODUCTION_VARIANTS: EnemyDef[] = [
 ];
 
 for (const v of PRODUCTION_VARIANTS) ENEMIES[v.id] = v;
+
+// Cyber Glacier — processes frozen mid-execution. Pale ice palette; the roster
+// identity is TANK + CHILL + SHIELD (slow auras stack with the map's latency
+// fields, heavyweights soak, the ICE crab blocks head-on) with moth charges so
+// lagged dodges still cost something. No explosion (production's), no drain
+// (marsh's), no duplicators. Most of the roster is map-native (crystalline
+// silhouettes); stats stay at BASE like production's — a first draft that
+// bumped the tank's hp and slowed the whole roster dropped the §5 maxed-meta
+// arm from 31% to 16% (sim-caught): bulk eats the boss budget, and slower
+// bodies cut kill/XP throughput so the build is underleveled by the finale.
+// The ×1.35 enemyScale + composition is the difficulty.
+const GLACIER_VARIANTS: EnemyDef[] = [
+  variant('syntaxMite', {
+    id: 'frostMite', name: 'Frost Mite', color: '#7fc4de',
+    codexDesc: 'A typo that never got warm enough to run. Slower than the original, '
+      + 'colder, and permafrost preserves everything — including the swarm.',
+    speed: 54,
+  }),
+  variant('cacheTick', {
+    id: 'lagSpike', name: 'Lag Spike', color: '#a8e4f0', shape: 'shard',
+    codexDesc: 'Arrives in sudden identical clusters, exactly when you least need it. '
+      + 'The frame you lost is embedded in the ice.',
+    speed: 84,
+  }),
+  variant('nullWasp', {
+    id: 'thrashMoth', name: 'Thrash Moth', color: '#9db8e8', shape: 'moth',
+    codexDesc: 'Swaps in, swaps out, swaps in again — furious paging charges that '
+      + 'never let anything actually load. Drawn to whatever you were working on.',
+  }),
+  variant('memoryLeech', {
+    id: 'zombieProcess', name: 'Zombie Process', color: '#8ccfc4', shape: 'ghost',
+    // one flag tweak: drain OFF — the glacier tank threatens by refusing to
+    // die, not by feeding. hp stays at BASE: an hp bump here (68 in the first
+    // draft) halved the §5 maxed-meta arm on its own weight-5/6 slot — the
+    // marsh/Monolith lesson again, durable bodies eat the boss budget.
+    codexDesc: 'Exited years ago; nobody collected it. It shambles on in the process '
+      + 'table, unkillable by anything short of doing it properly.',
+    drain: false,
+  }),
+  variant('deadlockScarab', {
+    id: 'semaphoreScarab', name: 'Semaphore Scarab', color: '#6fc6e0', shape: 'crystal',
+    codexDesc: 'A signal frozen at red. Everything near it queues politely, forever — '
+      + 'you most of all.',
+  }),
+  variant('stackCentipede', {
+    id: 'coldpathCentipede', name: 'Coldpath Centipede', color: '#7e9fd4',
+    codexDesc: 'The branch nobody profiled, recursing where no optimizer has ever '
+      + 'looked. Each frozen segment calls the next. There is no base case in the ice.',
+  }),
+  variant('checksumCrab', {
+    id: 'blackIceCrab', name: 'Black ICE Crab', color: '#4d7ea8', shape: 'floe',
+    codexDesc: 'Intrusion Countermeasures, entombed but still on duty. Rejects '
+      + 'everything arriving head-on; the audit has a blind spot: behind it.',
+  }),
+];
+
+for (const v of GLACIER_VARIANTS) ENEMIES[v.id] = v;
 
 export const ELITE = {
   /** chance per spawn = base + perMin * minutes, after eliteFromMin */
