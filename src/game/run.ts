@@ -1,6 +1,7 @@
 import type { BossDef, CharacterDef, CurseDef, EnemyDef, MapDef, RunStatsView, StatMods, UpgradeCard, WeaponDef } from '../data/types';
 import { WEAPONS } from '../data/weapons';
 import { CURSES } from '../data/curses';
+import { SHIP_BONUS_BITS_PER_REWRITE, SHIP_BONUS_XP_PER_REWRITE } from '../data/prestige';
 import { RUN_DURATION, WORKDAY_DURATION } from '../data/maps';
 import { OBJECTIVES, OBJECTIVE_BITS } from '../data/objectives';
 import { BOSS_BITS } from '../data/bosses';
@@ -342,6 +343,9 @@ export class Run {
   curseTimed: { def: CurseDef; nextAt: number; warned: boolean }[] = [];
   curseReverseT = 0; // seconds of reversed movement left (Malfunction)
   curseLockT = 0;    // seconds of weapon lock left (Kernel Lock)
+  // Prestige Ship Bonus (docs/PRESTIGE.md §6): completed Rewrites on the save.
+  // +30% Bits (computeBits line) and +10% XP (recompute) each — 0 = untouched.
+  rewrites = 0;
 
   // player
   px = 0; py = 0;
@@ -455,10 +459,11 @@ export class Run {
      *  events) — hazards stay. Balance-sim policy (user 2026-06-12): the §5/§1
      *  instruments always run on terrain-free maps so terrain content never
      *  invalidates win-rate baselines; terrain is validated by its own tests. */
-    private opts: { noTerrain?: boolean; endless?: boolean; curses?: string[] } = {},
+    private opts: { noTerrain?: boolean; endless?: boolean; curses?: string[]; rewrites?: number } = {},
   ) {
     this.eventsEnabled = !opts.noTerrain;
     this.endless = !!opts.endless;
+    this.rewrites = opts.rewrites ?? 0;
     for (const id of opts.curses ?? []) {
       const c = CURSES[id];
       if (!c) continue; // unknown id (content drift in the save): skip, don't crash
@@ -472,8 +477,9 @@ export class Run {
       if (c.timed) this.curseTimed.push({ def: c, nextAt: c.timed.period, warned: false });
     }
     this.stats = computeStats(character, metaLevels, this.cardMods);
-    // curse stat taxes apply from frame 0 (recompute() re-applies on changes)
+    // curse taxes + prestige XP bonus apply from frame 0 (recompute() re-applies)
     if (this.curseMods.pickupRadius !== 1) this.stats.pickupRadius *= this.curseMods.pickupRadius;
+    if (this.rewrites > 0) this.stats.xpMult *= 1 + SHIP_BONUS_XP_PER_REWRITE * this.rewrites;
     this.hp = this.stats.maxHp;
     this.shield = this.stats.shieldMax;
     this.rerollsLeft = this.stats.rerolls;
@@ -711,6 +717,8 @@ export class Run {
     }
     // curse stat taxes (×1 with no curses); dbg statOverrides still win below
     if (this.curseMods.pickupRadius !== 1) this.stats.pickupRadius *= this.curseMods.pickupRadius;
+    // prestige Ship Bonus XP half (+10% per Rewrite; 0 rewrites = ×1)
+    if (this.rewrites > 0) this.stats.xpMult *= 1 + SHIP_BONUS_XP_PER_REWRITE * this.rewrites;
     if (this.statOverrides) Object.assign(this.stats, this.statOverrides);
     // a max-HP increase heals by that amount — the player GAINS the health, not
     // just a taller bar (mirrors the shield rule above); a decrease just clamps
@@ -1750,6 +1758,15 @@ export class Run {
       breakdown.push({
         label: `Curses endured ×${this.curses.length} (+${Math.round(this.curseMods.bitsBonus * 100)}%)`,
         value: core * this.curseMods.bitsBonus,
+      });
+    }
+    // prestige Ship Bonus (docs/PRESTIGE.md §6): the permanent pay rise
+    if (this.rewrites > 0) {
+      const core = breakdown.reduce((a, b) => a + b.value, 0);
+      const bonus = SHIP_BONUS_BITS_PER_REWRITE * this.rewrites;
+      breakdown.push({
+        label: `Ship Bonus v${this.rewrites + 1}.0 (+${Math.round(bonus * 100)}%)`,
+        value: core * bonus,
       });
     }
     const base = breakdown.reduce((a, b) => a + b.value, 0);

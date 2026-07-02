@@ -59,6 +59,8 @@ export interface SuspendedRun {
   curses?: string[];
   curseReverseT?: number; curseLockT?: number;
   curseTimed?: { id: string; nextAt: number; warned: boolean }[];
+  // prestige Ship Bonus — optional: pre-prestige snapshots restore at 0
+  rewrites?: number;
   // character specials
   turretT: number; helperT: number;
   // entities
@@ -128,6 +130,7 @@ export function snapshotRun(run: Run): SuspendedRun {
     crunchStarted: run.crunchStarted, crunchT: run.crunchT,
     endless: run.endless, banked: run.banked,
     curses: run.curses.map((c) => c.id),
+    rewrites: run.rewrites,
     curseReverseT: run.curseReverseT, curseLockT: run.curseLockT,
     curseTimed: run.curseTimed.map((t) => ({ id: t.def.id, nextAt: t.nextAt, warned: t.warned })),
     turretT: run.turretT, helperT: run.helperT,
@@ -155,7 +158,7 @@ export function restoreRun(snap: SuspendedRun, doneObjectives: Set<string>): Run
   const character = CHARACTERS[snap.charId] ?? fail('character', snap.charId);
   const map = MAPS[snap.mapId] ?? fail('map', snap.mapId);
   const run = new Run(character, map, { ...snap.metaLevels }, [...snap.weaponPool], doneObjectives,
-    { endless: snap.endless, curses: snap.curses });
+    { endless: snap.endless, curses: snap.curses, rewrites: snap.rewrites });
 
   // cards first: applyCard() rebuilds cardMods + takenCards and recomputes stats
   for (const [id, count] of snap.takenCards) {

@@ -69,7 +69,7 @@ function startRun(charId: string, mapId: string): void {
   // cleared at least once — the toggle can't leak onto an unearned map.
   const endless = save.endlessMode && (save.mapVictories[map.id] ?? 0) > 0;
   run = new Run(character, map, save.metaLevels, weaponPool, new Set(save.completedObjectives),
-    { endless, curses: save.curses });
+    { endless, curses: save.curses, rewrites: save.rewrites });
   if (TURBO) run.invincible = true;
   renderer.camX = 0; renderer.camY = 0;
   ui.hide();
@@ -195,6 +195,8 @@ function endRun(): void {
   // persist: bits, lifetime stats, objectives
   recordEncounters(run);
   save.bits += results.bits;
+  save.cycleBits += results.bits; // prestige token input (reset by a Rewrite)
+  save.cycleRuns++;
   const lt = save.lifetime;
   lt.runs++;
   lt.kills += results.kills;
@@ -215,6 +217,9 @@ function endRun(): void {
     // "longest shift" per map — endless runs always end, so this is the stat
     const t = Math.floor(results.timeSec);
     if (t > (save.endlessBest[run.map.id] ?? 0)) save.endlessBest[run.map.id] = t;
+    // cycle-scoped overtime record: the prestige token input (endlessBest is lifetime)
+    const ot = Math.floor(results.overtimeSec);
+    if (ot > (save.cycleOvertimeBest[run.map.id] ?? 0)) save.cycleOvertimeBest[run.map.id] = ot;
   }
   for (const id of results.newObjectives) {
     if (!save.completedObjectives.includes(id)) save.completedObjectives.push(id);

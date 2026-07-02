@@ -58,6 +58,22 @@ export interface SaveData {
   /** Best endless survival time (seconds) per map id — the "longest shift"
    *  leaderboard stat (endless runs always end: overtime ramps exponentially). */
   endlessBest: Record<string, number>;
+  // ---- Prestige ("The Great Rewrite", docs/PRESTIGE.md) ----
+  /** Completed Rewrites. Drives the Ship Bonus (+30% Bits, +10% XP each) and
+   *  the `you: vN.0` display. */
+  rewrites: number;
+  /** Legacy Tokens (⟲) banked and not yet spent in the tree. */
+  legacyTokens: number;
+  /** Prestige tree node ranks (node id → rank). Persists through Rewrites. */
+  tree: Record<string, number>;
+  /** Cycle-scoped token inputs — reset by every Rewrite. cycleBits counts
+   *  Bits EARNED this cycle (spent or not); cycleOvertimeBest mirrors
+   *  endlessBest but cycle-scoped (endlessBest itself is a lifetime record). */
+  cycleBits: number;
+  cycleRuns: number;
+  cycleOvertimeBest: Record<string, number>;
+  /** Meta upgrade ids preserved through Rewrites (Persistent Config picks). */
+  keptMeta: string[];
   /** Newest patch-notes entry version the player has opened ('' = never) —
    *  drives the "What's new" menu badge. */
   lastSeenVersion: string;
@@ -110,6 +126,13 @@ function defaults(): SaveData {
     endlessMode: false,
     endlessBest: {},
     curses: [],
+    rewrites: 0,
+    legacyTokens: 0,
+    tree: {},
+    cycleBits: 0,
+    cycleRuns: 0,
+    cycleOvertimeBest: {},
+    keptMeta: [],
     lastSeenVersion: '',
     suspendedRun: null,
   };
@@ -140,6 +163,14 @@ export function loadSave(): SaveData {
     // generous, but never hides a map a veteran could already see and buy.
     if (!data.mapVictories && out.lifetime.victories > 0) {
       for (const id of out.unlockedMaps) out.mapVictories[id] = 1;
+    }
+    // Grandfather pre-prestige saves: cycle counters didn't exist, so seed the
+    // first cycle from lifetime records — a veteran's pre-prestige progress
+    // counts toward their first Rewrite instead of vanishing.
+    if (typeof data.cycleBits !== 'number') {
+      out.cycleBits = out.lifetime.bitsEarned;
+      out.cycleRuns = out.lifetime.runs;
+      out.cycleOvertimeBest = { ...out.endlessBest };
     }
     // Weapons with lifetime damage on record were certainly wielded — derives
     // arsenal-tab encounters for saves predating the tab (and self-heals).

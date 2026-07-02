@@ -3,6 +3,8 @@ import { persistSave, wipeSave } from '../save/save';
 import { CHARACTER_LIST, CHARACTERS } from '../data/characters';
 import { MAP_LIST, MAPS } from '../data/maps';
 import { CURSES, CURSE_LIST } from '../data/curses';
+import { playerVersion, SHIP_BONUS_BITS_PER_REWRITE, SHIP_BONUS_XP_PER_REWRITE } from '../data/prestige';
+import { shipAvailable, shipRewrite, tokensOnRewrite, type RewriteReceipt } from '../save/prestige';
 import { META_UPGRADES, metaCost } from '../data/meta';
 import { SHOP_WEAPONS, WEAPONS } from '../data/weapons';
 import { ENEMIES } from '../data/enemies';
@@ -314,10 +316,18 @@ export class UI {
     const resumeBtn = susp
       ? `<button class="btn primary" data-act="resumeRun">RESUME RUN — ${suspChar} @ ${formatTime(susp.time)}</button>`
       : '';
+    // SHIP IT (prestige): offered once the last map is cleared this cycle;
+    // the whole surface stays invisible until then (PRESTIGE.md §2)
+    const shipBtn = shipAvailable(this.save)
+      ? `<button class="btn" data-act="ship" style="--accent:#ffc12e">⟲ SHIP IT — ${tokensOnRewrite(this.save).total} tokens on rewrite</button>`
+      : '';
+    const you = this.save.rewrites > 0 || shipAvailable(this.save)
+      ? ` · you: ${playerVersion(this.save.rewrites)}${this.save.legacyTokens > 0 ? ` · ⟲ ${this.save.legacyTokens}` : ''}`
+      : '';
     const s = this.screen(`
       <div class="title" data-text="DEBUGGER">DEBUGGER<span class="cursor">_</span></div>
       <div class="subtitle">// the bugs are real. squash them all.</div>
-      <div class="bits-display">⌬ ${this.save.bits} bits</div>
+      <div class="bits-display">⌬ ${this.save.bits} bits${you}</div>
       <div class="menu-col">
         ${resumeBtn}
         <button class="btn ${susp ? '' : 'primary'}" data-act="start">START RUN</button>
@@ -327,6 +337,7 @@ export class UI {
         <button class="btn" data-act="codex">BUG DATABASE${this.anyUnseen(this.codexIds()) ? '<span class="new-dot">●</span>' : ''}</button>
         <button class="btn" data-act="objectives">OBJECTIVES${this.anyUnseen(this.objectiveIds()) ? '<span class="new-dot">●</span>' : ''}</button>
         <button class="btn" data-act="whatsnew">WHAT'S NEW${this.notesUnseen() ? '<span class="new-dot">●</span>' : ''}</button>
+        ${shipBtn}
         <button class="btn" data-act="settings">SETTINGS</button>
       </div>
       <div class="controls-hint"><kbd>WASD</kbd> move/navigate &nbsp; <kbd>ENTER</kbd> select &nbsp; <kbd>ESC</kbd> back/pause &nbsp; <kbd>🎮</kbd> gamepad works too &nbsp; auto-attack: just survive</div>
@@ -344,7 +355,65 @@ export class UI {
       else if (act === 'codex') this.showCodex();
       else if (act === 'objectives') this.showObjectives();
       else if (act === 'whatsnew') this.showWhatsNew();
+      else if (act === 'ship') this.showRewrite();
       else if (act === 'settings') this.showSettings();
+    });
+  }
+
+  // ---------- prestige: the Rewrite screen (docs/PRESTIGE.md §2) ----------
+
+  showRewrite(armed = false): void {
+    const t = tokensOnRewrite(this.save);
+    const blocked = !!this.save.suspendedRun;
+    const next = playerVersion(this.save.rewrites + 1);
+    const bonus = Math.round(SHIP_BONUS_BITS_PER_REWRITE * 100) * (this.save.rewrites + 1);
+    const xpBonus = Math.round(SHIP_BONUS_XP_PER_REWRITE * 100) * (this.save.rewrites + 1);
+    const s = this.screen(`
+      <div class="screen-heading">the great rewrite — ship ${next} of yourself</div>
+      <div class="summary-box">
+        <div class="summary-divider"><span>LEGACY TOKENS ON REWRITE</span></div>
+        <div class="row"><span>Maps cleared this cycle (×3)</span><span class="v">⟲ ${t.mapTokens}</span></div>
+        <div class="row"><span>Bits earned this cycle (√)</span><span class="v">⟲ ${t.bitsTokens}</span></div>
+        <div class="row"><span>Overtime survived (per 3 min)</span><span class="v">⟲ ${t.overtimeTokens}</span></div>
+        <div class="row total"><span>TOKENS ON REWRITE</span><span class="v">⟲ ${t.total}</span></div>
+        <div class="summary-divider"><span>WHAT THE REWRITE DOES</span></div>
+        <div class="row"><span class="dim">Resets</span><span class="v">shop upgrades · bits · licenses · maps · characters · per-map wins</span></div>
+        <div class="row"><span class="dim">Keeps</span><span class="v">codex · objectives · records · shop reveals · tokens & tree</span></div>
+        <div class="row"><span class="dim">Grants</span><span class="v">Ship Bonus +${bonus}% bits, +${xpBonus}% XP (permanent)</span></div>
+      </div>
+      ${blocked ? '<div class="hint">a suspended run is holding the release — finish or kill it first</div>' : ''}
+      <button class="btn ${armed ? 'danger armed' : 'primary'}" data-act="ship" ${blocked ? 'disabled' : ''}>
+        ${armed ? `SHIP ${next} — ARE YOU SURE?` : `⟲ SHIP IT (${t.total} tokens)`}
+      </button>
+      <button class="btn" data-act="back">BACK</button>
+    `, () => this.showMainMenu());
+    s.addEventListener('click', (e) => {
+      const act = (e.target as HTMLElement).closest('button')?.dataset.act;
+      if (act === 'back') { this.showMainMenu(); return; }
+      if (act !== 'ship' || blocked) return;
+      if (!armed) { sound.play('bossWarn'); this.showRewrite(true); return; }
+      const receipt = shipRewrite(this.save);
+      this.persist();
+      sound.play('victory');
+      this.showRewriteReceipt(receipt);
+    });
+  }
+
+  /** Post-ship cycle summary — release-notes styled (PRESTIGE.md §2). */
+  private showRewriteReceipt(r: RewriteReceipt): void {
+    const s = this.screen(`
+      <div class="result-heading win">${r.version} SHIPPED</div>
+      <div class="hint">the old codebase is gone. what you learned compiles into the new version.</div>
+      <div class="summary-box">
+        <div class="row"><span>Runs this cycle</span><span class="v">${r.cycleRuns}</span></div>
+        <div class="row"><span>Bits earned this cycle</span><span class="v">⌬ ${r.cycleBits}</span></div>
+        <div class="row"><span>Legacy Tokens gained</span><span class="v">⟲ ${r.tokens.total}</span></div>
+        <div class="row total"><span>TOKENS BANKED</span><span class="v">⟲ ${this.save.legacyTokens}</span></div>
+      </div>
+      <button class="btn primary" data-act="continue">BOOT ${playerVersion(this.save.rewrites)}</button>
+    `, () => this.showMainMenu());
+    s.addEventListener('click', (e) => {
+      if ((e.target as HTMLElement).closest('button')?.dataset.act === 'continue') this.showMainMenu();
     });
   }
 
