@@ -5,7 +5,7 @@
 // objectives, records, reveals) and everything prestige persist.
 
 import type { SaveData } from './save';
-import { legacyTokens, type TokenBreakdown } from '../data/prestige';
+import { legacyTokens, treePerks, type TokenBreakdown } from '../data/prestige';
 
 /** Tokens a Rewrite would grant right now (the live counter + preview). */
 export function tokensOnRewrite(save: SaveData): TokenBreakdown {
@@ -42,14 +42,18 @@ export function shipRewrite(save: SaveData): RewriteReceipt {
   save.rewrites++;
   save.legacyTokens += tokens.total;
 
+  const perks = treePerks(save.tree);
   // resets (PRESTIGE.md §4, left column) — keptMeta (Persistent Config picks)
-  // survive the shop wipe
+  // survive the shop wipe, clamped to the slots actually owned (the UI
+  // enforces this too; the clamp keeps a hand-edited save honest)
+  save.keptMeta = save.keptMeta.slice(0, perks.keptMetaSlots);
   const kept: Record<string, number> = {};
   for (const id of save.keptMeta) {
     if (save.metaLevels[id]) kept[id] = save.metaLevels[id];
   }
   save.metaLevels = kept;
-  save.bits = 0;
+  // Severance Package: the new cycle's starting allocation (0 unranked)
+  save.bits = perks.startBits;
   save.unlockedWeapons = [];
   save.unlockedMaps = ['greenfield'];
   save.unlockedCharacters = ['ada'];

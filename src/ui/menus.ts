@@ -3,7 +3,11 @@ import { persistSave, wipeSave } from '../save/save';
 import { CHARACTER_LIST, CHARACTERS } from '../data/characters';
 import { MAP_LIST, MAPS } from '../data/maps';
 import { CURSES, CURSE_LIST } from '../data/curses';
-import { playerVersion, SHIP_BONUS_BITS_PER_REWRITE, SHIP_BONUS_XP_PER_REWRITE } from '../data/prestige';
+import {
+  playerVersion, SHIP_BONUS_BITS_PER_REWRITE, SHIP_BONUS_XP_PER_REWRITE,
+  PRESTIGE_NODES, PRESTIGE_NODE_BY_ID, nodeCost, nodeMaxRank, treePerks, GAME_SPEEDS,
+  type PrestigeBranch,
+} from '../data/prestige';
 import { shipAvailable, shipRewrite, tokensOnRewrite, type RewriteReceipt } from '../save/prestige';
 import { META_UPGRADES, metaCost } from '../data/meta';
 import { SHOP_WEAPONS, WEAPONS } from '../data/weapons';
@@ -317,11 +321,18 @@ export class UI {
       ? `<button class="btn primary" data-act="resumeRun">RESUME RUN — ${suspChar} @ ${formatTime(susp.time)}</button>`
       : '';
     // SHIP IT (prestige): offered once the last map is cleared this cycle;
-    // the whole surface stays invisible until then (PRESTIGE.md §2)
+    // the whole surface stays invisible until then (PRESTIGE.md §2). The
+    // LEGACY TREE keeps showing once any prestige state exists — tokens must
+    // stay spendable between rewrites, when SHIP IT itself is hidden again.
     const shipBtn = shipAvailable(this.save)
       ? `<button class="btn" data-act="ship" style="--accent:#ffc12e">⟲ SHIP IT — ${tokensOnRewrite(this.save).total} tokens on rewrite</button>`
       : '';
-    const you = this.save.rewrites > 0 || shipAvailable(this.save)
+    const prestigeSeen = shipAvailable(this.save) || this.save.rewrites > 0
+      || this.save.legacyTokens > 0 || Object.keys(this.save.tree).length > 0;
+    const treeBtn = prestigeSeen
+      ? `<button class="btn" data-act="tree" style="--accent:#ffc12e">⟲ LEGACY TREE${this.save.legacyTokens > 0 ? ` — ${this.save.legacyTokens} banked` : ''}</button>`
+      : '';
+    const you = prestigeSeen
       ? ` · you: ${playerVersion(this.save.rewrites)}${this.save.legacyTokens > 0 ? ` · ⟲ ${this.save.legacyTokens}` : ''}`
       : '';
     const s = this.screen(`
@@ -338,6 +349,7 @@ export class UI {
         <button class="btn" data-act="objectives">OBJECTIVES${this.anyUnseen(this.objectiveIds()) ? '<span class="new-dot">●</span>' : ''}</button>
         <button class="btn" data-act="whatsnew">WHAT'S NEW${this.notesUnseen() ? '<span class="new-dot">●</span>' : ''}</button>
         ${shipBtn}
+        ${treeBtn}
         <button class="btn" data-act="settings">SETTINGS</button>
       </div>
       <div class="controls-hint"><kbd>WASD</kbd> move/navigate &nbsp; <kbd>ENTER</kbd> select &nbsp; <kbd>ESC</kbd> back/pause &nbsp; <kbd>🎮</kbd> gamepad works too &nbsp; auto-attack: just survive</div>
@@ -356,7 +368,66 @@ export class UI {
       else if (act === 'objectives') this.showObjectives();
       else if (act === 'whatsnew') this.showWhatsNew();
       else if (act === 'ship') this.showRewrite();
+      else if (act === 'tree') this.showTree();
       else if (act === 'settings') this.showSettings();
+    });
+  }
+
+  // ---------- prestige: the Legacy Tree (docs/PRESTIGE.md §5) ----------
+
+  showTree(): void {
+    const BRANCHES: { id: PrestigeBranch; title: string; sub: string }[] = [
+      { id: 'momentum', title: '~/momentum', sub: 'hit the ground running' },
+      { id: 'skills', title: '~/skills', sub: 'the active-input layer' },
+      { id: 'leverage', title: '~/leverage', sub: 'economy & the long game' },
+    ];
+    const KIND_TAG = { M: 'MECHANIC', K: 'KEEP', E: 'ECONOMY' } as const;
+    const panels = BRANCHES.map((b) => {
+      const rows = PRESTIGE_NODES.filter((n) => n.branch === b.id).map((n) => {
+        const rank = this.save.tree[n.id] ?? 0;
+        const max = nodeMaxRank(n);
+        const cost = nodeCost(n, rank);
+        const maxed = cost === null;
+        // finite nodes rank up on pips like the shop; the repeatable tail
+        // shows its rank counter instead (∞ has no pips to fill)
+        const pips = Number.isFinite(max)
+          ? `<div class="pips">${Array.from({ length: max }, (_, i) =>
+              `<span class="pip ${i < rank ? 'on' : ''}"></span>`).join('')}</div>`
+          : `<div class="pips"><span class="obj-count">×${rank} · ∞</span></div>`;
+        return `
+        <div class="shop-row">
+          <div class="icon">${n.icon}</div>
+          <div class="info"><h4>${n.name} <span class="codex-tag">${KIND_TAG[n.kind]}</span></h4><p>${n.desc} <em>${n.flavor}</em></p></div>
+          ${pips}
+          <button class="btn small" data-node="${n.id}" ${maxed || this.save.legacyTokens < (cost ?? 0) ? 'disabled' : ''}>
+            ${maxed ? 'MAX' : `${cost} ⟲`}
+          </button>
+        </div>`;
+      }).join('');
+      return `<div class="codex-panel"><h3>${b.title} <span class="obj-count">${b.sub}</span></h3>${rows}</div>`;
+    }).join('');
+    const s = this.screen(`
+      <div class="screen-heading">the legacy tree — what the old codebase taught you</div>
+      <div class="bits-display">⟲ ${this.save.legacyTokens} legacy tokens · you: ${playerVersion(this.save.rewrites)}</div>
+      <div class="codex-cols">${panels}</div>
+      <button class="btn" data-act="back">BACK</button>
+    `, () => this.showMainMenu());
+    s.addEventListener('click', (e) => {
+      const btn = (e.target as HTMLElement).closest('button');
+      if (!btn) return;
+      if (btn.dataset.act === 'back') { this.showMainMenu(); return; }
+      const id = btn.dataset.node;
+      if (!id) return;
+      const def = PRESTIGE_NODE_BY_ID[id];
+      const rank = this.save.tree[id] ?? 0;
+      const cost = nodeCost(def, rank);
+      if (cost === null || this.save.legacyTokens < cost) { sound.play('hurt'); return; }
+      this.save.legacyTokens -= cost;
+      this.save.tree[id] = rank + 1;
+      this.persist();
+      this.onSettingsChanged(); // Time Dilation ranks re-clamp the speed setting
+      sound.play('buy');
+      this.showTree();
     });
   }
 
@@ -368,6 +439,25 @@ export class UI {
     const next = playerVersion(this.save.rewrites + 1);
     const bonus = Math.round(SHIP_BONUS_BITS_PER_REWRITE * 100) * (this.save.rewrites + 1);
     const xpBonus = Math.round(SHIP_BONUS_XP_PER_REWRITE * 100) * (this.save.rewrites + 1);
+    const perks = treePerks(this.save.tree);
+    // Persistent Config (§5-A): the kept-upgrade picker. Prune picks whose
+    // upgrade isn't owned anymore (nothing to keep), then offer the owned rows.
+    this.save.keptMeta = this.save.keptMeta
+      .filter((id) => (this.save.metaLevels[id] ?? 0) > 0)
+      .slice(0, perks.keptMetaSlots);
+    const owned = META_UPGRADES.filter((m) => (this.save.metaLevels[m.id] ?? 0) > 0);
+    const keptBlock = perks.keptMetaSlots > 0 && owned.length > 0 ? `
+      <div class="screen-heading" style="margin-top:18px">💾 persistent config — pick up to ${perks.keptMetaSlots} to keep</div>
+      <div style="display:flex;flex-wrap:wrap;gap:8px;justify-content:center;max-width:900px;margin:0 auto 12px">
+        ${owned.map((m) => `
+          <button class="btn small ${this.save.keptMeta.includes(m.id) ? 'primary' : ''}" data-keep="${m.id}">
+            ${m.icon} ${m.name} · lv ${this.save.metaLevels[m.id]}
+          </button>`).join('')}
+      </div>` : '';
+    const keptNote = this.save.keptMeta.length > 0
+      ? ` · ${this.save.keptMeta.length} kept upgrade${this.save.keptMeta.length > 1 ? 's' : ''}` : '';
+    const grants = `Ship Bonus +${bonus}% bits, +${xpBonus}% XP (permanent)`
+      + (perks.startBits > 0 ? ` · ${perks.startBits} ⌬ severance` : '');
     const s = this.screen(`
       <div class="screen-heading">the great rewrite — ship ${next} of yourself</div>
       <div class="summary-box">
@@ -378,9 +468,10 @@ export class UI {
         <div class="row total"><span>TOKENS ON REWRITE</span><span class="v">⟲ ${t.total}</span></div>
         <div class="summary-divider"><span>WHAT THE REWRITE DOES</span></div>
         <div class="row"><span class="dim">Resets</span><span class="v">shop upgrades · bits · licenses · maps · characters · per-map wins</span></div>
-        <div class="row"><span class="dim">Keeps</span><span class="v">codex · objectives · records · shop reveals · tokens & tree</span></div>
-        <div class="row"><span class="dim">Grants</span><span class="v">Ship Bonus +${bonus}% bits, +${xpBonus}% XP (permanent)</span></div>
+        <div class="row"><span class="dim">Keeps</span><span class="v">codex · objectives · records · shop reveals · tokens & tree${keptNote}</span></div>
+        <div class="row"><span class="dim">Grants</span><span class="v">${grants}</span></div>
       </div>
+      ${keptBlock}
       ${blocked ? '<div class="hint">a suspended run is holding the release — finish or kill it first</div>' : ''}
       <button class="btn ${armed ? 'danger armed' : 'primary'}" data-act="ship" ${blocked ? 'disabled' : ''}>
         ${armed ? `SHIP ${next} — ARE YOU SURE?` : `⟲ SHIP IT (${t.total} tokens)`}
@@ -390,6 +481,21 @@ export class UI {
     s.addEventListener('click', (e) => {
       const act = (e.target as HTMLElement).closest('button')?.dataset.act;
       if (act === 'back') { this.showMainMenu(); return; }
+      const keep = (e.target as HTMLElement).closest<HTMLElement>('[data-keep]')?.dataset.keep;
+      if (keep) {
+        // toggling a pick disarms the confirm — the ship contents changed
+        if (this.save.keptMeta.includes(keep)) {
+          this.save.keptMeta = this.save.keptMeta.filter((id) => id !== keep);
+        } else if (this.save.keptMeta.length < perks.keptMetaSlots) {
+          this.save.keptMeta.push(keep);
+        } else {
+          sound.play('hurt'); // slots full — unpick something first
+          return;
+        }
+        this.persist();
+        this.showRewrite();
+        return;
+      }
       if (act !== 'ship' || blocked) return;
       if (!armed) { sound.play('bossWarn'); this.showRewrite(true); return; }
       const receipt = shipRewrite(this.save);
@@ -865,6 +971,9 @@ export class UI {
   showSettings(onBack?: () => void): void {
     const st = this.save.settings;
     const back = onBack ?? (() => this.showMainMenu());
+    // Time Dilation (prestige tree): the speed row only exists once a rank is
+    // owned; the cycle stops at the unlocked ceiling
+    const maxSpeed = treePerks(this.save.tree).maxGameSpeed;
     const s = this.screen(`
       <div class="screen-heading">~/.debuggerrc</div>
       <div class="settings-box">
@@ -900,6 +1009,11 @@ export class UI {
           <label>Minimap</label>
           <button class="toggle ${st.minimap ? '' : 'off'}" id="minimap">${st.minimap ? 'ON' : 'OFF'}</button>
         </div>
+        ${maxSpeed > 1 ? `
+        <div class="setting-row">
+          <label>Game speed (Time Dilation)</label>
+          <button class="toggle" id="gamespeed">${(GAME_SPEEDS.includes(st.gameSpeed) ? st.gameSpeed : 1)}×</button>
+        </div>` : ''}
         ${BIND_ACTIONS.map(({ action, label }) => `
         <div class="setting-row">
           <label>${label}</label>
@@ -954,6 +1068,14 @@ export class UI {
     });
     s.querySelector('#minimap')!.addEventListener('click', () => {
       st.minimap = !st.minimap;
+      this.persist();
+      this.onSettingsChanged();
+      this.showSettings(onBack);
+    });
+    s.querySelector('#gamespeed')?.addEventListener('click', () => {
+      const allowed = GAME_SPEEDS.filter((v) => v <= maxSpeed);
+      const i = allowed.indexOf(st.gameSpeed);
+      st.gameSpeed = allowed[(i + 1) % allowed.length] ?? 1;
       this.persist();
       this.onSettingsChanged();
       this.showSettings(onBack);
@@ -1237,10 +1359,11 @@ export class UI {
         .map(([key, label, fmt]) =>
           `<div class="stat-line"><span>${label}</span><span class="v">${fmt(eff[key])}</span></div>`)
         .join('');
+      // Preflight Check (prestige tree) lowers the readiness gate by one level
       const evo = w.def.evolveTo
-        ? w.level >= maxLvOf(w)
+        ? w.level >= maxLvOf(w) - run.perks.evolveEarly
           ? `<div class="evo-line ready">⚡ EVOLUTION READY — next boss chest forges ${WEAPONS[w.def.evolveTo].name}</div>`
-          : `<div class="evo-line">⮕ evolves into ${WEAPONS[w.def.evolveTo].name} at max level</div>`
+          : `<div class="evo-line">⮕ evolves into ${WEAPONS[w.def.evolveTo].name} at ${run.perks.evolveEarly > 0 ? `level ${maxLvOf(w) - run.perks.evolveEarly}` : 'max level'}</div>`
         : EVOLVED_FROM[w.def.id]
           ? `<div class="evo-line">⮑ evolved from ${WEAPONS[EVOLVED_FROM[w.def.id]].name}</div>`
           : '';

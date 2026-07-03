@@ -4,6 +4,7 @@ import { WEAPONS } from '../data/weapons';
 import { ENEMIES } from '../data/enemies';
 import { BOSSES } from '../data/bosses';
 import { CARD_BY_ID } from '../data/upgrades';
+import type { PrestigePerks } from '../data/prestige';
 import { Run, type Enemy, type Pickup, type GroundZone, type Obstacle, type TerrainPatch, type Ally, type Mushi, type Slam } from './run';
 
 // Suspend & resume: a full-fidelity snapshot of a live run, stored inside
@@ -61,6 +62,10 @@ export interface SuspendedRun {
   curseTimed?: { id: string; nextAt: number; warned: boolean }[];
   // prestige Ship Bonus — optional: pre-prestige snapshots restore at 0
   rewrites?: number;
+  /** resolved prestige tree perks — optional: pre-tree snapshots restore
+   *  neutral. Stored resolved (not as node ranks) so a tree bought AFTER
+   *  suspending can't retroactively buff a mid-flight run. */
+  perks?: PrestigePerks;
   // character specials
   turretT: number; helperT: number;
   // entities
@@ -131,6 +136,7 @@ export function snapshotRun(run: Run): SuspendedRun {
     endless: run.endless, banked: run.banked,
     curses: run.curses.map((c) => c.id),
     rewrites: run.rewrites,
+    perks: { ...run.perks },
     curseReverseT: run.curseReverseT, curseLockT: run.curseLockT,
     curseTimed: run.curseTimed.map((t) => ({ id: t.def.id, nextAt: t.nextAt, warned: t.warned })),
     turretT: run.turretT, helperT: run.helperT,
@@ -158,7 +164,7 @@ export function restoreRun(snap: SuspendedRun, doneObjectives: Set<string>): Run
   const character = CHARACTERS[snap.charId] ?? fail('character', snap.charId);
   const map = MAPS[snap.mapId] ?? fail('map', snap.mapId);
   const run = new Run(character, map, { ...snap.metaLevels }, [...snap.weaponPool], doneObjectives,
-    { endless: snap.endless, curses: snap.curses, rewrites: snap.rewrites });
+    { endless: snap.endless, curses: snap.curses, rewrites: snap.rewrites, perks: snap.perks });
 
   // cards first: applyCard() rebuilds cardMods + takenCards and recomputes stats
   for (const [id, count] of snap.takenCards) {

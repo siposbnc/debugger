@@ -1,7 +1,7 @@
 import type { BossDef, CharacterDef, CurseDef, EnemyDef, MapDef, RunStatsView, StatMods, UpgradeCard, WeaponDef } from '../data/types';
 import { WEAPONS } from '../data/weapons';
 import { CURSES } from '../data/curses';
-import { SHIP_BONUS_BITS_PER_REWRITE, SHIP_BONUS_XP_PER_REWRITE } from '../data/prestige';
+import { SHIP_BONUS_BITS_PER_REWRITE, SHIP_BONUS_XP_PER_REWRITE, NO_PERKS, type PrestigePerks } from '../data/prestige';
 import { RUN_DURATION, WORKDAY_DURATION } from '../data/maps';
 import { OBJECTIVES, OBJECTIVE_BITS } from '../data/objectives';
 import { BOSS_BITS } from '../data/bosses';
@@ -346,6 +346,10 @@ export class Run {
   // Prestige Ship Bonus (docs/PRESTIGE.md §6): completed Rewrites on the save.
   // +30% Bits (computeBits line) and +10% XP (recompute) each — 0 = untouched.
   rewrites = 0;
+  // Prestige tree perks (docs/PRESTIGE.md §5), resolved by treePerks() from
+  // the save's node ranks. NO_PERKS (all-neutral) when absent — sims and
+  // fresh saves run the certified baseline untouched.
+  perks: PrestigePerks = NO_PERKS;
 
   // player
   px = 0; py = 0;
@@ -459,11 +463,12 @@ export class Run {
      *  events) — hazards stay. Balance-sim policy (user 2026-06-12): the §5/§1
      *  instruments always run on terrain-free maps so terrain content never
      *  invalidates win-rate baselines; terrain is validated by its own tests. */
-    private opts: { noTerrain?: boolean; endless?: boolean; curses?: string[]; rewrites?: number } = {},
+    private opts: { noTerrain?: boolean; endless?: boolean; curses?: string[]; rewrites?: number; perks?: PrestigePerks } = {},
   ) {
     this.eventsEnabled = !opts.noTerrain;
     this.endless = !!opts.endless;
     this.rewrites = opts.rewrites ?? 0;
+    this.perks = opts.perks ?? NO_PERKS;
     for (const id of opts.curses ?? []) {
       const c = CURSES[id];
       if (!c) continue; // unknown id (content drift in the save): skip, don't crash
@@ -477,9 +482,10 @@ export class Run {
       if (c.timed) this.curseTimed.push({ def: c, nextAt: c.timed.period, warned: false });
     }
     this.stats = computeStats(character, metaLevels, this.cardMods);
-    // curse taxes + prestige XP bonus apply from frame 0 (recompute() re-applies)
+    // curse taxes + prestige XP bonuses apply from frame 0 (recompute() re-applies)
     if (this.curseMods.pickupRadius !== 1) this.stats.pickupRadius *= this.curseMods.pickupRadius;
     if (this.rewrites > 0) this.stats.xpMult *= 1 + SHIP_BONUS_XP_PER_REWRITE * this.rewrites;
+    if (this.perks.xpMult !== 1) this.stats.xpMult *= this.perks.xpMult;
     this.hp = this.stats.maxHp;
     this.shield = this.stats.shieldMax;
     this.rerollsLeft = this.stats.rerolls;
@@ -490,6 +496,14 @@ export class Run {
     this.addWeapon(character.special === 'randomWeapon'
       ? pick(this.weaponPool.filter((id) => !WEAPONS[id]?.isEvolution))
       : character.weapon);
+
+    // Warm Boot (prestige tree): runs start at level 2/3/4 with the matching
+    // card picks owed — queued on pendingLevelUps exactly like earned levels,
+    // so the picks greet the player at spawn.
+    if (this.perks.startLevel > 1) {
+      this.level = this.perks.startLevel;
+      this.pendingLevelUps = this.perks.startLevel - 1;
+    }
 
     if (map.hazardPools) {
       for (let i = 0; i < 26; i++) {
@@ -717,8 +731,10 @@ export class Run {
     }
     // curse stat taxes (×1 with no curses); dbg statOverrides still win below
     if (this.curseMods.pickupRadius !== 1) this.stats.pickupRadius *= this.curseMods.pickupRadius;
-    // prestige Ship Bonus XP half (+10% per Rewrite; 0 rewrites = ×1)
+    // prestige Ship Bonus XP half (+10% per Rewrite; 0 rewrites = ×1) and the
+    // Continuous Learning tree node (×1 at an empty tree)
     if (this.rewrites > 0) this.stats.xpMult *= 1 + SHIP_BONUS_XP_PER_REWRITE * this.rewrites;
+    if (this.perks.xpMult !== 1) this.stats.xpMult *= this.perks.xpMult;
     if (this.statOverrides) Object.assign(this.stats, this.statOverrides);
     // a max-HP increase heals by that amount — the player GAINS the health, not
     // just a taller bar (mirrors the shield rule above); a decrease just clamps
@@ -1580,9 +1596,12 @@ export class Run {
       this.creditsCollected += p.value;
       this.emit({ type: 'creditPickup', x: p.x, y: p.y, value: p.value });
     } else {
-      // chest: evolve a maxed weapon if possible, else bonus
+      // chest: evolve a maxed weapon if possible, else bonus. Preflight Check
+      // (prestige tree) shaves the gate: evolution-ready one level early —
+      // the boss chest itself is still the trigger, exactly as before.
       this.emit({ type: 'chest', x: p.x, y: p.y });
-      const evolvable = this.weapons.find((w) => !w.def.isEvolution && w.def.evolveTo && w.level >= w.def.levels.length);
+      const evolvable = this.weapons.find((w) =>
+        !w.def.isEvolution && w.def.evolveTo && w.level >= w.def.levels.length - this.perks.evolveEarly);
       if (evolvable) {
         this.evolveWeapon(evolvable);
       } else {
@@ -1767,6 +1786,15 @@ export class Run {
       breakdown.push({
         label: `Ship Bonus v${this.rewrites + 1}.0 (+${Math.round(bonus * 100)}%)`,
         value: core * bonus,
+      });
+    }
+    // Compound Interest (prestige tree): the repeatable Bits tail — same
+    // everything-earned-so-far basis as the bonus lines above
+    if (this.perks.bitsMult > 1) {
+      const core = breakdown.reduce((a, b) => a + b.value, 0);
+      breakdown.push({
+        label: `Compound Interest (+${Math.round((this.perks.bitsMult - 1) * 100)}%)`,
+        value: core * (this.perks.bitsMult - 1),
       });
     }
     const base = breakdown.reduce((a, b) => a + b.value, 0);

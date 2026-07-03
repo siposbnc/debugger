@@ -29,6 +29,9 @@ export interface SaveData {
     master: number; sfx: number; music: number;
     shake: boolean; reduceFlash: boolean; playerHpBar: boolean; fpsCounter: boolean;
     minimap: boolean;
+    /** Sim-speed multiplier (Time Dilation prestige node). Values outside what
+     *  the owned node ranks unlock fall back to 1× at apply time. */
+    gameSpeed: number;
     /** Custom key bindings (action → KeyboardEvent.code); missing = default. */
     keys: Record<string, string>;
   };
@@ -118,7 +121,7 @@ function defaults(): SaveData {
     lastCharacter: 'ada',
     lastMap: 'greenfield',
     lifetime: { runs: 0, kills: 0, bossKills: 0, bitsEarned: 0, bestTimeSec: 0, bestLevel: 0, victories: 0, uptimeSec: 0, weaponDamage: {} },
-    settings: { master: 1, sfx: 0.7, music: 0.5, shake: true, reduceFlash: false, playerHpBar: true, fpsCounter: false, minimap: true, keys: {} },
+    settings: { master: 1, sfx: 0.7, music: 0.5, shake: true, reduceFlash: false, playerHpBar: true, fpsCounter: false, minimap: true, gameSpeed: 1, keys: {} },
     seenIds: [],
     encountered: [],
     unlockedMeta: [],

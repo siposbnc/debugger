@@ -9,6 +9,7 @@ import { snapshotRun, restoreRun } from './game/runSave';
 import { grantChestCard, makeOffer, applyOffer } from './game/levelup';
 import { CARD_BY_ID } from './data/upgrades';
 import { META_UPGRADES } from './data/meta';
+import { treePerks, GAME_SPEEDS } from './data/prestige';
 import { createRenderer } from './render';
 import { UI } from './ui/menus';
 import { sound } from './audio/sound';
@@ -47,6 +48,14 @@ if (__DEV_TOOLS__) {
 }
 
 function applySettings(): void {
+  // Time Dilation (prestige tree): the settings toggle sets the sim speed,
+  // clamped to the speeds the node ranks actually unlock (1× untranked).
+  // Turbo (dev) keeps its own fixed 6× regardless.
+  if (!TURBO) {
+    const maxSpeed = treePerks(save.tree).maxGameSpeed;
+    simSpeed = GAME_SPEEDS.includes(save.settings.gameSpeed) && save.settings.gameSpeed <= maxSpeed
+      ? save.settings.gameSpeed : 1;
+  }
   sound.masterVolume = save.settings.master;
   sound.sfxVolume = save.settings.sfx;
   sound.musicVolume = save.settings.music;
@@ -69,7 +78,7 @@ function startRun(charId: string, mapId: string): void {
   // cleared at least once — the toggle can't leak onto an unearned map.
   const endless = save.endlessMode && (save.mapVictories[map.id] ?? 0) > 0;
   run = new Run(character, map, save.metaLevels, weaponPool, new Set(save.completedObjectives),
-    { endless, curses: save.curses, rewrites: save.rewrites });
+    { endless, curses: save.curses, rewrites: save.rewrites, perks: treePerks(save.tree) });
   if (TURBO) run.invincible = true;
   renderer.camX = 0; renderer.camY = 0;
   ui.hide();

@@ -25,9 +25,11 @@ export function isDown(code: string): boolean {
 // Custom codes from settings override the WASD/P defaults; arrows (movement)
 // and Esc (pause) are fixed fallbacks and never remap.
 
-export type BindAction = 'up' | 'down' | 'left' | 'right' | 'pause';
+export type BindAction = 'up' | 'down' | 'left' | 'right' | 'pause' | 'dash' | 'sudo';
 export const DEFAULT_BINDINGS: Record<BindAction, string> = {
   up: 'KeyW', down: 'KeyS', left: 'KeyA', right: 'KeyD', pause: 'KeyP',
+  // prestige actives (docs/PRESTIGE.md §5-B): inert until the tree unlocks them
+  dash: 'Space', sudo: 'ShiftLeft',
 };
 let bindings: Record<BindAction, string> = { ...DEFAULT_BINDINGS };
 
@@ -66,7 +68,7 @@ export function moveVector(): { x: number; y: number } {
 // menus get edge-triggered button presses + a held-direction with key-style
 // repeat (drives KbNav.move()). Never touched by the headless sim.
 
-export const PAD = { A: 0, B: 1, START: 9, UP: 12, DOWN: 13, LEFT: 14, RIGHT: 15 } as const;
+export const PAD = { A: 0, B: 1, X: 2, Y: 3, START: 9, UP: 12, DOWN: 13, LEFT: 14, RIGHT: 15 } as const;
 
 const DEADZONE = 0.35;
 const REPEAT_DELAY = 0.4, REPEAT_RATE = 0.15;
