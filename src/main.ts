@@ -344,6 +344,9 @@ function drainEvents(): void {
       case 'workday': sound.play('victory'); break; // endless 8:00 bank — same fanfare, run continues
       case 'curseWarn': sound.play('bossWarn'); break;
       case 'curseStart': sound.play('vent'); break;
+      case 'dash': sound.play('fizz'); break;
+      case 'sudo': sound.play('evolve'); break;
+      case 'revive': sound.play('victory'); break;
       case 'death': sound.play('death'); break;
       default: break;
     }
@@ -404,6 +407,13 @@ function frame(now: number): void {
     if (run.over && state === 'run') endRun();
   } else {
     acc = 0;
+  }
+
+  // Prestige actives (Dash / Sudo Mode): edge-triggered during runs only.
+  // No-ops until the tree unlocks them (tryDash/trySudo check the perks).
+  if (state === 'run' && run && !run.over) {
+    if (wasPressed(binding('dash')) || padWasPressed(PAD.B)) run.tryDash();
+    if (wasPressed(binding('sudo')) || padWasPressed(PAD.Y)) run.trySudo();
   }
 
   // Gamepad menu navigation: stick/d-pad moves the kbnav highlight, A activates,

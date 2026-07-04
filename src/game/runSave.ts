@@ -66,6 +66,12 @@ export interface SuspendedRun {
    *  neutral. Stored resolved (not as node ranks) so a tree bought AFTER
    *  suspending can't retroactively buff a mid-flight run. */
   perks?: PrestigePerks;
+  /** prestige actives — cooldowns and charges persist (suspend must not be a
+   *  cooldown reset); the sub-second active windows (dashT/sudoT/iframeT)
+   *  are transients and deliberately drop, like projectiles */
+  revivesLeft?: number;
+  dashCdT?: number;
+  sudoCdT?: number;
   // character specials
   turretT: number; helperT: number;
   // entities
@@ -137,6 +143,9 @@ export function snapshotRun(run: Run): SuspendedRun {
     curses: run.curses.map((c) => c.id),
     rewrites: run.rewrites,
     perks: { ...run.perks },
+    revivesLeft: run.revivesLeft,
+    dashCdT: run.dashCdT,
+    sudoCdT: run.sudoCdT,
     curseReverseT: run.curseReverseT, curseLockT: run.curseLockT,
     curseTimed: run.curseTimed.map((t) => ({ id: t.def.id, nextAt: t.nextAt, warned: t.warned })),
     turretT: run.turretT, helperT: run.helperT,
@@ -221,6 +230,11 @@ export function restoreRun(snap: SuspendedRun, doneObjectives: Set<string>): Run
     if (live) { live.nextAt = t.nextAt; live.warned = t.warned; }
   }
   run.turretT = snap.turretT; run.helperT = snap.helperT;
+  // constructor already set revivesLeft from perks — the snapshot's spent
+  // count wins (pre-actives snapshots keep the fresh grant)
+  run.revivesLeft = snap.revivesLeft ?? run.revivesLeft;
+  run.dashCdT = snap.dashCdT ?? 0;
+  run.sudoCdT = snap.sudoCdT ?? 0;
 
   run.enemies = snap.enemies.map(restoreEnemy);
   run.pickups = snap.pickups.map((p) => ({ ...p }));

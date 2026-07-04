@@ -1,7 +1,11 @@
 import type { BossDef, CharacterDef, CurseDef, EnemyDef, MapDef, RunStatsView, StatMods, UpgradeCard, WeaponDef } from '../data/types';
 import { WEAPONS } from '../data/weapons';
 import { CURSES } from '../data/curses';
-import { SHIP_BONUS_BITS_PER_REWRITE, SHIP_BONUS_XP_PER_REWRITE, NO_PERKS, type PrestigePerks } from '../data/prestige';
+import {
+  SHIP_BONUS_BITS_PER_REWRITE, SHIP_BONUS_XP_PER_REWRITE, NO_PERKS,
+  DASH_DISTANCE, DASH_TIME, REVIVE_HP_FRAC, REVIVE_IFRAMES, SUDO_DMG_MULT,
+  type PrestigePerks,
+} from '../data/prestige';
 import { RUN_DURATION, WORKDAY_DURATION } from '../data/maps';
 import { OBJECTIVES, OBJECTIVE_BITS } from '../data/objectives';
 import { BOSS_BITS } from '../data/bosses';
@@ -273,6 +277,9 @@ export type RunEvent =
   | { type: 'workday' }   // endless: 8:00 boundary crossed — payout banked, overtime begins
   | { type: 'curseWarn'; name: string; desc: string }                             // timed curse windup
   | { type: 'curseStart'; name: string; kind: 'reverse' | 'weaponLock'; duration: number }
+  | { type: 'dash'; x: number; y: number }                    // prestige active: dash burst fired
+  | { type: 'sudo'; duration: number }                        // prestige active: root privileges granted
+  | { type: 'revive'; x: number; y: number }                  // Restore Point consumed a death
   | { type: 'death' };
 
 export interface RunResults {
@@ -362,6 +369,16 @@ export class Run {
   healAccum = 0; // sub-1HP heals (regen ticks) pool here until a whole point is shown
   playerSlow = 1;     // recomputed each frame (scarab aura, marsh pools)
   invincible = false; // turbo/debug
+  // Prestige actives (docs/PRESTIGE.md §5-B). iframeT is the shared
+  // invulnerability window (dash i-frames, revive grace) — sudo carries its
+  // own clock because it also buffs damage/CDR while it runs.
+  iframeT = 0;
+  dashT = 0;                     // seconds of dash travel left
+  dashCdT = 0;
+  dashDirX = 1; dashDirY = 0;
+  sudoT = 0;                     // seconds of root privileges left
+  sudoCdT = 0;
+  revivesLeft = 0;               // Restore Point charges (set from perks)
   // State-injection hook (dev console, future sim scenarios): weapon/card ids
   // that makeOffer() returns verbatim — instead of drawing — then clears.
   forcedOffer: string[] | null = null;
@@ -469,6 +486,7 @@ export class Run {
     this.endless = !!opts.endless;
     this.rewrites = opts.rewrites ?? 0;
     this.perks = opts.perks ?? NO_PERKS;
+    this.revivesLeft = this.perks.revives;
     for (const id of opts.curses ?? []) {
       const c = CURSES[id];
       if (!c) continue; // unknown id (content drift in the save): skip, don't crash
@@ -803,8 +821,46 @@ export class Run {
     this.emit({ type: 'victory' });
   }
 
+  /** Dash (prestige active): a burst with i-frames. Caller (main loop, bot,
+   *  dev console) fires it on the keypress; direction = current input, else
+   *  facing. False when locked, cooling down, or mid-dash. */
+  tryDash(): boolean {
+    if (!this.perks.dash || this.dashCdT > 0 || this.dashT > 0 || this.over) return false;
+    // same screen→world rotation (and Malfunction sign flip) as updatePlayer,
+    // so the dash goes where the held keys point on screen
+    const mv = moveVector();
+    const inv = 1 / Math.SQRT2;
+    let wx = (mv.x + mv.y) * inv, wy = (mv.y - mv.x) * inv;
+    if (this.curseReverseT > 0) { wx = -wx; wy = -wy; }
+    const len = Math.hypot(wx, wy);
+    if (len > 0.01) {
+      this.dashDirX = wx / len; this.dashDirY = wy / len;
+    } else {
+      const f = Math.hypot(this.faceX, this.faceY) || 1;
+      this.dashDirX = this.faceX / f; this.dashDirY = this.faceY / f;
+    }
+    this.dashT = DASH_TIME;
+    this.dashCdT = this.perks.dash.cooldown;
+    this.iframeT = Math.max(this.iframeT, this.perks.dash.iframes);
+    this.emit({ type: 'dash', x: this.px, y: this.py });
+    return true;
+  }
+
+  /** Sudo Mode (prestige active): invulnerability + damage + CDR for a few
+   *  seconds on a long cooldown. */
+  trySudo(): boolean {
+    if (!this.perks.sudo || this.sudoCdT > 0 || this.over) return false;
+    this.sudoT = this.perks.sudo.duration;
+    this.sudoCdT = this.perks.sudo.cooldown;
+    this.emit({ type: 'sudo', duration: this.perks.sudo.duration });
+    return true;
+  }
+
   hurtPlayer(amount: number): void {
     if (this.invincible || this.over) return;
+    // prestige actives: dash/revive i-frames and sudo root privileges are
+    // full immunity — no shield chip, no recharge-gate reset
+    if (this.iframeT > 0 || this.sudoT > 0) return;
     let dmg = Math.max(0.5, amount - this.stats.armor);
     this.shieldHitT = 0; // any damage (even fully absorbed) resets the recharge gate
     // shield absorbs first — absorbed damage is not "real" damage (no hurt
@@ -822,6 +878,16 @@ export class Run {
     this.hurtFlash = 0.25;
     this.emit({ type: 'hurt' });
     if (this.hp <= 0) {
+      // Restore Point (prestige active): a charge converts the death into a
+      // revive — half HP, a grace window, and a magnet burst to clear space
+      if (this.revivesLeft > 0) {
+        this.revivesLeft--;
+        this.hp = this.stats.maxHp * REVIVE_HP_FRAC;
+        this.iframeT = Math.max(this.iframeT, REVIVE_IFRAMES);
+        for (const p of this.pickups) if (p.kind !== 'chest') p.magnet = true;
+        this.emit({ type: 'revive', x: this.px, y: this.py });
+        return;
+      }
       this.hp = 0;
       this.over = true;
       // endless: a banked workday survives the overtime death (normal runs
@@ -948,6 +1014,12 @@ export class Run {
     }
     this.hurtFlash = Math.max(0, this.hurtFlash - dt);
 
+    // prestige active clocks (dashT ticks inside updatePlayer's movement)
+    if (this.dashCdT > 0) this.dashCdT -= dt;
+    if (this.sudoCdT > 0) this.sudoCdT -= dt;
+    if (this.sudoT > 0) this.sudoT -= dt;
+    if (this.iframeT > 0) this.iframeT -= dt;
+
     this.objectiveCheckT -= dt;
     if (this.objectiveCheckT <= 0) {
       this.objectiveCheckT = 1;
@@ -981,6 +1053,23 @@ export class Run {
   }
 
   private updatePlayer(dt: number): void {
+    // Dash (prestige active): the burst overrides normal movement — fixed
+    // direction, fixed speed, slow sources ignored. Racks still block: it is
+    // a burst, not a teleport through cover.
+    if (this.dashT > 0) {
+      this.dashT -= dt;
+      const sp = DASH_DISTANCE / DASH_TIME;
+      this.px += this.dashDirX * sp * dt;
+      this.py += this.dashDirY * sp * dt;
+      if (this.obstacles.length > 0) {
+        const s = this.obstacleScratch;
+        s.x = this.px; s.y = this.py;
+        this.resolveObstacles(s, 13);
+        this.px = s.x; this.py = s.y;
+      }
+      this.faceX = this.dashDirX; this.faceY = this.dashDirY;
+      return;
+    }
     const mv = moveVector();
     // Rotate screen-space input 45° into world space so keys match the screen.
     const inv = 1 / Math.SQRT2;
@@ -1653,6 +1742,7 @@ export class Run {
     if (e.isBoss && e.armorMult !== undefined) dmg *= e.armorMult;
     if (this.crunchT > 0) dmg *= CRUNCH_DMG_MULT; // crunch adrenaline
     if (this.buffDmgT > 0) dmg *= CREDITS.dmgBuffMult; // Overclock (registry)
+    if (this.sudoT > 0) dmg *= SUDO_DMG_MULT; // Sudo Mode (prestige active)
 
     e.hp -= dmg;
     e.hitFlash = 0.12;

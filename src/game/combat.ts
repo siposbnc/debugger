@@ -1,5 +1,6 @@
 import type { Enemy, Run, WeaponInstance } from './run';
 import type { WeaponLevelStats } from '../data/types';
+import { SUDO_CDR } from '../data/prestige';
 import { dist } from '../core/util';
 
 // Weapon behaviors. Each kind reads its level stats, applies global stat
@@ -16,7 +17,9 @@ export function effective(run: Run, w: WeaponInstance): WeaponLevelStats & { cou
   return {
     ...lvl,
     damage: lvl.damage * run.stats.damageMult,
-    cooldown: lvl.cooldown * run.stats.cooldownFactor,
+    // Sudo Mode (prestige active): +25% CDR while the root window runs — a
+    // live multiplier on the final factor, deliberately past the 75% cap
+    cooldown: lvl.cooldown * run.stats.cooldownFactor * (run.sudoT > 0 ? 1 - SUDO_CDR : 1),
     area: lvl.area * run.stats.areaMult,
     count: lvl.count + run.stats.projectiles,
   };

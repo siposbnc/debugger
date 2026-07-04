@@ -38,6 +38,10 @@ const BIND_ACTIONS: { action: BindAction; label: string }[] = [
   { action: 'left', label: 'Move left' },
   { action: 'right', label: 'Move right' },
   { action: 'pause', label: 'Pause' },
+  // the two prestige actives only render once their tree node is owned
+  // (no prestige surface before the reveal — PRESTIGE.md §2)
+  { action: 'dash', label: 'Dash' },
+  { action: 'sudo', label: 'Sudo Mode' },
 ];
 
 // Reverse evolution lookup for the codex arsenal tab (evolved id → base id).
@@ -46,8 +50,12 @@ for (const w of Object.values(WEAPONS)) if (w.evolveTo) EVOLVED_FROM[w.evolveTo]
 
 /** Human label for a KeyboardEvent.code ("KeyW" → "W", "ArrowUp" → "↑"). */
 function keyLabel(code: string): string {
-  const arrows: Record<string, string> = { ArrowUp: '↑', ArrowDown: '↓', ArrowLeft: '←', ArrowRight: '→' };
-  return arrows[code] ?? code.replace(/^(Key|Digit)/, '').toUpperCase();
+  const named: Record<string, string> = {
+    ArrowUp: '↑', ArrowDown: '↓', ArrowLeft: '←', ArrowRight: '→',
+    ShiftLeft: 'L-SHIFT', ShiftRight: 'R-SHIFT', ControlLeft: 'L-CTRL',
+    ControlRight: 'R-CTRL', AltLeft: 'L-ALT', AltRight: 'R-ALT',
+  };
+  return named[code] ?? code.replace(/^(Key|Digit)/, '').toUpperCase();
 }
 
 // Card stat preview: each StatMods key → the resolved stat it lands on and how
@@ -972,8 +980,12 @@ export class UI {
     const st = this.save.settings;
     const back = onBack ?? (() => this.showMainMenu());
     // Time Dilation (prestige tree): the speed row only exists once a rank is
-    // owned; the cycle stops at the unlocked ceiling
-    const maxSpeed = treePerks(this.save.tree).maxGameSpeed;
+    // owned; the cycle stops at the unlocked ceiling. Same reveal rule for
+    // the active-skill keybind rows below.
+    const perks = treePerks(this.save.tree);
+    const maxSpeed = perks.maxGameSpeed;
+    const bindActions = BIND_ACTIONS.filter(({ action }) =>
+      (action !== 'dash' || perks.dash) && (action !== 'sudo' || perks.sudo));
     const s = this.screen(`
       <div class="screen-heading">~/.debuggerrc</div>
       <div class="settings-box">
@@ -1014,7 +1026,7 @@ export class UI {
           <label>Game speed (Time Dilation)</label>
           <button class="toggle" id="gamespeed">${(GAME_SPEEDS.includes(st.gameSpeed) ? st.gameSpeed : 1)}×</button>
         </div>` : ''}
-        ${BIND_ACTIONS.map(({ action, label }) => `
+        ${bindActions.map(({ action, label }) => `
         <div class="setting-row">
           <label>${label}</label>
           <button class="toggle bindbtn" data-bind="${action}">${keyLabel(st.keys[action] ?? DEFAULT_BINDINGS[action])}</button>
@@ -1337,6 +1349,7 @@ export class UI {
       row('Pickup radius', `${Math.round(st.pickupRadius)}`),
       row('XP gain', `×${st.xpMult.toFixed(2)}`),
       row('Luck', `${st.luck}`),
+      ...(run.perks.revives > 0 ? [row('Restore Points', `${run.revivesLeft} / ${run.perks.revives}`)] : []),
     ].join('');
 
     // Inventory — the pause screen's primary pane. Weapons render with the

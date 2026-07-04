@@ -13,8 +13,9 @@ import { snapshotRun, restoreRun } from '../src/game/runSave';
 import {
   legacyTokens, playerVersion, SHIP_BONUS_BITS_PER_REWRITE, SHIP_BONUS_XP_PER_REWRITE,
   PRESTIGE_NODES, PRESTIGE_NODE_BY_ID, nodeCost, nodeMaxRank, treePerks, NO_PERKS,
-  SEVERANCE_BITS, GAME_SPEEDS,
+  SEVERANCE_BITS, GAME_SPEEDS, DASH_DISTANCE, REVIVE_HP_FRAC, REVIVE_IFRAMES,
 } from '../src/data/prestige';
+import { effective } from '../src/game/combat';
 import { tokensOnRewrite, shipAvailable, shipRewrite } from '../src/save/prestige';
 import type { SaveData } from '../src/save/save';
 import { CHARACTERS } from '../src/data/characters';
@@ -203,6 +204,54 @@ function fakeSave(over: Partial<SaveData> = {}): SaveData {
   const noTree = fakeSave();
   shipRewrite(noTree);
   check('no tree: bits reset to 0, nothing kept', noTree.bits === 0 && Object.keys(noTree.metaLevels).length === 0);
+}
+
+// --- 9. actives: Dash / Restore Point / Sudo Mode (stage 3) ---
+{
+  const pool = [...new Set([...DEFAULT_WEAPON_POOL, CHARACTERS.ada.weapon])];
+  const mk = (tree: Record<string, number>) => new Run(CHARACTERS.ada, MAPS.greenfield, {}, pool,
+    new Set(), { noTerrain: true, perks: treePerks(tree) });
+
+  check('dash locked without the node', !mk({}).tryDash());
+  const d = mk({ dash: 1 });
+  check('dash fires when unlocked', d.tryDash());
+  check('dash sets cooldown, i-frames, travel window', d.dashCdT === 4 && d.iframeT > 0 && d.dashT > 0);
+  check('dash refuses while cooling down', !d.tryDash());
+  const x0 = d.px, y0 = d.py;
+  for (let i = 0; i < 20; i++) d.update(1 / 60);
+  const traveled = Math.hypot(d.px - x0, d.py - y0);
+  check(`dash covers ~${DASH_DISTANCE} units`, Math.abs(traveled - DASH_DISTANCE) < 12, traveled.toFixed(1));
+  const d2 = mk({ dash: 1 });
+  d2.tryDash();
+  d2.hurtPlayer(50);
+  check('dash i-frames absorb a hit completely', d2.hp === d2.stats.maxHp);
+
+  const r = mk({ restorePoint: 2 });
+  r.hurtPlayer(99999);
+  check('Restore Point converts death into a 50%-HP revive',
+    !r.over && r.revivesLeft === 1 && Math.abs(r.hp - r.stats.maxHp * REVIVE_HP_FRAC) < 1e-6);
+  check('revive grants the grace window', r.iframeT >= REVIVE_IFRAMES - 1e-9);
+  r.iframeT = 0; r.hurtPlayer(99999);
+  r.iframeT = 0; r.hurtPlayer(99999);
+  check('charges spent: the next death is final', r.over && r.revivesLeft === 0);
+
+  const s = mk({ sudo: 1 });
+  check('sudo fires once, then cools down', s.trySudo() && !s.trySudo());
+  check('sudo window + cooldown set', s.sudoT === 3 && s.sudoCdT === 75);
+  s.hurtPlayer(50);
+  check('sudo: invulnerable while active', s.hp === s.stats.maxHp);
+  const cdActive = effective(s, s.weapons[0]).cooldown;
+  s.sudoT = 0;
+  const cdIdle = effective(s, s.weapons[0]).cooldown;
+  check('sudo: +25% CDR while active', Math.abs(cdActive / cdIdle - 0.75) < 1e-9,
+    `${(cdActive / cdIdle).toFixed(3)}`);
+
+  const susp = mk({ dash: 1, sudo: 1, restorePoint: 2 });
+  susp.tryDash(); susp.trySudo();
+  susp.revivesLeft = 1; // one spent
+  const restored = restoreRun(JSON.parse(JSON.stringify(snapshotRun(susp))), new Set());
+  check('resume keeps active cooldowns + spent revive charges',
+    restored.dashCdT > 0 && restored.sudoCdT > 0 && restored.revivesLeft === 1);
 }
 
 console.log(failures === 0 ? '\nALL CHECKS PASSED' : `\n${failures} CHECK(S) FAILED`);

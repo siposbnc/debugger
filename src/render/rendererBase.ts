@@ -321,6 +321,33 @@ export abstract class RendererBase {
         this.banner('THAWED', 'it is vulnerable — strike now', '#b8ffc9', 2.5);
         this.rings.push({ x: ev.x, y: ev.y, radius: 90, t: 0, dur: 0.5, color: '#b8ffc9' });
         break;
+      case 'dash':
+        // exhaust puff at the launch point — the burst itself reads through motion
+        for (let i = 0; i < 8; i++) {
+          this.spawnParticle({
+            x: ev.x + rand(-8, 8), y: ev.y + rand(-8, 8), z: 6,
+            vx: rand(-60, 60), vy: rand(-60, 60), vz: rand(20, 90),
+            life: rand(0.15, 0.35), maxLife: 0.35, color: '#7df9ff', size: rand(2, 4),
+          });
+        }
+        break;
+      case 'sudo':
+        this.banner('# SUDO MODE', `root privileges for ${ev.duration}s — nothing can touch you`, '#ffc12e', 2);
+        this.flash = 0.25;
+        break;
+      case 'revive':
+        this.banner('⏪ RESTORE POINT', 'reverted to last known good state', '#41d97f', 3);
+        this.rings.push({ x: ev.x, y: ev.y, radius: 120, t: 0, dur: 0.6, color: '#41d97f' });
+        this.shake(6);
+        for (let i = 0; i < 24; i++) {
+          this.spawnParticle({
+            x: ev.x, y: ev.y, z: 10,
+            vx: rand(-180, 180), vy: rand(-180, 180), vz: rand(60, 260),
+            life: rand(0.4, 0.8), maxLife: 0.8,
+            color: Math.random() < 0.5 ? '#41d97f' : '#7df9ff', size: rand(2, 5),
+          });
+        }
+        break;
       case 'bossDie':
         this.banner('BUG RESOLVED', `${ev.name} — closed as fixed`, '#41d97f', 3);
         this.rewindMark = null; // loop terminated: a pending rewind dies with it
@@ -886,6 +913,44 @@ export abstract class RendererBase {
       ctx.strokeStyle = 'rgba(95, 215, 255, 0.5)';
       ctx.strokeRect(pad + 0.5, sy + 0.5, hpW, shieldH);
     }
+
+    // prestige active pips (Dash / Sudo / Restore Point) right of the HP bar:
+    // box fills bottom-up while cooling, bright border when ready, gold while
+    // Sudo's window runs. Only drawn once the tree actually unlocks them.
+    let px = pad + hpW + 10;
+    const pip = (icon: string, cdLeft: number, cdMax: number, activeT: number): void => {
+      const y = hpY - 8;
+      ctx.fillStyle = 'rgba(8, 12, 18, 0.8)';
+      ctx.fillRect(px, y, 30, 30);
+      const ready = cdLeft <= 0;
+      if (!ready) {
+        ctx.fillStyle = 'rgba(125, 249, 255, 0.18)';
+        const frac = clamp(1 - cdLeft / cdMax, 0, 1);
+        ctx.fillRect(px, y + 30 * (1 - frac), 30, 30 * frac);
+      }
+      ctx.strokeStyle = activeT > 0 ? '#ffc12e' : ready ? '#7df9ff' : 'rgba(125, 249, 255, 0.35)';
+      ctx.lineWidth = 1;
+      ctx.strokeRect(px + 0.5, y + 0.5, 30, 30);
+      ctx.textAlign = 'center';
+      ctx.font = '18px VT323, monospace';
+      ctx.fillStyle = activeT > 0 ? '#ffc12e' : ready ? '#dff1ff' : 'rgba(223, 241, 255, 0.45)';
+      ctx.fillText(icon, px + 15, y + 20);
+      if (!ready || activeT > 0) {
+        ctx.font = '12px VT323, monospace';
+        ctx.fillStyle = activeT > 0 ? '#ffc12e' : 'rgba(223, 241, 255, 0.7)';
+        ctx.fillText(activeT > 0 ? activeT.toFixed(1) : `${Math.ceil(cdLeft)}`, px + 15, y + 29);
+      }
+      px += 36;
+    };
+    if (run.perks.dash) pip('💨', run.dashCdT, run.perks.dash.cooldown, 0);
+    if (run.perks.sudo) pip('🔑', run.sudoCdT, run.perks.sudo.cooldown, run.sudoT);
+    if (run.perks.revives > 0) {
+      ctx.textAlign = 'left';
+      ctx.font = '17px VT323, monospace';
+      ctx.fillStyle = run.revivesLeft > 0 ? '#41d97f' : 'rgba(223, 241, 255, 0.35)';
+      ctx.fillText(`⏪ ×${run.revivesLeft}`, px, hpY + 14);
+    }
+    ctx.textAlign = 'left';
 
     // weapons row above HP bar (and the shield strip when present)
     let wx = pad;
