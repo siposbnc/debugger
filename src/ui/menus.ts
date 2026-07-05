@@ -392,6 +392,11 @@ export class UI {
     const KIND_TAG = { M: 'MECHANIC', K: 'KEEP', E: 'ECONOMY' } as const;
     const tree = this.save.tree;
 
+    // Compact graph nodes (user feedback 2026-07-05): icon + rank pips only;
+    // everything else lives in a tooltip shown on hover AND on kb/pad focus
+    // (.kb-focus), so keyboard and gamepad players can read the tree too.
+    // The whole node is one non-disabled <button> — kbnav needs locked/maxed
+    // nodes focusable (readable), so refusal happens in the click handler.
     const nodeHtml = (n: PrestigeNodeDef): string => {
       const rank = tree[n.id] ?? 0;
       const max = nodeMaxRank(n);
@@ -402,19 +407,25 @@ export class UI {
       // finite nodes rank up on pips; the repeatable tail shows its counter
       const pips = Number.isFinite(max)
         ? Array.from({ length: max }, (_, i) => `<span class="pip ${i < rank ? 'on' : ''}"></span>`).join('')
-        : `<span class="tn-inf">rank ${rank} · ∞</span>`;
+        : `<span class="tn-inf">×${rank}</span>`;
+      const rankLabel = Number.isFinite(max) ? `rank ${rank}/${max}` : `rank ${rank} · ∞`;
+      const status = maxed ? 'MAXED OUT'
+        : !open ? `🔒 needs ${PRESTIGE_NODE_BY_ID[n.requires!].name}`
+        : `${rank > 0 ? 'rank up' : 'unlock'}: ${cost} ⟲${afford ? '' : ' — not enough tokens'}`;
       return `
-        <div class="tree-node ${!open ? 'locked' : maxed ? 'maxed' : afford ? 'can-buy' : ''}" data-node="${n.id}">
-          <div class="tn-head"><span class="tn-icon">${n.icon}</span><span class="tn-name">${n.name}</span></div>
-          <div class="tn-kind">${KIND_TAG[n.kind]}${maxed ? ' · MAXED' : ''}</div>
-          <div class="tn-pips">${pips}</div>
-          <p class="tn-desc">${n.desc}</p>
-          <div class="tn-flavor">${n.flavor}</div>
-          ${!open ? `<div class="tn-req">needs ${PRESTIGE_NODE_BY_ID[n.requires!].name}</div>` : ''}
-          <button class="btn small" data-node-buy="${n.id}" ${afford ? '' : 'disabled'}>
-            ${maxed ? 'MAX' : !open ? '🔒' : `${rank > 0 ? 'RANK UP' : 'UNLOCK'} · ${cost} ⟲`}
-          </button>
-        </div>`;
+        <button class="tree-node ${!open ? 'locked' : maxed ? 'maxed' : afford ? 'can-buy' : ''}"
+                data-id="${n.id}" data-node="${n.id}" data-node-buy="${n.id}" aria-label="${n.name}">
+          <span class="tn-icon">${n.icon}</span>
+          <span class="tn-pips">${pips}</span>
+          ${!open ? '<span class="tn-lock">🔒</span>' : ''}
+          <span class="tn-tip">
+            <b>${n.name}</b>
+            <span class="tt-kind">${KIND_TAG[n.kind]} · ${rankLabel}</span>
+            <span class="tt-desc">${n.desc}</span>
+            <em class="tt-flavor">${n.flavor}</em>
+            <span class="tt-status ${afford ? 'ok' : ''}">${status}</span>
+          </span>
+        </button>`;
     };
 
     // Breadth-first levels per branch: roots first, then the children of the
