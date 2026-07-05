@@ -12,7 +12,7 @@ import { Run } from '../src/game/run';
 import { snapshotRun, restoreRun } from '../src/game/runSave';
 import {
   legacyTokens, playerVersion, SHIP_BONUS_BITS_PER_REWRITE, SHIP_BONUS_XP_PER_REWRITE,
-  PRESTIGE_NODES, PRESTIGE_NODE_BY_ID, nodeCost, nodeMaxRank, treePerks, NO_PERKS,
+  PRESTIGE_NODES, PRESTIGE_NODE_BY_ID, nodeCost, nodeMaxRank, nodeAvailable, treePerks, NO_PERKS,
   SEVERANCE_BITS, GAME_SPEEDS, DASH_DISTANCE, REVIVE_HP_FRAC, REVIVE_IFRAMES,
 } from '../src/data/prestige';
 import { effective } from '../src/game/combat';
@@ -123,6 +123,24 @@ function fakeSave(over: Partial<SaveData> = {}): SaveData {
   const finiteTotal = PRESTIGE_NODES.reduce((a, n) => a + n.costs.reduce((x, y) => x + y, 0), 0);
   check('finite stage-2/3 tree costs ~290 (§8 ~330 incl. stage-4 levers)',
     finiteTotal >= 260 && finiteTotal <= 310, `${finiteTotal}`);
+}
+
+// --- 5b. tree gating (user ruling 2026-07-05: binary tree, parent unlocks child) ---
+{
+  const roots = PRESTIGE_NODES.filter((n) => !n.requires);
+  check('each branch has exactly one root',
+    (['momentum', 'skills', 'leverage'] as const).every((b) => roots.filter((r) => r.branch === b).length === 1));
+  check('every requires edge exists and stays inside its branch',
+    PRESTIGE_NODES.every((n) => !n.requires
+      || (!!PRESTIGE_NODE_BY_ID[n.requires] && PRESTIGE_NODE_BY_ID[n.requires].branch === n.branch)));
+  check('binary tree: no node has more than 2 children',
+    PRESTIGE_NODES.every((p) => PRESTIGE_NODES.filter((c) => c.requires === p.id).length <= 2));
+  check('roots open on an empty tree', roots.every((r) => nodeAvailable(r, {})));
+  check('children gated until the parent has a rank',
+    !nodeAvailable(PRESTIGE_NODE_BY_ID['sudo'], {}) && nodeAvailable(PRESTIGE_NODE_BY_ID['sudo'], { dash: 1 }));
+  check('grandchild needs its own parent, not just the branch root',
+    !nodeAvailable(PRESTIGE_NODE_BY_ID['persistentConfig'], { warmBoot: 3 })
+    && nodeAvailable(PRESTIGE_NODE_BY_ID['persistentConfig'], { severance: 1 }));
 }
 
 // --- 6. treePerks resolution (stage 2) ---

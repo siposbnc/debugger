@@ -5,8 +5,8 @@ import { MAP_LIST, MAPS } from '../data/maps';
 import { CURSES, CURSE_LIST } from '../data/curses';
 import {
   playerVersion, SHIP_BONUS_BITS_PER_REWRITE, SHIP_BONUS_XP_PER_REWRITE,
-  PRESTIGE_NODES, PRESTIGE_NODE_BY_ID, nodeCost, nodeMaxRank, treePerks, GAME_SPEEDS,
-  type PrestigeBranch,
+  PRESTIGE_NODES, PRESTIGE_NODE_BY_ID, nodeCost, nodeMaxRank, nodeAvailable, treePerks, GAME_SPEEDS,
+  type PrestigeBranch, type PrestigeNodeDef,
 } from '../data/prestige';
 import { shipAvailable, shipRewrite, tokensOnRewrite, type RewriteReceipt } from '../save/prestige';
 import { META_UPGRADES, metaCost } from '../data/meta';
@@ -384,54 +384,116 @@ export class UI {
   // ---------- prestige: the Legacy Tree (docs/PRESTIGE.md §5) ----------
 
   showTree(): void {
-    const BRANCHES: { id: PrestigeBranch; title: string; sub: string }[] = [
-      { id: 'momentum', title: '~/momentum', sub: 'hit the ground running' },
-      { id: 'skills', title: '~/skills', sub: 'the active-input layer' },
-      { id: 'leverage', title: '~/leverage', sub: 'economy & the long game' },
+    const BRANCHES: { id: PrestigeBranch; title: string; sub: string; color: string }[] = [
+      { id: 'momentum', title: '~/momentum', sub: 'hit the ground running', color: '#41d97f' },
+      { id: 'skills', title: '~/skills', sub: 'the active-input layer', color: '#7df9ff' },
+      { id: 'leverage', title: '~/leverage', sub: 'economy & the long game', color: '#ffc12e' },
     ];
     const KIND_TAG = { M: 'MECHANIC', K: 'KEEP', E: 'ECONOMY' } as const;
-    const panels = BRANCHES.map((b) => {
-      const rows = PRESTIGE_NODES.filter((n) => n.branch === b.id).map((n) => {
-        const rank = this.save.tree[n.id] ?? 0;
-        const max = nodeMaxRank(n);
-        const cost = nodeCost(n, rank);
-        const maxed = cost === null;
-        // finite nodes rank up on pips like the shop; the repeatable tail
-        // shows its rank counter instead (∞ has no pips to fill)
-        const pips = Number.isFinite(max)
-          ? `<div class="pips">${Array.from({ length: max }, (_, i) =>
-              `<span class="pip ${i < rank ? 'on' : ''}"></span>`).join('')}</div>`
-          : `<div class="pips"><span class="obj-count">×${rank} · ∞</span></div>`;
-        return `
-        <div class="shop-row">
-          <div class="icon">${n.icon}</div>
-          <div class="info"><h4>${n.name} <span class="codex-tag">${KIND_TAG[n.kind]}</span></h4><p>${n.desc} <em>${n.flavor}</em></p></div>
-          ${pips}
-          <button class="btn small" data-node="${n.id}" ${maxed || this.save.legacyTokens < (cost ?? 0) ? 'disabled' : ''}>
-            ${maxed ? 'MAX' : `${cost} ⟲`}
+    const tree = this.save.tree;
+
+    const nodeHtml = (n: PrestigeNodeDef): string => {
+      const rank = tree[n.id] ?? 0;
+      const max = nodeMaxRank(n);
+      const cost = nodeCost(n, rank);
+      const maxed = cost === null;
+      const open = nodeAvailable(n, tree);
+      const afford = open && !maxed && this.save.legacyTokens >= (cost ?? 0);
+      // finite nodes rank up on pips; the repeatable tail shows its counter
+      const pips = Number.isFinite(max)
+        ? Array.from({ length: max }, (_, i) => `<span class="pip ${i < rank ? 'on' : ''}"></span>`).join('')
+        : `<span class="tn-inf">rank ${rank} · ∞</span>`;
+      return `
+        <div class="tree-node ${!open ? 'locked' : maxed ? 'maxed' : afford ? 'can-buy' : ''}" data-node="${n.id}">
+          <div class="tn-head"><span class="tn-icon">${n.icon}</span><span class="tn-name">${n.name}</span></div>
+          <div class="tn-kind">${KIND_TAG[n.kind]}${maxed ? ' · MAXED' : ''}</div>
+          <div class="tn-pips">${pips}</div>
+          <p class="tn-desc">${n.desc}</p>
+          <div class="tn-flavor">${n.flavor}</div>
+          ${!open ? `<div class="tn-req">needs ${PRESTIGE_NODE_BY_ID[n.requires!].name}</div>` : ''}
+          <button class="btn small" data-node-buy="${n.id}" ${afford ? '' : 'disabled'}>
+            ${maxed ? 'MAX' : !open ? '🔒' : `${rank > 0 ? 'RANK UP' : 'UNLOCK'} · ${cost} ⟲`}
           </button>
         </div>`;
-      }).join('');
-      return `<div class="codex-panel"><h3>${b.title} <span class="obj-count">${b.sub}</span></h3>${rows}</div>`;
+    };
+
+    // Breadth-first levels per branch: roots first, then the children of the
+    // nodes already placed — the graph rows the SVG connectors run between.
+    const panels = BRANCHES.map((b) => {
+      const nodes = PRESTIGE_NODES.filter((n) => n.branch === b.id);
+      const levels: PrestigeNodeDef[][] = [];
+      let cur = nodes.filter((n) => !n.requires);
+      while (cur.length > 0) {
+        levels.push(cur);
+        const placed = cur;
+        cur = nodes.filter((n) => placed.some((p) => p.id === n.requires));
+      }
+      const rows = levels.map((lv) => `<div class="tree-level">${lv.map(nodeHtml).join('')}</div>`).join('');
+      return `
+        <div class="tree-branch" style="--accent:${b.color}">
+          <h3>${b.title}</h3>
+          <div class="branch-sub">${b.sub}</div>
+          <svg class="tree-links" aria-hidden="true"></svg>
+          ${rows}
+        </div>`;
     }).join('');
+
     const s = this.screen(`
       <div class="screen-heading">the legacy tree — what the old codebase taught you</div>
       <div class="bits-display">⟲ ${this.save.legacyTokens} legacy tokens · you: ${playerVersion(this.save.rewrites)}</div>
-      <div class="codex-cols">${panels}</div>
+      <div class="tree-cols">${panels}</div>
       <button class="btn" data-act="back">BACK</button>
     `, () => this.showMainMenu());
+
+    // Connectors: elbow paths from each parent's bottom edge to its child's
+    // top edge, drawn into the branch's SVG underlay. Solid accent = child
+    // owned, faint accent = reachable, dashed grey = still locked. The
+    // ResizeObserver fires once on observe (initial draw, post-layout) and
+    // again whenever the screen resizes, so the lines stay glued to the nodes.
+    const drawLinks = (): void => {
+      for (const panel of Array.from(s.querySelectorAll<HTMLElement>('.tree-branch'))) {
+        const svg = panel.querySelector('.tree-links')!;
+        const pr = panel.getBoundingClientRect();
+        if (pr.width === 0) continue;
+        let paths = '';
+        for (const el of Array.from(panel.querySelectorAll<HTMLElement>('.tree-node'))) {
+          const def = PRESTIGE_NODE_BY_ID[el.dataset.node!];
+          if (!def?.requires) continue;
+          const parentEl = panel.querySelector<HTMLElement>(`.tree-node[data-node="${def.requires}"]`);
+          if (!parentEl) continue;
+          const a = parentEl.getBoundingClientRect();
+          const c = el.getBoundingClientRect();
+          const x1 = a.left + a.width / 2 - pr.left, y1 = a.bottom - pr.top;
+          const x2 = c.left + c.width / 2 - pr.left, y2 = c.top - pr.top;
+          const my = (y1 + y2) / 2;
+          const owned = (tree[def.id] ?? 0) > 0;
+          const reachable = (tree[def.requires] ?? 0) > 0;
+          const stroke = owned ? 'var(--accent)'
+            : reachable ? 'color-mix(in srgb, var(--accent) 45%, transparent)'
+            : 'rgba(140, 160, 180, 0.3)';
+          paths += `<path d="M ${x1} ${y1} L ${x1} ${my} L ${x2} ${my} L ${x2} ${y2}"`
+            + ` fill="none" style="stroke:${stroke}" stroke-width="2"${owned ? '' : ' stroke-dasharray="5 4"'}/>`;
+        }
+        svg.setAttribute('viewBox', `0 0 ${pr.width} ${pr.height}`);
+        svg.innerHTML = paths;
+      }
+    };
+    new ResizeObserver(drawLinks).observe(s);
+
     s.addEventListener('click', (e) => {
       const btn = (e.target as HTMLElement).closest('button');
       if (!btn) return;
       if (btn.dataset.act === 'back') { this.showMainMenu(); return; }
-      const id = btn.dataset.node;
+      const id = btn.dataset.nodeBuy;
       if (!id) return;
       const def = PRESTIGE_NODE_BY_ID[id];
-      const rank = this.save.tree[id] ?? 0;
-      const cost = nodeCost(def, rank);
-      if (cost === null || this.save.legacyTokens < cost) { sound.play('hurt'); return; }
+      const cost = nodeCost(def, tree[id] ?? 0);
+      if (!nodeAvailable(def, tree) || cost === null || this.save.legacyTokens < cost) {
+        sound.play('hurt');
+        return;
+      }
       this.save.legacyTokens -= cost;
-      this.save.tree[id] = rank + 1;
+      tree[id] = (tree[id] ?? 0) + 1;
       this.persist();
       this.onSettingsChanged(); // Time Dilation ranks re-clamp the speed setting
       sound.play('buy');

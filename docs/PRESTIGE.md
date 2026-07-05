@@ -84,6 +84,15 @@ one-time ⌬ bonuses don't re-pay, which the Ship Bonus (§6) more than covers.
 Three branches, ~20 nodes, ~300 tokens to complete (≈ 6–9 rewrites). Nodes are typed:
 **[M]** new mechanic, **[K]** keep/compression, **[E]** economy. Costs in ⟲.
 
+**Unlock gating (user ruling 2026-07-05)**: the tree renders as a node *graph*; each
+branch is a **binary tree** — a node opens once its parent has ≥ 1 rank (branch roots
+are always open). Current edges: Warm Boot → {Severance Package, Preflight Check},
+Severance Package → Persistent Config; Dash Module → {Restore Point, Sudo Mode};
+Compound Interest → {Continuous Learning, Time Dilation}. The stage-4 endgame levers
+slot in as deeper children when they land (proposal: Deployment Tiers under Time
+Dilation, Over-Cap Shop under Continuous Learning, Overclocked Cooling / Critical
+Path under the Skills leaves).
+
 ### A. Momentum — "hit the ground running" (the anti-tedium branch)
 | Node | Ranks | Cost | Effect |
 |---|---|---|---|

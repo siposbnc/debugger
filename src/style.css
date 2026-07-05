@@ -430,6 +430,53 @@ html, body {
 .shop-row.locked .glitch-text { letter-spacing: 1px; }
 .unlock-hint { font-size: 10px; color: var(--gold); margin-top: 6px; letter-spacing: 0.06em; }
 
+/* ---------- prestige: the legacy tree (node graph) ---------- */
+
+.tree-cols { display: flex; gap: 24px; flex-wrap: wrap; justify-content: center; align-items: stretch; width: min(1400px, 97vw); }
+.tree-branch {
+  position: relative;
+  flex: 1 1 360px; max-width: 460px;
+  background: var(--panel); border: 1px solid var(--line);
+  padding: 18px 18px 24px;
+}
+.tree-branch h3 { font-family: var(--font-display); font-size: 26px; color: var(--accent, var(--cyan)); font-weight: 400; }
+.tree-branch .branch-sub { font-size: 12px; color: var(--dim); margin-bottom: 18px; }
+/* connector underlay — nodes float above it on their own stacking level */
+.tree-links { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+.tree-level { position: relative; z-index: 1; display: flex; gap: 16px; justify-content: center; align-items: stretch; }
+.tree-level + .tree-level { margin-top: 36px; }
+.tree-level > .tree-node { flex: 1 1 0; min-width: 0; }
+.tree-level > .tree-node:only-child { max-width: 76%; }
+.tree-node {
+  background: rgba(10, 16, 24, 0.92); border: 1px solid var(--line);
+  padding: 12px 13px 13px;
+  display: flex; flex-direction: column; align-items: center; gap: 5px;
+  text-align: center;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.tree-node .tn-head { display: flex; align-items: center; gap: 8px; min-height: 28px; }
+.tree-node .tn-icon { font-size: 22px; }
+.tree-node .tn-name { font-family: var(--font-display); font-size: 20px; color: var(--text); line-height: 1.05; }
+.tree-node .tn-kind { font-size: 9px; letter-spacing: 0.2em; color: var(--accent, var(--cyan)); opacity: 0.85; }
+.tree-node .tn-pips { display: flex; gap: 4px; justify-content: center; min-height: 14px; align-items: center; }
+.tree-node .pip { width: 11px; height: 11px; border: 1px solid var(--line); transform: rotate(45deg); }
+.tree-node .pip.on {
+  background: var(--accent, var(--green)); border-color: var(--accent, var(--green));
+  box-shadow: 0 0 6px color-mix(in srgb, var(--accent, var(--green)) 60%, transparent);
+}
+.tree-node .tn-inf { font-size: 12px; color: var(--gold); }
+.tree-node .tn-desc { font-size: 12px; color: var(--dim); line-height: 1.4; flex: 1; }
+.tree-node .tn-flavor { font-size: 11px; font-style: italic; color: var(--dim); opacity: 0.7; }
+.tree-node .tn-req { font-size: 10px; letter-spacing: 0.08em; color: var(--gold); }
+.tree-node .btn.small { width: 100%; margin-top: 5px; white-space: nowrap; }
+.tree-node.can-buy {
+  border-color: var(--accent, var(--cyan));
+  box-shadow: 0 0 14px color-mix(in srgb, var(--accent, var(--cyan)) 22%, transparent);
+}
+.tree-node.maxed { border-color: color-mix(in srgb, var(--accent, var(--cyan)) 55%, transparent); }
+/* gated: parent unranked — dimmed but fully readable (plan-ahead UI, not a discovery mechanic) */
+.tree-node.locked { opacity: 0.45; filter: saturate(0.4); }
+
 /* ---------- what's new (patch notes) ---------- */
 
 .notes-col { display: flex; flex-direction: column; gap: 18px; width: min(680px, 92vw); }

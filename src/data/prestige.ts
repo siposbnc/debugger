@@ -60,6 +60,9 @@ export interface PrestigeNodeDef {
   costs: number[];
   /** Infinite-tail pricing: cost(rank) = base + perRank × rank. */
   repeat?: { base: number; perRank: number };
+  /** Parent node id (user ruling 2026-07-05): each branch is a binary tree —
+   *  a node unlocks once its parent has ≥ 1 rank. Absent = branch root. */
+  requires?: string;
 }
 
 // Severance Package: starting Bits per rank (0 = no ranks).
@@ -101,18 +104,21 @@ export const PRESTIGE_NODES: PrestigeNodeDef[] = [
     desc: 'Each new cycle starts with 500/1,500/3,000 Bits per rank.',
     flavor: 'thank you for your service. here is a small allocation.',
     costs: [5, 10, 20],
+    requires: 'warmBoot',
   },
   {
     id: 'persistentConfig', name: 'Persistent Config', icon: '💾', branch: 'momentum', kind: 'K',
     desc: 'Keep 1/2/3 chosen meta upgrades\' levels through every Rewrite (chosen at SHIP IT).',
     flavor: 'dotfiles survive everything.',
     costs: [12, 18, 25],
+    requires: 'severance',
   },
   {
     id: 'preflight', name: 'Preflight Check', icon: '🛫', branch: 'momentum', kind: 'K',
     desc: 'Weapon evolutions become available at weapon level 7 instead of 8. The boss chest is still required.',
     flavor: 'the checklist was the bottleneck all along.',
     costs: [10],
+    requires: 'warmBoot',
   },
   // ---- B. Skills — the active-input layer ----
   {
@@ -126,12 +132,14 @@ export const PRESTIGE_NODES: PrestigeNodeDef[] = [
     desc: 'Revive on death at 50% HP with 2s of invulnerability and a magnet burst. Ranks = 1/2/3 revives per run.',
     flavor: 'have you tried turning yourself off and on again?',
     costs: [15, 20, 30],
+    requires: 'dash',
   },
   {
     id: 'sudo', name: 'Sudo Mode', icon: '🔑', branch: 'skills', kind: 'M',
     desc: 'Unlock Sudo Mode (Shift / pad Y): 3s of invulnerability, +50% damage and +25% cooldown reduction, 75s cooldown. Rank 2: +1s duration. Rank 3: −15s cooldown.',
     flavor: 'with great privileges comes great blast radius.',
     costs: [15, 10, 10],
+    requires: 'dash',
   },
   // ---- C. Leverage — economy & the repeatable tail ----
   {
@@ -145,12 +153,14 @@ export const PRESTIGE_NODES: PrestigeNodeDef[] = [
     desc: '+3% XP per rank. No rank cap.',
     flavor: 'CI/CD: continuous introspection, continuous development.',
     costs: [], repeat: { base: 5, perRank: 2 },
+    requires: 'compoundInterest',
   },
   {
     id: 'timeDilation', name: 'Time Dilation', icon: '⏩', branch: 'leverage', kind: 'E',
     desc: 'Unlock a 1.25× game-speed toggle; rank 2 adds 1.5×. Set it in Settings.',
     flavor: 'the sprint was always a time-compression exercise.',
     costs: [6, 10],
+    requires: 'compoundInterest',
   },
 ];
 
@@ -166,6 +176,12 @@ export function nodeCost(def: PrestigeNodeDef, currentRank: number): number | nu
 /** A node's rank cap (Infinity for the repeatable tail). */
 export function nodeMaxRank(def: PrestigeNodeDef): number {
   return def.repeat ? Infinity : def.costs.length;
+}
+
+/** Is a node open for spending? Branch roots always are; a child unlocks once
+ *  its parent has at least one rank (user ruling 2026-07-05). */
+export function nodeAvailable(def: PrestigeNodeDef, tree: Record<string, number>): boolean {
+  return !def.requires || (tree[def.requires] ?? 0) > 0;
 }
 
 /** The tree resolved into flat perks — the only prestige shape src/game/,
