@@ -445,9 +445,9 @@ html, body {
 .tree-links { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
 .tree-level { position: relative; z-index: 1; display: flex; gap: 30px; justify-content: center; align-items: flex-start; }
 .tree-level + .tree-level { margin-top: 42px; }
-/* a level owning the hovered/focused node lifts above the sticky BACK button
-   (z 5) and the levels below, so its tooltip is never painted under either */
-.tree-level:has(.tree-node:hover), .tree-level:has(.tree-node.kb-focus) { z-index: 40; }
+/* a level owning the hovered node lifts above the sticky BACK button (z 5)
+   and the levels below, so its tooltip is never painted under either */
+.tree-level:has(.tree-node:hover) { z-index: 40; }
 /* compact node: icon + rank pips; the full record lives in the tooltip */
 .tree-node {
   position: relative;
@@ -479,7 +479,9 @@ html, body {
 .tree-node.locked { border-style: dashed; }
 .tree-node.locked .tn-icon, .tree-node.locked .tn-pips { opacity: 0.35; filter: saturate(0.3); }
 
-/* tooltip: the node's full record — hover (mouse) or .kb-focus (kbnav/gamepad) */
+/* tooltip: the node's full record — mouse hover only, so it clears the instant
+   the pointer leaves (kbnav marks a node .kb-focus on mouseover and keeps it,
+   which would otherwise leave the popup stuck open after the mouse moves off) */
 .tree-node .tn-tip {
   display: none;
   position: absolute; top: calc(100% + 12px); left: 50%; transform: translateX(-50%);
@@ -492,7 +494,7 @@ html, body {
   pointer-events: none;
   cursor: default;
 }
-.tree-node:hover .tn-tip, .tree-node.kb-focus .tn-tip { display: flex; flex-direction: column; gap: 5px; }
+.tree-node:hover .tn-tip { display: flex; flex-direction: column; gap: 5px; }
 .tn-tip b { font-family: var(--font-display); font-size: 19px; font-weight: 400; color: var(--accent, var(--text)); }
 .tn-tip .tt-kind { font-size: 9px; letter-spacing: 0.2em; color: var(--accent, var(--cyan)); opacity: 0.85; }
 .tn-tip .tt-desc { font-size: 12px; color: var(--text); line-height: 1.45; }
